@@ -42,8 +42,13 @@ layer. (One-paragraph version; the full story is [`docs/01-VISION.md`](docs/01-V
 docs/        the documentation (start at 00-README.md)
 board/       the backlog as cards (features F-, stories F-..-S-, tasks T-)
 examples/    demo vaults (e.g. recipe-box) — also where the per-vault AGENTS.md lives
-src/         the app (added by T-001): core/ (pure), sources/ (I/O adapter), ui/ (Angular)
+apps/        the apps: web/ (Angular), later dev-server/, desktop/, mcp/, vscode/
+packages/    shared packages: core/ (pure TS) — added as needed
+scripts/     repo scripts (e.g. validate-vault.mjs)
 ```
+
+This is a Bun-workspaces monorepo run by Turbo (ADR-008). The pure `packages/core` is the
+shared logic; I/O lives in the apps.
 
 ## Code & workflow conventions
 
@@ -54,9 +59,24 @@ src/         the app (added by T-001): core/ (pure), sources/ (I/O adapter), ui/
   See [`docs/11-RELEASING.md`](docs/11-RELEASING.md).
 - Spec/card/ADR style: [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md).
 
+## Nested guidance (scoped instructions)
+
+Some folders carry their own `AGENTS.md` for context-specific rules; use the nearest one
+in addition to this file:
+
+- [`apps/web/AGENTS.md`](apps/web/AGENTS.md) — Angular/TypeScript conventions when working
+  in the web app (shipped by the Angular CLI).
+- [`examples/recipe-box/AGENTS.md`](examples/recipe-box/AGENTS.md) — what a standalone user
+  vault's agent guide looks like.
+
+`AGENTS.md` is the single source of truth at each level. The sibling `CLAUDE.md` and
+`.github/copilot-instructions.md` files do not duplicate it — they import it (Claude's
+`@import`) or instruct the tool to read it.
+
 ## Managing this repo's backlog
 
 Because this repo is also a vault, you may be asked to add or update **cards** in
 `board/`. The rules (frontmatter only, never rewrite prose, allowed types/states) are in
-[`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). For what a standalone user vault's
-agent guide looks like, see [`examples/recipe-box/AGENTS.md`](examples/recipe-box/AGENTS.md).
+[`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). After changing cards, run
+`bun run validate` (or `node scripts/validate-vault.mjs`) to confirm every card still maps
+to a column and parents resolve — it's the cheap check that the board renders as intended.
