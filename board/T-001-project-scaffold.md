@@ -2,7 +2,7 @@
 id: T-001
 type: task
 title: Monorepo scaffold (Bun workspaces + Turbo, Angular 22 app)
-status: In Progress
+status: Done
 phase: MVP
 priority: P0
 owner: mozart

@@ -18,6 +18,8 @@ chosen for a solo developer's velocity first, with an eye on the open-source fut
 | Monorepo | **Bun workspaces + Turbo** | The pure `core` is shared by the app, a future MCP server, and a VS Code extension — a real multi-package setup. Turbo orchestrates build/lint/test/dev across packages with caching, while staying out of the way. (Nx rejected — it wraps `angular.json` and the CLI; see ADR-008.) |
 | Tests | **Vitest** | Runs against the pure `core` with in-memory fixtures; component tests use Angular's harness. |
 | Lint / format | **ESLint (angular-eslint) + Prettier** | angular-eslint covers template rules that an all-in-one formatter doesn't. |
+| Icons | **Tabler** | One consistent, MIT-licensed SVG set; clean developer-tool look, no mixing of icon libraries. (ADR-009, set up in T-006.) |
+| Typography | **Inter + JetBrains Mono**, self-hosted via **Fontsource** | Inter for UI, JetBrains Mono for code/ids; self-hosted (offline, no CDN/FOUT), wired as Tailwind `--font-*` tokens so a future font picker is cheap. (ADR-009.) |
 | Desktop packaging | **Tauri** (later) | Small native binary, low memory, native filesystem access and file watching — better than Electron for a local-first dev tool. |
 
 ## Explicitly deferred

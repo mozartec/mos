@@ -141,3 +141,29 @@ tools that stay out of the way.
 deliverable; fast incremental builds via Turbo's cache. The cost is more setup in the
 scaffold task (T-001) and the few known gotchas of running the Angular CLI as a workspace
 package. Packages are created as needed, not pre-created empty, to avoid ceremony.
+
+## ADR-009 — Icons: Tabler; fonts: self-hosted Inter + JetBrains Mono via Fontsource
+
+**Status:** Accepted · **Date:** 2026-06-08
+
+**Context.** As the wiki and board lenses (F-003, F-004) take shape they need a consistent
+icon set and deliberate typography rather than ad-hoc glyphs and the system font stack. mos
+is a local-first developer tool: it must read well at small sizes and in dense layouts, and
+it shouldn't depend on a third-party font CDN at runtime (offline use, no FOUT, privacy). We
+also don't want to mix icon libraries.
+
+**Decision.** Use **Tabler icons** as the single icon set — a large, consistent, MIT-licensed
+SVG set that fits a clean developer-tool aesthetic. Use **Fontsource** to self-host two
+typefaces wired into the Tailwind v4 + daisyUI theme: **Inter** for UI text and **JetBrains
+Mono** for code, card ids, and other monospace contexts. Fonts are registered in
+`apps/web/src/styles.css` and exposed as `--font-sans` / `--font-mono` theme tokens (so
+`font-sans` / `font-mono` utilities resolve to them); only the weights actually used are
+bundled. Setup lives in T-006. Per-user font switching is explicitly a *later* option, not
+part of this decision — the tokenized setup makes it cheap to add when wanted.
+
+**Consequences.** One coherent visual foundation, fully self-hosted (works offline, no
+runtime CDN, no layout shift), with code and ids highly legible. Components reference theme
+tokens, not hardcoded font families, so swapping or adding a user-selectable font later is a
+token change, not a refactor. The cost is a small bundle for the bundled weights and the
+discipline of sticking to one icon set. If a future need arises (e.g. a user font picker or a
+heavier icon requirement), supersede this ADR rather than mixing sets ad hoc.
