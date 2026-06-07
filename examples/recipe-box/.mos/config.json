@@ -1,0 +1,29 @@
+{
+  "specVersion": "0.1",
+  "vault": { "name": "Recipe Box" },
+
+  "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"] },
+
+  "board": {
+    "include": ["board/**/*.md"],
+    "columns": ["Inbox", "Doing", "Shipped"],
+    "sortWithinColumn": ["priority", "id"]
+  },
+
+  "types": {
+    "feature": {
+      "label": "Feature",
+      "parent": null,
+      "states": { "Idea": "Inbox", "Building": "Doing", "Done": "Shipped", "Parked": null },
+      "card": { "fields": ["id", "priority", "owner"] }
+    },
+    "bug": {
+      "label": "Bug",
+      "parent": null,
+      "states": { "Reported": "Inbox", "Fixing": "Doing", "Fixed": "Shipped" },
+      "card": { "fields": ["id", "priority", "owner"] }
+    }
+  },
+
+  "sprints": []
+}

@@ -141,3 +141,15 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- mos project additions ---
+# Angular
+.angular/
+/tmp/
+# Bun
+bun.lockb
+# Tauri
+src-tauri/target/
+# Editor
+.idea/
+*.iml

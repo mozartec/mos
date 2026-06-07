@@ -1,0 +1,57 @@
+{
+  "specVersion": "0.1",
+  "vault": { "name": "Markdown on Steroids" },
+
+  "wiki": {
+    "include": ["**/*.md"],
+    "exclude": [".mos/**", "AGENTS.md", "node_modules/**", "examples/**", "dist/**", ".git/**"]
+  },
+
+  "board": {
+    "include": ["board/**/*.md"],
+    "columns": ["Backlog", "Planned", "In Progress", "Done"],
+    "sortWithinColumn": ["priority", "id"]
+  },
+
+  "types": {
+    "feature": {
+      "label": "Feature",
+      "parent": null,
+      "states": {
+        "Draft": "Backlog",
+        "Planned": "Planned",
+        "In Progress": "In Progress",
+        "Done": "Done",
+        "Deferred": null,
+        "Dropped": null
+      },
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint"] }
+    },
+    "story": {
+      "label": "Story",
+      "parent": "feature",
+      "states": {
+        "Todo": "Backlog",
+        "Planned": "Planned",
+        "In Progress": "In Progress",
+        "Blocked": "In Progress",
+        "Done": "Done"
+      },
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate"] }
+    },
+    "task": {
+      "label": "Task",
+      "parent": null,
+      "states": {
+        "Todo": "Backlog",
+        "Planned": "Planned",
+        "In Progress": "In Progress",
+        "Done": "Done",
+        "Deferred": null
+      },
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint"] }
+    }
+  },
+
+  "sprints": ["S1", "S2", "S3"]
+}

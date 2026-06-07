@@ -1,0 +1,87 @@
+# Decisions (ADRs)
+
+Architecture Decision Records. Append-only: to change a decision, add a new ADR that
+supersedes the old one and mark the old one `Superseded`.
+
+## ADR-001 — The markdown folder is the source of truth; no database
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Context.** mos manages a project plan that already exists as markdown. A database would
+duplicate that data and inevitably drift from the files.
+
+**Decision.** The folder of markdown is the single source of truth. mos holds only
+rebuildable cache and UI state (in `.mos/`), never authoritative data. Git provides
+history and audit for free.
+
+**Consequences.** Human-readable diffs; no sync layer; nothing to migrate. The cost is
+that all "queries" are computed by parsing files on load — fine at solo-dev scale.
+
+## ADR-002 — The app is read-only; writes happen in the agent layer
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Context.** Solo devs already create and change tasks by talking to an AI. Building an
+edit UI duplicates that and introduces the one genuinely risky operation — mutating files.
+
+**Decision.** The app only reads. Cards are created and updated by an AI assistant guided
+by the vault's `AGENTS.md`, and (later, optionally) by an MCP server that centralizes safe
+frontmatter writes. Edits touch frontmatter only, never prose.
+
+**Consequences.** The riskiest code is isolated and optional, not in the shipped app. The
+trade-off is that day-one users need an assistant to change the board. In-app editing
+remains a future option (ADR can be superseded).
+
+## ADR-003 — A card is folder scope + a recognized frontmatter `type`
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Context.** We need to tell board items apart from plain wiki docs, and we don't want to
+hardcode one project's naming (e.g. `F-`/`T-` prefixes).
+
+**Decision.** A file is a card when it's inside a configured board folder **and** declares
+a `type` defined in `.mos/config.json`. The type also defines the card's states, parent
+rule, and displayed fields — so "is this a card?" and "how does it behave?" are one
+mechanism. Identity is the `id`, not the path.
+
+**Consequences.** Robust to renames; not locked to any project's conventions; one config
+drives everything. A stray typed file in the board folder becomes a card, which we mitigate
+by reporting unrecognized files rather than hiding them.
+
+## ADR-004 — Two independent lenses: wiki and board
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Decision.** mos is a wiki (file viewer + navigation) and a board (Kanban), sharing one
+markdown renderer but otherwise independent. Neither requires the other.
+
+**Consequences.** Each lens is small and shippable on its own; the board is the MVP, the
+wiki is the reading surface behind it.
+
+## ADR-005 — Stack: Angular 22 + Tailwind + daisyUI, pure-TS core, Tauri later
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Context.** The maintainer is most productive in Angular (TypeScript/C#-minded). The
+app's heavy libraries (markdown parsing) are framework-agnostic, so the "React has more
+packages" argument barely applies, and the read-only board needs no drag-and-drop library.
+
+**Decision.** Angular 22, Tailwind, daisyUI for V1 styling (Zard and Angular Material
+deferred), Vitest, ESLint + Prettier, Bun. A pure-TypeScript `core` behind a `VaultSource`
+I/O adapter. Start as a local web app; package with Tauri afterward.
+
+**Consequences.** Fast solo velocity and an enjoyable build; the pure core stays reusable
+by a future VS Code extension and MCP server. If the project attracts contributors, the
+Angular pool is smaller than React's — accepted, since velocity-now outweighs hypothetical
+contributors.
+
+## ADR-006 — Start as a local web app, package with Tauri later
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Decision.** Build first as a web app (Angular dev server + a small Node filesystem
+server) so we can iterate on the views with no packaging. Add a Tauri build once the views
+are right, swapping only the `VaultSource` implementation.
+
+**Consequences.** Fastest path to looking at a real vault; no throwaway work because the
+UI and core are unchanged by the swap.
