@@ -85,3 +85,33 @@ are right, swapping only the `VaultSource` implementation.
 
 **Consequences.** Fastest path to looking at a real vault; no throwaway work because the
 UI and core are unchanged by the swap.
+
+## ADR-007 — The repository is the memory; cards target cold, any-model agents
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Context.** AI collaboration is productive in a long first session where context lives in
+the chat, but breaks in later sessions — especially in an editor on a cheaper model — that
+start with no memory. Relying on the agent to re-derive context is expensive and unreliable.
+
+**Decision.** Make the repository the durable memory and treat sessions as disposable.
+Concretely:
+
+- A root **`AGENTS.md`** is the single entry point for working in the project — a small map
+  that orients an agent and routes it to the right place. A **`CLAUDE.md`** stub points to
+  it for tools that don't read `AGENTS.md` natively.
+- A separate, self-contained **vault `AGENTS.md`** (shipped in every vault, e.g.
+  `examples/recipe-box/AGENTS.md`) tells agents how to manage that vault's cards. The two
+  files have distinct jobs: "how to build the project" vs "how to manage a vault."
+- Every backlog **card meets the cold-start standard** in
+  [`09-CONVENTIONS.md`](09-CONVENTIONS.md): a cold mid-tier agent can execute it from the
+  card plus its linked docs, with explicit context, constraints, plan, acceptance,
+  dependencies, and out-of-scope.
+- Context is **layered** (entry file → docs → card), so an agent reads only what its task
+  needs, bounding token cost and keeping cheaper models reliable.
+
+**Consequences.** Work becomes model- and session-agnostic; you can use a cheaper model for
+most tasks and reserve stronger models for genuinely ambiguous work. The cost is authoring
+discipline: cards take more effort to write to the ready standard, and `AGENTS.md` plus the
+docs must be kept current. This discipline is also a product principle — mos is, in part, a
+tool for working this way, and could later help author and validate ready cards.

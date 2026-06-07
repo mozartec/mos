@@ -76,3 +76,56 @@ change a decision, add a new ADR that supersedes the old one.
 - Don't duplicate content across docs — link instead.
 - Don't put decisions in feature cards — write an ADR and reference it.
 - Don't maintain a separate status table that duplicates the board; the cards are truth.
+
+## Card readiness (the cold-start standard)
+
+The point of this whole repo is that **the files are the memory**. A new AI session — on
+any model, including cheaper ones — should be able to land, read `AGENTS.md`, open a card,
+and execute it without prior context and without guessing. So:
+
+> **Definition of ready:** a card is ready to assign only when a cold mid-tier agent can
+> complete it from the card file plus the documents the card links. If it can't, the card
+> isn't ready — add the missing context, don't rely on the agent inferring it.
+
+This is the work-unit equivalent of "a story you can't estimate isn't specified enough."
+[`board/T-001`](../board/T-001-project-scaffold.md) is the reference example.
+
+### Expanded card template
+
+Beyond the frontmatter, a workable card body has these sections (skip ones that genuinely
+don't apply, e.g. a tiny fix):
+
+```markdown
+## Outcome
+One paragraph: what is true after this card is done that wasn't before.
+
+## Context — read before starting
+The exact docs/ADRs to read, each with a one-line why. Not "read the docs."
+
+## Constraints (must honor)
+The rules this card must not violate, one line each, with ADR links
+(pure core, read-only, config-driven, etc.).
+
+## Plan
+Concrete ordered steps — commands, target file/folder structure, decisions already made.
+
+## Acceptance
+A checkbox list that defines done.
+
+## Dependencies
+Depends on: … / Blocks: …
+
+## Out of scope
+What NOT to touch — this is where cold agents overreach.
+
+## References
+ADRs and docs.
+```
+
+### Why layered, not dumped
+
+Keep `AGENTS.md` small (a map), durable knowledge in `docs/`, and task-specific context in
+the card. A cold agent then reads the entry point plus only the few documents its card
+points to — never the whole history. That keeps cheaper models on-rails and keeps token
+cost bounded. The information architecture mirrors the code architecture: a small entry,
+pure references.
