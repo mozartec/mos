@@ -1,9 +1,6 @@
 # CLAUDE.md
 
-This project uses **AGENTS.md** as the single source of truth for AI agent instructions.
+<!-- Single source of truth is AGENTS.md. The import below pulls it in for Claude Code
+     so this file never duplicates its content. -->
 
-➡️ Read [`AGENTS.md`](AGENTS.md) and follow it.
-
-(This stub exists because some tools look for `CLAUDE.md`. Keep the guidance in
-`AGENTS.md`; do not duplicate it here. On platforms that support symlinks you may replace
-this file with a symlink to `AGENTS.md` instead.)
+@AGENTS.md

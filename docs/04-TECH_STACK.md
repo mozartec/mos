@@ -14,7 +14,8 @@ chosen for a solo developer's velocity first, with an eye on the open-source fut
 | Components | **daisyUI** | A Tailwind plugin giving good-looking buttons, cards, badges, inputs, and a light/dark theme system with near-zero integration cost. Pure CSS, so it's removable. |
 | Behavior | **Angular CDK** (later) | Added when the UI outgrows native `<select>`/`<dialog>` — overlays, focus management, drag-and-drop, virtual scroll. Not needed for the read-only MVP. |
 | Bundler / dev server | **Vite** (via Angular CLI) | Fast dev loop; the dev filesystem server hangs off it via a proxy. |
-| Package manager | **Bun** | Fast installs and scripts. |
+| Package manager | **Bun** | Fast installs and scripts; also provides the workspace. |
+| Monorepo | **Bun workspaces + Turbo** | The pure `core` is shared by the app, a future MCP server, and a VS Code extension — a real multi-package setup. Turbo orchestrates build/lint/test/dev across packages with caching, while staying out of the way. (Nx rejected — it wraps `angular.json` and the CLI; see ADR-008.) |
 | Tests | **Vitest** | Runs against the pure `core` with in-memory fixtures; component tests use Angular's harness. |
 | Lint / format | **ESLint (angular-eslint) + Prettier** | angular-eslint covers template rules that an all-in-one formatter doesn't. |
 | Desktop packaging | **Tauri** (later) | Small native binary, low memory, native filesystem access and file watching — better than Electron for a local-first dev tool. |
@@ -30,7 +31,7 @@ chosen for a solo developer's velocity first, with an eye on the open-source fut
 
 ## A note on the core
 
-`src/core` imports no framework and touches no filesystem. It's plain functions over
+`packages/core` imports no framework and touches no filesystem. It's plain functions over
 strings and objects. That discipline is what lets the same logic serve the Angular app
 today and a VS Code extension or MCP server tomorrow. See
 [`03-ARCHITECTURE.md`](03-ARCHITECTURE.md).

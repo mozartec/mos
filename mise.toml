@@ -1,0 +1,9 @@
+[tools]
+bun = "1.3.14"
+node = "26"
+
+[env]
+# Silence Node 26's DEP0205 (`module.register()`) deprecation, emitted by Angular's
+# dev-server/build tooling — it's not our code and is harmless; remove once Angular
+# moves to `module.registerHooks()`.
+NODE_OPTIONS = "--disable-warning=DEP0205"

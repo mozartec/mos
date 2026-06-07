@@ -115,3 +115,29 @@ most tasks and reserve stronger models for genuinely ambiguous work. The cost is
 discipline: cards take more effort to write to the ready standard, and `AGENTS.md` plus the
 docs must be kept current. This discipline is also a product principle — mos is, in part, a
 tool for working this way, and could later help author and validate ready cards.
+
+## ADR-008 — Monorepo with Bun workspaces + Turbo (not Nx)
+
+**Status:** Accepted · **Date:** 2026-06-07
+
+**Context.** mos is not a single app: the pure `core` is consumed by the web app and, later,
+an MCP server and a VS Code extension, and there are non-Angular Node deliverables (the dev
+filesystem server, the MCP server). A shared internal package consumed by multiple apps is
+the textbook case for a workspace. Angular's own multi-project workspace handles Angular
+apps and TS libraries but is an awkward umbrella for the Node services.
+
+**Decision.** Use a **Bun-workspaces monorepo orchestrated by Turbo** from the start.
+Layout: `apps/*` (web, dev-server, later desktop/mcp/vscode) and `packages/*` (core now;
+others extracted only when genuinely shared). Turbo runs build/lint/test/dev with
+dependency-aware ordering and caching. The Angular app is just `apps/web`.
+
+We choose Turbo over **Nx** deliberately: Nx replaces `angular.json` with its own
+`project.json` and wraps the CLI in executors/generators — it "hijacks" the project and is
+harder to back out of. Turbo is a thin task-runner over the workspace that leaves the
+Angular CLI and standard tooling untouched, which matches this project's preference for
+tools that stay out of the way.
+
+**Consequences.** No later refactor to extract `core`; one consistent place for every
+deliverable; fast incremental builds via Turbo's cache. The cost is more setup in the
+scaffold task (T-001) and the few known gotchas of running the Angular CLI as a workspace
+package. Packages are created as needed, not pre-created empty, to avoid ceremony.
