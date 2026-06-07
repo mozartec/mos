@@ -1,6 +1,14 @@
 
 You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
 
+## Agent skills
+
+Installed for this app — use them:
+
+- **angular-developer** — Angular 22 code and architecture (signals, DI, routing, testing).
+- **daisyui** — daisyUI components and theming (the UI library here).
+- **angular-new-app** — scaffolding a new Angular app via the CLI.
+
 ## TypeScript Best Practices
 
 - Use strict type checking
