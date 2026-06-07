@@ -52,19 +52,36 @@ a local web app is not throwaway work.
 
 ## Project structure
 
+mos is a **Bun-workspaces monorepo orchestrated by Turbo** (see ADR-008). The pure `core`
+is a real package from day one because it's consumed by multiple apps; everything else is
+an app under `apps/`. Packages and apps are added as they're needed, not pre-created empty.
+
 ```
-src/
-├── core/        # pure TS: parseVault(files) → model, resolveLinks, buildBoard(model, config)
-├── sources/     # VaultSource implementations (http now, tauri later)
-├── ui/          # Angular components: WikiView, BoardView, Card, FileTree, Reader
-└── main.ts
-server/          # dev-only Node fs server (read + watch)
-examples/        # demo vaults
-src-tauri/       # (added when we package for desktop)
+mos/                      # monorepo root = also a mos vault (see below)
+├── apps/
+│   ├── web/              # Angular 22 app (the UI): core consumed, sources/ for adapters
+│   ├── dev-server/       # Node fs server backing HttpVaultSource (added by T-002)
+│   ├── desktop/          # Tauri shell (later, T-005)
+│   ├── mcp/              # MCP write server (later, F-009)
+│   └── vscode/           # VS Code extension (later, F-010)
+├── packages/
+│   └── core/             # pure TS: parseVault(files) → model, resolveLinks, buildBoard;
+│                         #          also defines the VaultSource interface (a pure type)
+├── turbo.json            # task pipeline + caching
+├── package.json          # Bun workspaces: ["apps/*", "packages/*"]
+└── .mos/  docs/  board/  examples/   # the repo is still a mos vault, at the root
 ```
 
-`core/` is promoted to its own package only when the MCP server needs to import it — not
-before, to avoid premature monorepo ceremony.
+Concrete `VaultSource` implementations (`HttpVaultSource`, the `StaticVaultSource` stub,
+later `TauriVaultSource`) live in the app that uses them (`apps/web/src/sources`,
+`apps/desktop`) — only the *interface* is in `packages/core`. A `packages/vault-source`
+is extracted only if two apps end up sharing a concrete implementation.
+
+Turbo runs `build` / `lint` / `test` / `dev` across the workspace with dependency-aware
+ordering and caching, so changing `packages/core` rebuilds and retests only what depends
+on it. The repo-as-vault files (`.mos/`, `docs/`, `board/`, `examples/`) sit at the root
+and are unaffected by the workspace; `apps/**` and `packages/**` are excluded from the
+wiki so package READMEs don't render as wiki pages.
 
 ## Data flow
 
