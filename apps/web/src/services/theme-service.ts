@@ -31,17 +31,39 @@ export class ThemeService {
   toggle(): void {
     const next: Theme = this.isDark() ? LIGHT : DARK;
     this.theme.set(next);
-    this.document.defaultView?.localStorage?.setItem(STORAGE_KEY, next);
+    try {
+      this.document.defaultView?.localStorage?.setItem(STORAGE_KEY, next);
+    } catch {
+      // Persisting is best-effort: storage can be full, disabled, or locked
+      // down (private mode). A failed write only means the choice won't survive
+      // a reload — never a reason to crash the toggle.
+    }
   }
 
   private initialTheme(): Theme {
-    // Guard every browser global: the unit-test DOM (and a future SSR pass) may
-    // not provide localStorage or matchMedia. Fall back to the light theme.
-    const view = this.document.defaultView;
-    const stored = view?.localStorage?.getItem(STORAGE_KEY);
-    if (stored === LIGHT || stored === DARK) {
+    const stored = this.readStoredTheme();
+    if (stored) {
       return stored;
     }
-    return view?.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? DARK : LIGHT;
+    // The unit-test DOM (and a future SSR pass) may not provide matchMedia;
+    // fall back to the light theme when the OS preference is unknown.
+    return this.document.defaultView?.matchMedia?.('(prefers-color-scheme: dark)')?.matches
+      ? DARK
+      : LIGHT;
+  }
+
+  /**
+   * Read the persisted theme, or `null` when nothing valid is stored. The read
+   * is wrapped because some privacy modes throw on the `localStorage` access
+   * itself — which optional chaining can't guard — and that must not break app
+   * bootstrap.
+   */
+  private readStoredTheme(): Theme | null {
+    try {
+      const stored = this.document.defaultView?.localStorage?.getItem(STORAGE_KEY);
+      return stored === LIGHT || stored === DARK ? stored : null;
+    } catch {
+      return null;
+    }
   }
 }

@@ -15,6 +15,14 @@ export class BoardView {
   protected readonly files = signal<string[]>([]);
 
   constructor() {
-    void this.source.listFiles().then((files) => this.files.set(files));
+    this.source
+      .listFiles()
+      .then((files) => this.files.set(files))
+      .catch((error: unknown) => {
+        // A source can reject (a future HTTP/Tauri source far more readily than
+        // the static stub). Leave the file list empty rather than letting the
+        // rejection float unhandled.
+        console.error('Failed to list vault files', error);
+      });
   }
 }
