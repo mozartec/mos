@@ -83,6 +83,34 @@ on it. The repo-as-vault files (`.mos/`, `docs/`, `board/`, `examples/`) sit at 
 and are unaffected by the workspace; `apps/**` and `packages/**` are excluded from the
 wiki so package READMEs don't render as wiki pages.
 
+### Inside an app (`apps/web/src`)
+
+Organize `src/` by the **role** a thing plays, not by dumping everything into one folder —
+and add a role-folder only when its first occupant exists (never pre-create empty ones, the
+same rule we apply to packages). For `apps/web` today:
+
+```
+src/
+├── app/                 # the root shell ONLY: bootstrap, app.config, app.routes, App
+├── views/               # smart, routable screen components — what the user navigates
+│   ├── wiki/            #   between; a view owns its data wiring and composes components
+│   └── board/
+├── sources/             # VaultSource adapters + the VAULT_SOURCE DI token (the I/O edge)
+└── components/          # reusable presentational ("dumb") components, usable from any
+                         #   view — created only when the first shared one exists
+```
+
+Roles, not buckets: `app/` holds the shell and nothing else; **views** are the smart
+top-level screens (a view may be wired to a route or simply toggled); **components** are
+dumb, reusable, and callable from anywhere; **sources** are the I/O adapters. A new role
+(`services/`, `models/`, …) earns its own folder when it first appears, rather than being
+crammed into an ill-fitting one — so we don't box ourselves, and we don't pre-create empty
+folders either.
+
+Keep a template/styles inline only while a component is tiny; once a template grows past a
+few lines, move it to a sibling `*.html` (and `*.css` if it needs component styles), with
+paths relative to the component's `.ts` file.
+
 ## Data flow
 
 1. On launch the app loads `.mos/config.json` via the `VaultSource`.

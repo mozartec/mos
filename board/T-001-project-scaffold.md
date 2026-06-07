@@ -66,21 +66,27 @@ board logic** — just the skeleton everything else builds on.
 5. **App shell:** a layout with a daisyUI `Wiki | Board` toggle switching between empty
    `WikiView` and `BoardView` components. Add a `StaticVaultSource` (in
    `apps/web/src/sources`) implementing the `core` interface with a small hardcoded sample,
-   so the UI renders before `apps/dev-server` exists (T-002).
+   so the UI renders before `apps/dev-server` exists (T-002). Organize `apps/web/src` by
+   role (see [`docs/03-ARCHITECTURE.md`](../docs/03-ARCHITECTURE.md) §Inside an app): the
+   views live in `src/views/<view>/` with external templates, `StaticVaultSource` in
+   `src/sources/`, and `src/app/` holds only the root shell.
 6. **Tooling:** ESLint (angular-eslint) + Prettier across the workspace; Bun/Turbo scripts
    so `bun run dev|build|test|lint` at the root fan out via Turbo.
 
 ## Acceptance
 
-- [ ] `bun install` at the root resolves the workspace.
-- [ ] `bun run dev` (via Turbo) serves `apps/web`; the `Wiki | Board` toggle renders with
+- [x] `bun install` at the root resolves the workspace.
+- [x] `bun run dev` (via Turbo) serves `apps/web`; the `Wiki | Board` toggle renders with
       daisyUI styling.
-- [ ] `bun run test` runs Vitest; the `packages/core` sample test passes.
-- [ ] `bun run lint` passes (angular-eslint + Prettier).
-- [ ] `apps/web` imports and uses a symbol from `packages/core` (workspace wiring proven).
-- [ ] `packages/core` contains zero Angular / `fs` / network imports.
-- [ ] `angular.json` exists and is standard (no Nx takeover); Turbo only runs scripts.
-- [ ] Only `apps/web` and `packages/core` were created; no empty placeholder packages.
+- [x] `bun run test` runs Vitest; the `packages/core` sample test passes.
+- [x] `bun run lint` passes (angular-eslint + Prettier).
+- [x] `apps/web` imports and uses a symbol from `packages/core` (workspace wiring proven).
+- [x] `packages/core` contains zero Angular / `fs` / network imports.
+- [x] `angular.json` exists and is standard (no Nx takeover); Turbo only runs scripts.
+- [x] Only `apps/web` and `packages/core` were created; no empty placeholder packages.
+- [x] `apps/web/src` is organized by role per `docs/03-ARCHITECTURE.md` — `app/` is the
+      shell only; the views live in `views/<view>/` with external templates; no view
+      components are dumped in `app/`.
 
 ## Dependencies
 

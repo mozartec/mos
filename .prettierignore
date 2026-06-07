@@ -1,0 +1,22 @@
+# Dependencies and build artifacts
+node_modules
+dist
+.turbo
+.angular
+out-tsc
+
+# Generated lockfiles
+bun.lock
+skills-lock.json
+
+# Hand-authored vault content & docs — prettier must not reformat prose
+*.md
+docs
+board
+examples
+.mos
+
+# Vendored agent / tool metadata
+.agents
+.claude
+.gemini
