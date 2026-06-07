@@ -23,7 +23,11 @@ function walk(dir, acc = []) {
     if (IGNORE.has(name)) continue;
     const p = join(dir, name);
     let st;
-    try { st = statSync(p); } catch { continue; }
+    try {
+      st = statSync(p);
+    } catch {
+      continue;
+    }
     if (st.isDirectory()) walk(p, acc);
     else acc.push(p);
   }
@@ -50,7 +54,8 @@ function parseFrontmatter(text) {
     const mm = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(line);
     if (!mm) continue;
     let v = mm[2].trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      v = v.slice(1, -1);
     obj[mm[1]] = v;
   }
   return obj;
@@ -66,45 +71,59 @@ function validateVault(root) {
   for (const [tn, t] of Object.entries(types)) {
     if (t.parent != null) {
       if (!types[t.parent]) errors.push(`type ${tn}: parent type '${t.parent}' is not defined`);
-      else if (types[t.parent].parent != null) errors.push(`type ${tn}: parent '${t.parent}' itself has a parent (nesting > 1)`);
+      else if (types[t.parent].parent != null)
+        errors.push(`type ${tn}: parent '${t.parent}' itself has a parent (nesting > 1)`);
     }
     for (const [st, col] of Object.entries(t.states)) {
-      if (col != null && !columns.includes(col)) errors.push(`type ${tn}: state '${st}' maps to unknown column '${col}'`);
+      if (col != null && !columns.includes(col))
+        errors.push(`type ${tn}: state '${st}' maps to unknown column '${col}'`);
     }
   }
 
   const cards = {};
-  for (const f of walk(root).filter(f => f.endsWith('.md'))) {
+  for (const f of walk(root).filter((f) => f.endsWith('.md'))) {
     const rel = relative(root, f).split(sep).join('/');
-    if (!includes.some(re => re.test(rel))) continue;
+    if (!includes.some((re) => re.test(rel))) continue;
     const data = parseFrontmatter(readFileSync(f, 'utf8'));
     if (!data || !types[data.type]) continue; // not a card
-    if (!data.id) { errors.push(`${rel}: card has no id`); continue; }
+    if (!data.id) {
+      errors.push(`${rel}: card has no id`);
+      continue;
+    }
     if (cards[data.id]) errors.push(`duplicate id '${data.id}' (${rel})`);
     cards[data.id] = { ...data, _rel: rel };
   }
 
   for (const c of Object.values(cards)) {
     const t = types[c.type];
-    if (!(c.status in t.states)) errors.push(`${c.id}: status '${c.status}' not allowed for type '${c.type}'`);
+    if (!(c.status in t.states))
+      errors.push(`${c.id}: status '${c.status}' not allowed for type '${c.type}'`);
     if (c.parent != null) {
       if (t.parent == null) errors.push(`${c.id}: type '${c.type}' may not have a parent`);
       else if (!cards[c.parent]) errors.push(`${c.id}: parent '${c.parent}' not found`);
-      else if (cards[c.parent].type !== t.parent) errors.push(`${c.id}: parent '${c.parent}' is type '${cards[c.parent].type}', expected '${t.parent}'`);
+      else if (cards[c.parent].type !== t.parent)
+        errors.push(
+          `${c.id}: parent '${c.parent}' is type '${cards[c.parent].type}', expected '${t.parent}'`,
+        );
     }
   }
 
   const rank = { P0: 0, P1: 1, P2: 2, P3: 3 };
-  const board = Object.fromEntries(columns.map(c => [c, []]));
+  const board = Object.fromEntries(columns.map((c) => [c, []]));
   const hidden = [];
   for (const c of Object.values(cards)) {
     const col = types[c.type].states[c.status];
     (col == null ? hidden : board[col]).push(c);
   }
-  for (const col of columns) board[col].sort((a, b) => (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9) || a.id.localeCompare(b.id));
+  for (const col of columns)
+    board[col].sort(
+      (a, b) => (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9) || a.id.localeCompare(b.id),
+    );
 
   const name = cfg.vault?.name ?? root;
-  console.log(`\n${'='.repeat(60)}\nVAULT: ${name}  (specVersion ${cfg.specVersion ?? '?'}, ${Object.keys(cards).length} cards)\n${'='.repeat(60)}`);
+  console.log(
+    `\n${'='.repeat(60)}\nVAULT: ${name}  (specVersion ${cfg.specVersion ?? '?'}, ${Object.keys(cards).length} cards)\n${'='.repeat(60)}`,
+  );
   for (const col of columns) {
     console.log(`\n  [${col}] (${board[col].length})`);
     for (const c of board[col]) {
@@ -115,7 +134,8 @@ function validateVault(root) {
   }
   if (hidden.length) {
     console.log(`\n  [hidden/off-board] (${hidden.length})`);
-    for (const c of hidden) console.log(`    ${c.id.padEnd(12)} ${(c.status ?? '').padEnd(9)} ${c.title ?? ''}`);
+    for (const c of hidden)
+      console.log(`    ${c.id.padEnd(12)} ${(c.status ?? '').padEnd(9)} ${c.title ?? ''}`);
   }
   console.log(errors.length ? `\n  ERRORS (${errors.length}):` : `\n  OK — valid`);
   for (const e of errors) console.log(`    x ${e}`);
@@ -127,10 +147,19 @@ function discover(start) {
   (function rec(dir) {
     if (existsSync(join(dir, '.mos', 'config.json'))) found.push(dir);
     let entries;
-    try { entries = readdirSync(dir); } catch { return; }
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return;
+    }
     for (const name of entries) {
       if (IGNORE.has(name) || name === '.mos') continue;
-      let st; try { st = statSync(join(dir, name)); } catch { continue; }
+      let st;
+      try {
+        st = statSync(join(dir, name));
+      } catch {
+        continue;
+      }
       if (st.isDirectory()) rec(join(dir, name));
     }
   })(start);
@@ -139,7 +168,10 @@ function discover(start) {
 
 const args = process.argv.slice(2);
 const roots = args.length ? args : discover(process.cwd());
-if (!roots.length) { console.error('No vault found (no .mos/config.json under cwd).'); process.exit(2); }
+if (!roots.length) {
+  console.error('No vault found (no .mos/config.json under cwd).');
+  process.exit(2);
+}
 let total = 0;
 for (const r of roots) total += validateVault(r);
 console.log(`\n${total === 0 ? 'ALL VAULTS VALID' : total + ' ERROR(S)'}\n`);

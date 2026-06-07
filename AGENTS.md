@@ -59,6 +59,12 @@ shared logic; I/O lives in the apps.
   See [`docs/11-RELEASING.md`](docs/11-RELEASING.md).
 - Spec/card/ADR style: [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md).
 
+## Agent skills
+
+A **turborepo** skill is installed at `.agents/skills/turborepo/` — use it for monorepo,
+Turbo, caching, and internal-package questions (e.g. before editing `turbo.json` or a
+package's `exports`). Angular and daisyUI skills live in [`apps/web`](apps/web/AGENTS.md).
+
 ## Nested guidance (scoped instructions)
 
 Some folders carry their own `AGENTS.md` for context-specific rules; use the nearest one

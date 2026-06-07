@@ -7,6 +7,11 @@ const angular = require('angular-eslint');
 module.exports = defineConfig([
   {
     files: ['**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: __dirname,
+      },
+    },
     extends: [
       eslint.configs.recommended,
       tseslint.configs.recommended,

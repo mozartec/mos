@@ -143,6 +143,8 @@ vite.config.ts.timestamp-*
 .vite/
 
 # --- mos project additions ---
+# Turbo
+.turbo/
 # Angular
 .angular/
 /tmp/
