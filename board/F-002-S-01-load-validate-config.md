@@ -2,9 +2,9 @@
 id: F-002-S-01
 type: story
 title: Load and validate .mos/config.json
-status: Planned
+status: In Progress
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-08T12:08:04Z
 priority: P0
 owner: mozart
 sprint: S1
