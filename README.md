@@ -1,5 +1,7 @@
 # Markdown on Steroids (mos)
 
+[![CI](https://github.com/mozartec/mos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mozartec/mos/actions/workflows/ci.yml)
+
 > Your AI writes the tasks as markdown. You see them as a board.
 
 **mos** is a local-first tool for solo developers. Your project plan lives as plain
