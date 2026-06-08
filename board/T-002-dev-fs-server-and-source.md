@@ -65,10 +65,10 @@ swap — proof that the adapter boundary works.
 
 ## Acceptance
 
-- [ ] The app loads a real folder's files through `HttpVaultSource`; no direct disk access in
+- [x] The app loads a real folder's files through `HttpVaultSource`; no direct disk access in
       the UI, and `packages/core` stays pure.
-- [ ] `bun run dev` brings up both the Angular app and the dev server together.
-- [ ] Swapping back to `StaticVaultSource` requires only a DI binding change.
+- [x] `bun run dev` brings up both the Angular app and the dev server together.
+- [x] Swapping back to `StaticVaultSource` requires only a DI binding change.
 
 ## Dependencies
 

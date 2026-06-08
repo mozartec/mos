@@ -54,13 +54,13 @@ broken one it returns the same shape with a non-empty `errors` array and never t
 
 ## Acceptance
 
-- [ ] A malformed config (bad JSON, unknown column, parent-of-a-parent) produces clear
+- [x] A malformed config (bad JSON, unknown column, parent-of-a-parent) produces clear
       `errors` entries, not a crash.
-- [ ] A parent type pointing at a type that itself has a parent is rejected.
-- [ ] Optional keys absent from input come back as their documented defaults (including
+- [x] A parent type pointing at a type that itself has a parent is rejected.
+- [x] Optional keys absent from input come back as their documented defaults (including
       `fields` → all-string and `meta.timestamps` → `created`/`updated`).
-- [ ] An unknown field `type` or an `enum` without `values`/`source` is reported in `errors`.
-- [ ] Vitest covers the happy path plus each failure mode.
+- [x] An unknown field `type` or an `enum` without `values`/`source` is reported in `errors`.
+- [x] Vitest covers the happy path plus each failure mode.
 
 ## Dependencies
 

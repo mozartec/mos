@@ -52,9 +52,9 @@ dropped. This fills out the placeholder `VaultModel` from T-001.
 
 ## Acceptance
 
-- [ ] Cards are keyed by `id`; duplicate ids are reported.
-- [ ] Files in board scope without a recognized type are flagged "not a card", not dropped.
-- [ ] Running it over this repo's files matches `validate-vault.mjs`'s card count.
+- [x] Cards are keyed by `id`; duplicate ids are reported.
+- [x] Files in board scope without a recognized type are flagged "not a card", not dropped.
+- [x] Running it over this repo's files matches `validate-vault.mjs`'s card count.
 
 ## Dependencies
 
