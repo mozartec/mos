@@ -127,37 +127,37 @@ function defaultConfig(): VaultConfig {
 
 /** Fill every optional key with its documented default. */
 function normalize(obj: Record<string, unknown>): VaultConfig {
-  const vault = isObject(obj.vault) ? obj.vault : {};
-  const meta = isObject(obj.meta) ? obj.meta : {};
-  const timestamps = isObject(meta.timestamps) ? meta.timestamps : {};
-  const wiki = isObject(obj.wiki) ? obj.wiki : {};
-  const board = isObject(obj.board) ? obj.board : {};
+  const vault = isObject(obj['vault']) ? obj['vault'] : {};
+  const meta = isObject(obj['meta']) ? obj['meta'] : {};
+  const timestamps = isObject(meta['timestamps']) ? meta['timestamps'] : {};
+  const wiki = isObject(obj['wiki']) ? obj['wiki'] : {};
+  const board = isObject(obj['board']) ? obj['board'] : {};
 
   return {
-    specVersion: typeof obj.specVersion === 'string' ? obj.specVersion : '',
-    vault: { name: typeof vault.name === 'string' ? vault.name : '' },
+    specVersion: typeof obj['specVersion'] === 'string' ? obj['specVersion'] : '',
+    vault: { name: typeof vault['name'] === 'string' ? vault['name'] : '' },
     meta: {
       timestamps: {
-        createdField: asString(timestamps.createdField, 'created'),
-        updatedField: asString(timestamps.updatedField, 'updated'),
+        createdField: asString(timestamps['createdField'], 'created'),
+        updatedField: asString(timestamps['updatedField'], 'updated'),
       },
     },
-    fields: isObject(obj.fields) ? (obj.fields as Record<string, FieldDef>) : {},
+    fields: isObject(obj['fields']) ? (obj['fields'] as Record<string, FieldDef>) : {},
     wiki: {
-      include: asStringArray(wiki.include),
-      exclude: asStringArray(wiki.exclude),
-      fields: asStringArray(wiki.fields),
+      include: asStringArray(wiki['include']),
+      exclude: asStringArray(wiki['exclude']),
+      fields: asStringArray(wiki['fields']),
     },
     board: {
-      include: asStringArray(board.include),
-      columns: asStringArray(board.columns),
+      include: asStringArray(board['include']),
+      columns: asStringArray(board['columns']),
       sortWithinColumn:
-        board.sortWithinColumn === undefined
+        board['sortWithinColumn'] === undefined
           ? ['priority', 'id']
-          : asStringArray(board.sortWithinColumn),
+          : asStringArray(board['sortWithinColumn']),
     },
-    types: isObject(obj.types) ? (obj.types as Record<string, TypeDef>) : {},
-    sprints: asStringArray(obj.sprints),
+    types: isObject(obj['types']) ? (obj['types'] as Record<string, TypeDef>) : {},
+    sprints: asStringArray(obj['sprints']),
   };
 }
 
@@ -173,7 +173,7 @@ function validate(config: VaultConfig, errors: string[]): void {
   for (const [typeName, typeRaw] of Object.entries(types)) {
     const type = isObject(typeRaw) ? typeRaw : {};
 
-    const parent = type.parent;
+    const parent = type['parent'];
     if (parent != null) {
       if (typeof parent !== 'string' || !(parent in types)) {
         errors.push(
@@ -181,7 +181,7 @@ function validate(config: VaultConfig, errors: string[]): void {
         );
       } else {
         const parentDef = types[parent];
-        if (isObject(parentDef) && parentDef.parent != null) {
+        if (isObject(parentDef) && parentDef['parent'] != null) {
           errors.push(
             `type ${typeName}: parent '${parent}' itself has a parent (nesting > 1)`,
           );
@@ -189,7 +189,7 @@ function validate(config: VaultConfig, errors: string[]): void {
       }
     }
 
-    const states = isObject(type.states) ? type.states : {};
+    const states = isObject(type['states']) ? type['states'] : {};
     for (const [state, col] of Object.entries(states)) {
       if (col != null && (typeof col !== 'string' || !columns.includes(col))) {
         errors.push(
@@ -202,7 +202,7 @@ function validate(config: VaultConfig, errors: string[]): void {
   const fields = config.fields as Record<string, unknown>;
   for (const [fieldName, fieldRaw] of Object.entries(fields)) {
     const field = isObject(fieldRaw) ? fieldRaw : {};
-    const fieldType = field.type;
+    const fieldType = field['type'];
     if (
       typeof fieldType !== 'string' ||
       !KNOWN_FIELD_TYPES.includes(fieldType as FieldType)
@@ -211,9 +211,9 @@ function validate(config: VaultConfig, errors: string[]): void {
       continue;
     }
     if (fieldType === 'enum') {
-      const hasValues = Array.isArray(field.values) && field.values.length > 0;
+      const hasValues = Array.isArray(field['values']) && (field['values'] as unknown[]).length > 0;
       if (hasValues) continue;
-      const source = field.source;
+      const source = field['source'];
       if (source === undefined) {
         errors.push(`field ${fieldName}: enum needs 'values' or 'source'`);
       } else if (
