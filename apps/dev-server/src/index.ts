@@ -19,7 +19,7 @@
  */
 
 import { readdir, readFile } from 'node:fs/promises';
-import { join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 const VAULT_DIR = resolve(process.env['VAULT_DIR'] ?? join(import.meta.dir, '../../..'));
 const PORT = Number(process.env['PORT'] ?? '3001');
@@ -80,7 +80,7 @@ async function walk(dir: string, base: string, out: string[]): Promise<void> {
 function safePath(reqPath: string): string | null {
   const full = resolve(join(VAULT_DIR, reqPath));
   const rel = relative(VAULT_DIR, full);
-  if (rel.startsWith('..') || rel.startsWith('/')) return null;
+  if (rel === '..' || rel.startsWith('..' + sep) || isAbsolute(rel)) return null;
   return full;
 }
 
@@ -90,6 +90,7 @@ function safePath(reqPath: string): string | null {
 
 Bun.serve({
   port: PORT,
+  hostname: '127.0.0.1',
 
   async fetch(req) {
     const url = new URL(req.url);
@@ -110,6 +111,12 @@ Bun.serve({
       const full = safePath(reqPath);
       if (!full) {
         return new Response('Forbidden', { status: 403 });
+      }
+
+      // Only serve files in the same allowlist as /vault/files
+      const relNorm = relative(VAULT_DIR, full).replaceAll(sep, '/');
+      if (!relNorm.endsWith('.md') && relNorm !== '.mos/config.json') {
+        return new Response('Not found', { status: 404 });
       }
 
       try {
@@ -160,4 +167,4 @@ Bun.serve({
 });
 
 console.log(`[dev-server] vault: ${VAULT_DIR}`);
-console.log(`[dev-server] listening on http://localhost:${PORT}`);
+console.log(`[dev-server] listening on http://127.0.0.1:${PORT}`);

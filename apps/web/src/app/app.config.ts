@@ -11,7 +11,8 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     // HttpVaultSource talks to apps/dev-server via the Angular dev-server proxy
     // at /vault/*. To use the static stub instead (e.g. in tests), change this
-    // to: { provide: VAULT_SOURCE, useExisting: StaticVaultSource }  (T-002)
+    // to: { provide: VAULT_SOURCE, useExisting: StaticVaultSource }
+    // and add: import { StaticVaultSource } from '../sources/static-vault-source';  (T-002)
     { provide: VAULT_SOURCE, useExisting: HttpVaultSource },
   ],
 };
