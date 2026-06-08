@@ -10,6 +10,7 @@ const markdown = new Marked({
  * Render markdown into sanitized HTML. Vault content is untrusted.
  */
 export function renderMarkdown(body: string): string {
-  const unsafeHtml = markdown.parse(body, { async: false });
+  const rendered = markdown.parse(body);
+  const unsafeHtml = typeof rendered === 'string' ? rendered : '';
   return DOMPurify.sanitize(unsafeHtml);
 }
