@@ -3,6 +3,8 @@ id: F-004-S-02
 type: story
 title: Card component showing type fields
 status: Todo
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -37,20 +39,27 @@ data in, click event out — living in `apps/web/src/components/`.
 
 - Config-driven face: render the fields the type declares, in order; unknown/missing fields
   are simply omitted, never hardcoded. (ADR-003)
+- **Type-aware rendering** (spec `0.2`, §5a): use the field registry's type to format each
+  value — `datetime`/`date` as relative + absolute (e.g. "updated 19h ago", full ISO on
+  hover), `enum` as a chip, `id` as a (later) link. A field with no registry entry renders as
+  plain text. Missing `created`/`updated` are omitted without complaint (ADR-010).
 - Dumb + reusable: inputs only, emit a `select` event; no data fetching, no writes. (ADR-002)
 - Accessible: the card is keyboard-focusable and activatable (it opens the reader in S-04).
 
 ## Plan
 
 1. Inputs: the card + its type definition (for `card.fields`) + a `blocked` flag.
-2. Render title + each declared field as a labelled chip/row; show a daisyUI badge when
-   `blocked`; apply a subtle accent class by type or priority.
+2. Render title + each declared field as a labelled chip/row, **formatted by its registry
+   type** (datetimes relative+absolute, enums as chips); show a daisyUI badge when `blocked`;
+   apply a subtle accent class by type or priority.
 3. Emit `select(card)` on click/Enter. Use Tabler icons for field glyphs once T-006 lands;
-   render ids in the mono font.
+   render ids and timestamps in the mono font.
 
 ## Acceptance
 
 - [ ] A card shows exactly the fields its type declares, in declared order.
+- [ ] Datetime fields (`created`/`updated`) render relative + absolute; a card missing them
+      shows no empty slot.
 - [ ] A `Blocked` card shows the badge; others don't.
 - [ ] The component takes inputs and emits a select event — no I/O inside it.
 

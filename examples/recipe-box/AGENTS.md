@@ -21,6 +21,8 @@ Files without a recognized `type`, and anything in `docs/`, are wiki pages, not 
 5. `id` is unique and stable (this vault uses the `RB-NNN` prefix). Neither type has a
    parent here.
 6. Optional fields shown on the card: `priority` (P0–P3), `owner`.
+7. Set `created` and `updated` to the current time, ISO 8601 UTC (e.g.
+   `2026-06-08T09:00:00Z`).
 
 Example:
 
@@ -32,6 +34,8 @@ title: Share a recipe by link
 status: Idea
 priority: P2
 owner: chef
+created: 2026-06-08T09:00:00Z
+updated: 2026-06-08T09:00:00Z
 ---
 
 # RB-006 — Share a recipe by link
@@ -43,6 +47,8 @@ One paragraph describing the work.
 
 - **Only edit the frontmatter block. Never rewrite the prose body.**
 - Move a card on the board by changing `status`.
+- **Bump `updated`** to the current time on every frontmatter edit; leave `created` as-is.
+  The app never writes these — keeping them current is your job.
 - Parse the frontmatter, change the field, write it back — never blind find-and-replace.
 
 ## Do not

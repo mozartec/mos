@@ -3,6 +3,8 @@ id: F-003-S-02
 type: story
 title: Render markdown (GFM)
 status: Todo
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -42,14 +44,20 @@ it hits the DOM.
 
 ## Plan
 
-1. A pure `renderMarkdown(body) -> htmlString` step (GFM plugins enabled), then sanitize.
-2. An Angular component that binds the sanitized HTML and applies prose styles.
-3. Tests: a fixture exercising tables, fenced code, and task lists; a sanitization test
+1. Render the **body only** — frontmatter is split off by F-001-S-01, so the raw YAML block
+   is never rendered. (Docs may carry `created`/`updated` frontmatter per spec `0.2`.)
+2. A pure `renderMarkdown(body) -> htmlString` step (GFM plugins enabled), then sanitize.
+3. An Angular component that binds the sanitized HTML and applies prose styles. Optionally
+   show a small metadata line (e.g. "updated 19h ago") from `created`/`updated` when present
+   — omit silently when absent.
+4. Tests: a fixture exercising tables, fenced code, and task lists; a fixture with
+   frontmatter (assert the YAML block is not in the output); a sanitization test
    (script/onclick stripped).
 
 ## Acceptance
 
 - [ ] Tables, fenced code, and task lists render correctly.
+- [ ] A file with frontmatter renders only its body; the YAML block never appears.
 - [ ] Output is sanitized (no active content survives).
 - [ ] The same component instance is used by the wiki and (later) the board card reader.
 

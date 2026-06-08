@@ -3,6 +3,8 @@ id: F-004-S-04
 type: story
 title: Open a card in the wiki reader
 status: Todo
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P1
 owner: mozart
 sprint: S3

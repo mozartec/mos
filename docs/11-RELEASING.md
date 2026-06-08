@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Releasing: branching, commits, versioning, and pipelines
 
 How this project handles git workflow, versioning, and releases. It's written to be a

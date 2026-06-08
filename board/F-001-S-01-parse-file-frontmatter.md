@@ -3,6 +3,8 @@ id: F-001-S-01
 type: story
 title: Parse a markdown file and its frontmatter
 status: Planned
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P0
 owner: mozart
 sprint: S1

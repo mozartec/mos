@@ -3,6 +3,8 @@ id: F-009
 type: feature
 title: MCP write server
 status: Deferred
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: Future
 priority: P3
 owner: mozart

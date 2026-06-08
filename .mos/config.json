@@ -1,10 +1,29 @@
 {
-  "specVersion": "0.1",
+  "specVersion": "0.2",
   "vault": { "name": "Markdown on Steroids" },
+
+  "meta": {
+    "timestamps": { "createdField": "created", "updatedField": "updated" }
+  },
+
+  "fields": {
+    "id": { "type": "id", "label": "ID" },
+    "title": { "type": "string", "label": "Title" },
+    "status": { "type": "string", "label": "Status" },
+    "phase": { "type": "enum", "values": ["MVP", "Phase 2", "Future"], "label": "Phase" },
+    "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority" },
+    "owner": { "type": "string", "label": "Owner" },
+    "sprint": { "type": "enum", "source": "sprints", "label": "Sprint" },
+    "estimate": { "type": "enum", "values": ["XS", "S", "M", "L", "XL"], "label": "Estimate" },
+    "parent": { "type": "id", "label": "Parent" },
+    "created": { "type": "datetime", "label": "Created" },
+    "updated": { "type": "datetime", "label": "Updated" }
+  },
 
   "wiki": {
     "include": ["**/*.md"],
-    "exclude": [".mos/**", "AGENTS.md", "CLAUDE.md", "node_modules/**", "examples/**", "apps/**", "packages/**", "dist/**", ".turbo/**", ".git/**"]
+    "exclude": [".mos/**", "AGENTS.md", "CLAUDE.md", "node_modules/**", "examples/**", "apps/**", "packages/**", "dist/**", ".turbo/**", ".git/**"],
+    "fields": ["created", "updated"]
   },
 
   "board": {
@@ -25,7 +44,7 @@
         "Deferred": null,
         "Dropped": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
     },
     "story": {
       "label": "Story",
@@ -37,7 +56,7 @@
         "Blocked": "In Progress",
         "Done": "Done"
       },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "created", "updated"] }
     },
     "task": {
       "label": "Task",
@@ -49,7 +68,7 @@
         "Done": "Done",
         "Deferred": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
     }
   },
 

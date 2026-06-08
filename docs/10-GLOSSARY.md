@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Glossary
 
 - **Vault** — a folder mos opens, following [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md). This

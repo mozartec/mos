@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Decisions (ADRs)
 
 Architecture Decision Records. Append-only: to change a decision, add a new ADR that
@@ -167,3 +172,36 @@ tokens, not hardcoded font families, so swapping or adding a user-selectable fon
 token change, not a refactor. The cost is a small bundle for the bundled weights and the
 discipline of sticking to one icon set. If a future need arises (e.g. a user font picker or a
 heavier icon requirement), supersede this ADR rather than mixing sets ad hoc.
+
+## ADR-010 — Creation/update timestamps live in frontmatter; fields are typed
+
+**Status:** Accepted · **Date:** 2026-06-08
+
+**Context.** We want to know when a card or doc was created and last changed. The obvious
+source is git, but git is the wrong place: history is rewritten (the project squash-merges
+PRs — see [`11-RELEASING.md`](11-RELEASING.md) — and rebases happen), and a core principle is
+that a vault is just a folder of markdown that must be readable and portable *without* git at
+all (ADR-001). A timestamp that disappears when history is rewritten, or when someone copies
+the files out of the repo, isn't trustworthy. Separately, frontmatter values have until now
+been untyped strings, so mos can't tell a date from a label well enough to render or sort it.
+
+**Decision.** Record time in the files themselves. Add two optional frontmatter fields,
+**`created`** and **`updated`** (ISO 8601 `datetime`), to cards and, optionally, wiki docs.
+The names default to `created`/`updated` but are configurable per vault via
+`meta.timestamps`. To support this honestly, introduce an optional **field-types registry**
+(`fields` in config): each frontmatter field may declare a type (`string`, `enum`, `id`,
+`date`, `datetime`), defaulting to `string` when unlisted. The app **reads** timestamps —
+displays them (relative + absolute) and may sort by them — but **never writes** them; they
+are maintained by the agent layer per `AGENTS.md` (set both on create; bump `updated` on any
+frontmatter edit), consistent with ADR-002. Everything here is additive and optional, so the
+spec moves to `0.2` without breaking any `0.1` vault, and a missing timestamp (common on
+docs) is never an error — it's just not shown.
+
+**Consequences.** Timestamps survive history rewrites and travel with the files, and the
+typed-field registry pays off beyond dates (enums render as badges, ids resolve as links,
+dates sort correctly). The cost is discipline in the write path: agents must maintain the
+timestamps, since the read-only app won't, and an un-maintained vault will have stale
+`updated` values — an acceptable trade for not putting write logic in the app. Field-type
+validation is best-effort and non-fatal, so bad data degrades gracefully rather than
+crashing a render. If automatic maintenance becomes important, the later MCP write server
+(F-009) is the natural place to enforce it.

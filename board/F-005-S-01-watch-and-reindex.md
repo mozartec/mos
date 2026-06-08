@@ -3,6 +3,8 @@ id: F-005-S-01
 type: story
 title: Watch the vault and re-index changed files
 status: Blocked
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P1
 owner: mozart
 sprint: S3

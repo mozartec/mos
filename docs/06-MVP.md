@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # MVP scope
 
 The first version is **one screen that matters: a read-only Kanban board over a markdown

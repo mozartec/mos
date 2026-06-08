@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Core concepts
 
 A small vocabulary runs through the whole project. Get these five terms and the rest of

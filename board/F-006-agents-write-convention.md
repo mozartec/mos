@@ -3,6 +3,8 @@ id: F-006
 type: feature
 title: AI write convention (AGENTS.md)
 status: Draft
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: MVP
 priority: P1
 owner: mozart
@@ -40,6 +42,9 @@ are the reference implementations; this feature hardens and documents them.
 
 - **Frontmatter only, never rewrite prose** — the one rule the convention must enforce.
   (ADR-002, VAULT_SPEC §8)
+- **Maintain timestamps** — the convention must tell agents to set `created`/`updated` on
+  create and bump `updated` on every frontmatter edit, since the app never writes them
+  (ADR-010, VAULT_SPEC §4a).
 - Self-contained per vault — a cold agent succeeds from the vault's `AGENTS.md` plus the docs
   it links, no external memory. (ADR-007)
 - Don't duplicate the spec — link to `docs/`; keep `AGENTS.md` a map. (CONVENTIONS)
@@ -49,8 +54,10 @@ are the reference implementations; this feature hardens and documents them.
 ## Plan
 
 1. Audit the root and recipe-box `AGENTS.md` against VAULT_SPEC §4–§5: do they state allowed
-   types/states, required frontmatter, the frontmatter-only rule, and the validate step?
-2. Fill gaps; add a short "create a card" and "update a card's status" worked example.
+   types/states, required frontmatter, the frontmatter-only rule, the timestamp-maintenance
+   rule, and the validate step?
+2. Fill gaps; add a short "create a card" and "update a card's status" worked example, each
+   showing `created`/`updated` being set and `updated` being bumped.
 3. Confirm a cold assistant can add a valid card from the guide alone, then `bun run
    validate` passes.
 
@@ -60,6 +67,8 @@ are the reference implementations; this feature hardens and documents them.
       status, frontmatter-only.
 - [ ] The guide names allowed types/states and the validation step; it links the spec rather
       than restating it.
+- [ ] The guide instructs agents to set `created`/`updated` on create and bump `updated` on
+      edit.
 - [ ] `bun run validate` passes after agent-made changes.
 
 ## Dependencies

@@ -3,6 +3,8 @@ id: F-001
 type: feature
 title: Vault loader and parser
 status: Planned
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: MVP
 priority: P0
 owner: mozart

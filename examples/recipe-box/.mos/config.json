@@ -1,8 +1,20 @@
 {
-  "specVersion": "0.1",
+  "specVersion": "0.2",
   "vault": { "name": "Recipe Box" },
 
-  "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"] },
+  "meta": {
+    "timestamps": { "createdField": "created", "updatedField": "updated" }
+  },
+
+  "fields": {
+    "id": { "type": "id", "label": "ID" },
+    "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority" },
+    "owner": { "type": "string", "label": "Owner" },
+    "created": { "type": "datetime", "label": "Created" },
+    "updated": { "type": "datetime", "label": "Updated" }
+  },
+
+  "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"], "fields": ["created", "updated"] },
 
   "board": {
     "include": ["board/**/*.md"],
@@ -15,13 +27,13 @@
       "label": "Feature",
       "parent": null,
       "states": { "Idea": "Inbox", "Building": "Doing", "Done": "Shipped", "Parked": null },
-      "card": { "fields": ["id", "priority", "owner"] }
+      "card": { "fields": ["id", "priority", "owner", "created", "updated"] }
     },
     "bug": {
       "label": "Bug",
       "parent": null,
       "states": { "Reported": "Inbox", "Fixing": "Doing", "Fixed": "Shipped" },
-      "card": { "fields": ["id", "priority", "owner"] }
+      "card": { "fields": ["id", "priority", "owner", "created", "updated"] }
     }
   },
 

@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Vault spec
 
 This is the data contract. A **vault** is a folder mos can open. This document defines
@@ -6,18 +11,24 @@ repo are a living implementation of it.
 
 ## 0. Spec version
 
-The current vault format is **spec version `0.1`**. It is versioned separately from the
+The current vault format is **spec version `0.2`**. It is versioned separately from the
 mos app, because the format is a contract that vaults depend on. Each vault declares the
 version it targets via `specVersion` in `.mos/config.json`, and the app states which spec
 versions it supports. Bump this only when the format itself changes. See
 [`11-RELEASING.md`](11-RELEASING.md) for the versioning policy.
+
+`0.2` adds an optional **field-types registry** (§5a) and **created/updated timestamps**
+(§4a), both purely additive: a `0.1` vault with neither is still valid, and every new field
+is optional, so nothing breaks if it's absent.
 
 ## 1. Two lenses over one folder
 
 mos is two read-only views over the same vault, and they're independent:
 
 - **Wiki** — renders any markdown file and makes references clickable. Ignores types and
-  states. Job: browsing and reading.
+  states. A wiki file may carry optional frontmatter (e.g. `created`/`updated`, §4a); the
+  wiki strips the frontmatter block from the rendered body and may show it as metadata.
+  Job: browsing and reading.
 - **Board** — scans for *cards* and lays them out in columns by state. A card is one file.
   Clicking a card opens it in the wiki renderer (one renderer, no duplication).
 
@@ -63,6 +74,8 @@ owner: mozart
 sprint: S1
 parent: F-001        # only for types that allow a parent
 estimate: M
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-08T09:00:00Z
 ---
 
 # F-001-S-02 — Resolve and navigate links
@@ -75,9 +88,27 @@ Freeform body. mos never rewrites this; only frontmatter is machine-managed.
 - `status` — must be one of the states that type allows.
 - `title` — display name; falls back to the first H1.
 - `parent` — an `id`, allowed only if the type permits it (see §5).
+- `created` / `updated` — optional audit timestamps (§4a).
 - other fields (`priority`, `owner`, `sprint`, `estimate`, `phase`, ...) — optional, shown
-  on the card per the type's `card.fields`. Unknown keys are allowed and ignored by the
-  board.
+  on the card per the type's `card.fields`, and typed by the field registry (§5a). Unknown
+  keys are allowed and ignored by the board.
+
+## 4a. Timestamps (`created` / `updated`)
+
+Every card — and optionally every wiki doc — may carry two timestamps recording when the
+file was first created and last changed. They live in frontmatter rather than relying on git
+because history gets rewritten (squash-merge, rebase) and a vault must be readable as plain
+files with no git at all (ADR-001). See ADR-010.
+
+- **Type `datetime`**, ISO 8601, UTC recommended (e.g. `2026-06-08T09:00:00Z`).
+- **Default names `created` and `updated`**, but the names are configurable per vault via
+  `meta.timestamps` (`createdField` / `updatedField`) in `config.json`, so a vault can use
+  `added`/`modified` or localized names instead.
+- **Optional and non-breaking.** A file missing one or both is valid; the app simply doesn't
+  show or sort by what isn't there. This matters most for docs, which often won't have them.
+- **Agent-maintained, app-read-only (ADR-002).** Whoever creates a card sets both; any
+  frontmatter edit bumps `updated`. The app reads, displays (relative + absolute), and may
+  sort by them, but never writes them.
 
 ## 5. The type system
 
@@ -91,12 +122,55 @@ validates this on load.
 A state may map to `null`, meaning "valid status, hidden from the board" (e.g. `Deferred`,
 `Dropped`). Multiple states may map to one column (e.g. `Blocked` → `In Progress`).
 
+## 5a. Field types
+
+The optional top-level `fields` registry gives a frontmatter field a **data type**, so mos
+knows how to render, validate, and sort it instead of treating every value as a string. A
+`card.fields` (or `wiki.fields`) entry that has no registry entry defaults to `string`, so
+the registry is purely additive — omit it entirely and everything still works.
+
+| Type | Meaning | Example |
+|---|---|---|
+| `string` | Plain text (the default). | `owner: mozart` |
+| `enum` | One of a fixed set, via `values: [...]` or `source: "<configKey>"` (e.g. `sprints`). | `priority: P1` |
+| `id` | A card/doc id; resolvable like a reference (§7). | `parent: F-001` |
+| `date` | A calendar date, ISO `YYYY-MM-DD`. | `due: 2026-07-01` |
+| `datetime` | A date+time, ISO 8601 (§4a). | `updated: 2026-06-08T09:00:00Z` |
+
+```jsonc
+"fields": {
+  "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority" },
+  "sprint":   { "type": "enum", "source": "sprints" },
+  "created":  { "type": "datetime", "label": "Created" },
+  "updated":  { "type": "datetime", "label": "Updated" }
+}
+```
+
+Validation is **best-effort and non-fatal**: a value that doesn't match its declared type is
+reported as a diagnostic, not a crash, and the card still renders. An optional `label` sets
+the display name on the card face; it falls back to the field key.
+
 ## 6. config.json
 
 ```jsonc
 {
+  "specVersion": "0.2",
   "vault": { "name": "My Project" },
-  "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"] },
+
+  // optional: maps the two timestamp roles to frontmatter field names (defaults shown)
+  "meta": { "timestamps": { "createdField": "created", "updatedField": "updated" } },
+
+  // optional: types for frontmatter fields (§5a). Omit for all-string behavior.
+  "fields": {
+    "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"] },
+    "sprint":   { "type": "enum", "source": "sprints" },
+    "created":  { "type": "datetime", "label": "Created" },
+    "updated":  { "type": "datetime", "label": "Updated" }
+  },
+
+  // wiki.fields: optional frontmatter a doc may carry (typed via the registry)
+  "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"],
+             "fields": ["created", "updated"] },
   "board": {
     "include": ["board/**/*.md"],
     "columns": ["Backlog", "Planned", "In Progress", "Done"],
@@ -109,21 +183,21 @@ A state may map to `null`, meaning "valid status, hidden from the board" (e.g. `
       "states": { "Draft": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done",
                   "Deferred": null, "Dropped": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
     },
     "story": {
       "label": "Story",
       "parent": "feature",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Blocked": "In Progress", "Done": "Done" },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "created", "updated"] }
     },
     "task": {
       "label": "Task",
       "parent": null,
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done", "Deferred": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
     }
   },
   "sprints": ["S1", "S2", "S3"]

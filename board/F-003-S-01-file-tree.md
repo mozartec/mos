@@ -3,6 +3,8 @@ id: F-003-S-01
 type: story
 title: File tree browser
 status: Todo
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P0
 owner: mozart
 sprint: S2

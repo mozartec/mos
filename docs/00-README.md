@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Documentation index
 
 This folder is the source of truth for what mos is and how it's built. It's written for

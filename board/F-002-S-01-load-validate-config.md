@@ -3,6 +3,8 @@ id: F-002-S-01
 type: story
 title: Load and validate .mos/config.json
 status: Planned
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P0
 owner: mozart
 sprint: S1
@@ -41,9 +43,13 @@ broken one it returns the same shape with a non-empty `errors` array and never t
 1. Accept `string | object`; if string, `JSON.parse` inside a try and turn a parse failure
    into an error entry.
 2. Apply defaults: missing `board.sortWithinColumn` → `["priority", "id"]`; missing
-   `wiki.exclude` → `[]`; missing `sprints` → `[]`.
+   `wiki.exclude` → `[]`; missing `sprints` → `[]`; missing `fields` → `{}` (all fields are
+   `string`); missing `meta.timestamps` → `{ createdField: "created", updatedField:
+   "updated" }`.
 3. Validate: each `type.parent` is `null` or names a defined type whose own `parent` is
-   `null` (nesting ≤ 1); each state maps to a column in `board.columns` or to `null`.
+   `null` (nesting ≤ 1); each state maps to a column in `board.columns` or to `null`. For
+   `fields`, validate each entry's `type` is known (`string`/`enum`/`id`/`date`/`datetime`)
+   and that an `enum` has `values` or a resolvable `source`.
 4. Return `{ config, errors }`; export from `index.ts`.
 
 ## Acceptance
@@ -51,7 +57,9 @@ broken one it returns the same shape with a non-empty `errors` array and never t
 - [ ] A malformed config (bad JSON, unknown column, parent-of-a-parent) produces clear
       `errors` entries, not a crash.
 - [ ] A parent type pointing at a type that itself has a parent is rejected.
-- [ ] Optional keys absent from input come back as their documented defaults.
+- [ ] Optional keys absent from input come back as their documented defaults (including
+      `fields` → all-string and `meta.timestamps` → `created`/`updated`).
+- [ ] An unknown field `type` or an `enum` without `values`/`source` is reported in `errors`.
 - [ ] Vitest covers the happy path plus each failure mode.
 
 ## Dependencies

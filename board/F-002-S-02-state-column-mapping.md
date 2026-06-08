@@ -3,6 +3,8 @@ id: F-002-S-02
 type: story
 title: Apply the type state-to-column mapping
 status: Todo
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 priority: P0
 owner: mozart
 sprint: S2

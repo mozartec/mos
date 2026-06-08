@@ -3,6 +3,8 @@ id: F-003
 type: feature
 title: Wiki lens
 status: Draft
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: MVP
 priority: P0
 owner: mozart

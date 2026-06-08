@@ -3,6 +3,8 @@ id: T-005
 type: task
 title: Package as Tauri desktop app
 status: Deferred
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: Phase 2
 priority: P2
 owner: mozart

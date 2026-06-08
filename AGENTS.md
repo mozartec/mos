@@ -83,6 +83,9 @@ in addition to this file:
 
 Because this repo is also a vault, you may be asked to add or update **cards** in
 `board/`. The rules (frontmatter only, never rewrite prose, allowed types/states) are in
-[`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). After changing cards, run
-`bun run validate` (or `node scripts/validate-vault.mjs`) to confirm every card still maps
-to a column and parents resolve — it's the cheap check that the board renders as intended.
+[`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). When you **create** a card or doc set its
+`created` and `updated` timestamps; when you **edit** frontmatter, bump `updated` (the app
+never writes these — see [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md) §Timestamps and
+ADR-010). After changing cards, run `bun run validate` (or `node scripts/validate-vault.mjs`)
+to confirm every card still maps to a column and parents resolve — it's the cheap check that
+the board renders as intended.

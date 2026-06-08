@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Roadmap
 
 Phases are intentions, not promises. The MVP must prove itself before anything below it

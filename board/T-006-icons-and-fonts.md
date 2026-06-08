@@ -3,6 +3,8 @@ id: T-006
 type: task
 title: Icon set (Tabler) + self-hosted fonts (Fontsource)
 status: Todo
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: MVP
 priority: P1
 owner: mozart

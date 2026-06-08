@@ -3,6 +3,8 @@ id: F-002
 type: feature
 title: Config and card types
 status: Planned
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 phase: MVP
 priority: P0
 owner: mozart
@@ -21,7 +23,10 @@ and return a validated, typed `VaultConfig` object — or a clear list of errors
 config is malformed. Every later feature (model building, the board layout, the card face)
 reads the type system from this object instead of hardcoding `feature`/`story`/`task`,
 columns, or states. This is the mechanism that makes ADR-003 real: "is this a card?" and
-"how does it behave?" both come from config.
+"how does it behave?" both come from config. As of spec `0.2` the config also carries an
+optional **field-types registry** (`fields`) and a **`meta.timestamps`** block; this feature
+loads and exposes both so later features can render/sort typed fields (dates, enums, ids) and
+locate the `created`/`updated` fields by their configured names (ADR-010).
 
 ## Context — read before starting
 
@@ -52,7 +57,10 @@ columns, or states. This is the mechanism that makes ADR-003 real: "is this a ca
 
 1. Define `VaultConfig` types in `packages/core/src/config.ts` matching VAULT_SPEC §6
    (`vault`, `wiki`, `board.columns`, `board.sortWithinColumn`, `types[*].states`,
-   `types[*].parent`, `types[*].card.fields`, `sprints`).
+   `types[*].parent`, `types[*].card.fields`, `sprints`), plus the spec-`0.2` additions:
+   `fields` (the typed field registry, §5a), `meta.timestamps`, and `wiki.fields`. All three
+   are optional — absent `fields` means every field is `string`; absent `meta.timestamps`
+   defaults the names to `created`/`updated`.
 2. Implement F-002-S-01: `loadConfig(json: string | object) -> { config; errors }` with
    defaults for optional keys and the validation rules below.
 3. Implement F-002-S-02: a pure `columnForCard(card, config)` helper plus a visibility flag,
@@ -68,6 +76,9 @@ columns, or states. This is the mechanism that makes ADR-003 real: "is this a ca
       test (unknown column, nesting > 1, undefined parent type).
 - [ ] A card's `(type, status)` maps to the right column, with `Deferred`/`Dropped` hidden
       and `Blocked` → `In Progress`.
+- [ ] The `fields` registry and `meta.timestamps` load with defaults when absent; an
+      unlisted field is treated as `string`; field-value type checks are best-effort
+      diagnostics, never fatal.
 - [ ] Zero framework / `fs` / network imports in the new files.
 
 ## Stories

@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Tech stack
 
 The hard parts of mos are parsing and rendering markdown and laying out a board. None of

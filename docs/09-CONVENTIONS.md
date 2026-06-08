@@ -1,3 +1,8 @@
+---
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
+---
+
 # Conventions
 
 The style guide for this repo. It applies to the docs, the backlog cards, and the ADRs.
@@ -36,6 +41,8 @@ status: Deferred
 phase: Phase 2
 priority: P2
 owner: mozart
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-07T13:00:00Z
 ---
 
 # F-007 — Desktop app (Tauri)
@@ -49,6 +56,10 @@ F-007-S-01, F-007-S-02
 Stories carry `parent: <feature-id>` and an `estimate` (XS–XL). Keep bodies short:
 purpose, acceptance bullets, technical hints.
 
+Set `created` and `updated` (ISO 8601 datetime) when you create a card, and bump `updated`
+on every frontmatter edit — the app never writes these (see §Timestamps below and
+[`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §4a).
+
 ## Statuses
 
 - Features/tasks: `Draft` → `Planned` → `In Progress` → `Done`; plus `Deferred`/`Dropped`
@@ -60,6 +71,22 @@ purpose, acceptance bullets, technical hints.
 
 - Priority: `P0` (MVP-critical) · `P1` (next) · `P2` (later) · `P3` (someday).
 - Phase: `MVP` · `Phase 2` · `Future`.
+
+## Timestamps
+
+Cards (and docs, where present) carry `created` and `updated` — ISO 8601 datetimes, UTC
+(e.g. `2026-06-08T09:00:00Z`). They live in frontmatter, not git, because history is
+rewritten and a vault must read as plain files without git (ADR-010). The rules:
+
+- On **create**, set both `created` and `updated` to now.
+- On **any frontmatter edit**, bump `updated` to now; leave `created` untouched.
+- The app **reads** them (relative + absolute display, optional sort) but **never writes**
+  them — maintenance is the agent's job (ADR-002).
+- They're **optional**: a doc or card without them is still valid; nothing breaks.
+
+Field names are configurable per vault via `meta.timestamps`; the types come from the
+`fields` registry. See [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §4a (timestamps) and §5a
+(field types).
 
 ## Docs
 
