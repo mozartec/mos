@@ -51,9 +51,9 @@ purely by `id`, so links survive file renames.
 
 ## Acceptance
 
-- [ ] "see F-002" resolves to F-002 regardless of a markdown link existing.
-- [ ] Resolution is by id, surviving file renames. Id shape comes from config regex.
-- [ ] An id with no target is returned as `unresolved` (not dropped, not thrown).
+- [x] "see F-002" resolves to F-002 regardless of a markdown link existing.
+- [x] Resolution is by id, surviving file renames. Id shape comes from config regex.
+- [x] An id with no target is returned as `unresolved` (not dropped, not thrown).
 
 ## Dependencies
 
