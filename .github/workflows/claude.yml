@@ -63,6 +63,8 @@ jobs:
 
           # Pre-approve the commands this repo needs. Without this, every Bash
           # call is denied in CI (there's no human to approve it), which is why
-          # `bun install` / vitest / validate-vault.mjs couldn't run.
+          # `bun install` / vitest / validate-vault.mjs couldn't run. `python3` is
+          # required too: the mos skills' pre-flight scripts (ship_card.py,
+          # next_task.py) shell out to it before any code is written.
           claude_args: |
-            --allowed-tools "Bash(bun:*),Bash(bunx:*),Bash(node:*),Bash(npx:*),Bash(git status),Bash(git diff:*),Bash(git log:*)"
+            --allowed-tools "Bash(bun:*),Bash(bunx:*),Bash(node:*),Bash(npx:*),Bash(python3:*),Bash(git status),Bash(git diff:*),Bash(git log:*)"

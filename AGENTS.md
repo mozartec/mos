@@ -29,6 +29,25 @@ layer. (One-paragraph version; the full story is [`docs/01-VISION.md`](docs/01-V
 constraints, an ambiguous card, a decision not recorded in the docs/ADRs — stop and ask
 before proceeding. A wrong assumption is more expensive than a question.
 
+## Before you call it done
+
+Whatever the task, run this checklist before declaring it finished or opening a PR — verify each
+item is *genuinely* true, don't just assert it. (The mos skills bake this in; it's the baseline
+for any work, skill or not.)
+
+- [ ] **Every Acceptance bullet is satisfied,** and each maps to a check you actually ran — a
+      test, a command, an observed output — not a hopeful "should work."
+- [ ] **Iterate on the cheap check; validate once on the full one.** While building, run only the
+      scoped tests for what you touched (`bunx turbo run test --filter=<package>`); run the full
+      `bun run lint && bun run test && bun run build && bun run validate` **once** at the end, not
+      in a loop — repeated whole-repo/security passes are slow and bloat your own context.
+- [ ] **Pre-existing failures elsewhere are out of scope** — a red check in a package your work
+      never touched is noted, not chased.
+- [ ] **Scope held** — you changed only what the task scopes; any card you edited was in scope,
+      frontmatter only, never its prose body (ADR-002), `updated` bumped.
+- [ ] **You stopped when done** — no gold-plating once acceptance is met and any "when in doubt"
+      questions are answered.
+
 ## Non-negotiable constraints
 
 - **The core is pure.** `src/core` imports no framework, no filesystem, no network — only
