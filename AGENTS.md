@@ -44,7 +44,8 @@ for any work, skill or not.)
 - [ ] **Pre-existing failures elsewhere are out of scope** — a red check in a package your work
       never touched is noted, not chased.
 - [ ] **Scope held** — you changed only what the task scopes; any card you edited was in scope,
-      frontmatter only, never its prose body (ADR-002), `updated` bumped.
+      frontmatter only — the sole prose edit allowed is ticking the card's own `## Acceptance`
+      boxes to mark it done (ADR-002) — with `updated` bumped.
 - [ ] **You stopped when done** — no gold-plating once acceptance is met and any "when in doubt"
       questions are answered.
 
@@ -111,7 +112,8 @@ in addition to this file:
 ## Managing this repo's backlog
 
 Because this repo is also a vault, you may be asked to add or update **cards** in
-`board/`. The rules (frontmatter only, never rewrite prose, allowed types/states) are in
+`board/`. The rules (frontmatter only, never rewrite prose — except ticking a shipping card's
+own `## Acceptance` boxes, ADR-002 — and allowed types/states) are in
 [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). When you **create** a card or doc set its
 `created` and `updated` timestamps; when you **edit** frontmatter, bump `updated` (the app
 never writes these — see [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md) §Timestamps and

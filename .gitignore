@@ -155,3 +155,6 @@ src-tauri/target/
 # Editor
 .idea/
 *.iml
+# Agent/CI log dumps pulled in for analysis (not source)
+copilot-logs/
+*copilot*.txt

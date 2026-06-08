@@ -61,6 +61,12 @@ jobs:
           additional_permissions: |
             actions: read
 
+          # Model: defaults to the action's current model. While comparing models, pin one by
+          # adding a --model line inside claude_args below (it joins the other flags), e.g.:
+          #     --model claude-sonnet-4-6
+          # (A `#` comment can't live *inside* the block scalar — those lines become CLI args —
+          # so add/remove the real flag there, not a commented one.)
+          #
           # Pre-approve the commands this repo needs. Without this, every Bash
           # call is denied in CI (there's no human to approve it), which is why
           # `bun install` / vitest / validate-vault.mjs couldn't run. `python3` is

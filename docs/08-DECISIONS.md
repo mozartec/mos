@@ -31,7 +31,9 @@ edit UI duplicates that and introduces the one genuinely risky operation — mut
 
 **Decision.** The app only reads. Cards are created and updated by an AI assistant guided
 by the vault's `AGENTS.md`, and (later, optionally) by an MCP server that centralizes safe
-frontmatter writes. Edits touch frontmatter only, never prose.
+frontmatter writes. Edits touch frontmatter only, with **one narrow exception**: when an agent
+ships a card, it may tick that card's own `## Acceptance` checkboxes (`- [ ]` → `- [x]`) to
+record completion. No other prose is rewritten, and the app itself still never writes anything.
 
 **Consequences.** The riskiest code is isolated and optional, not in the shipped app. The
 trade-off is that day-one users need an assistant to change the board. In-app editing
