@@ -23,6 +23,7 @@ This is a **router**. Find the task below and read that sub-skill.
 | If the user wants to… | Read |
 |---|---|
 | Know what to work on next / start the next task, story, or card | [`./next-task/SKILL.md`](./next-task/SKILL.md) |
+| Ship a specific card by id — plan it, branch, build, and open a PR | [`./ship-card/SKILL.md`](./ship-card/SKILL.md) |
 
 ## Conventions for adding skills here
 

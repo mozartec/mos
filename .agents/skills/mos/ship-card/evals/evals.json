@@ -1,0 +1,44 @@
+{
+  "skill_name": "mos-ship-card",
+  "evals": [
+    {
+      "id": 0,
+      "name": "ready-card-happy-path",
+      "prompt": "/mos-ship-card F-001-S-02 — take it through to a PR.",
+      "expected_output": "Runs the pre-flight, reads the card + linked docs, writes a short plan against the card's Acceptance, finds no real blockers (only-dependency T-001 is Done), and on go-ahead branches as Story/F-001-S-02-build-vault-model, marks the card In Progress (frontmatter only, updated bumped), does the scoped work, commits with a Conventional Commit (feat...), opens the PR (or gives the compare URL since gh is absent), and marks the card Done. Does not invent product/scope decisions.",
+      "assertions": [
+        {"text": "Uses the exact branch name story/F-001-S-02-build-vault-model (lower-cased type prefix, id keeps its case)"},
+        {"text": "Writes a short plan referencing the card's Acceptance before creating the branch"},
+        {"text": "Sets the card status to the In-Progress state via a frontmatter-only edit and bumps the updated timestamp"},
+        {"text": "Folds the card's move to Done into the final commit on the branch (not a separate trailing commit)"},
+        {"text": "Uses a Conventional Commit (e.g. feat...) and makes the PR title a Conventional Commit"},
+        {"text": "Falls back gracefully (compare URL or clear note) when gh is unavailable, rather than failing or hanging"},
+        {"text": "Does not fabricate product/scope decisions; any questions asked are genuinely necessary"}
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "blocked-card-stops",
+      "prompt": "Ship F-005-S-01 and open a PR for it.",
+      "expected_output": "Runs the pre-flight, sees the card status is Blocked and it depends on unfinished cards (T-004, T-002), and STOPS to ask the human instead of proceeding. Creates no branch and writes no code; names the blockers and proposes options (e.g. work a blocker first, or proceed anyway).",
+      "assertions": [
+        {"text": "Does NOT create a git branch or write/modify implementation code"},
+        {"text": "Explicitly identifies the blockers (Blocked status and/or unmet dependencies T-004/T-002) and stops to ask the human"},
+        {"text": "Proposes concrete options rather than silently proceeding or silently giving up"}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "container-feature-redirect",
+      "prompt": "/mos-ship-card F-004",
+      "expected_output": "Recognizes F-004 is a container feature with child stories (and has unmet dependencies), so it should not be shipped directly. Redirects to a concrete child story or asks the human which to take, rather than branching/coding against the umbrella feature.",
+      "assertions": [
+        {"text": "Does NOT branch/code against the feature card F-004 itself"},
+        {"text": "Recognizes F-004 as a container/umbrella with child cards (and/or unmet deps) and redirects to a concrete child story or asks the human"}
+      ],
+      "files": []
+    }
+  ]
+}
