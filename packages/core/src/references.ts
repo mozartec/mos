@@ -70,12 +70,14 @@ function findIds(
   matcher: RegExp,
 ): Array<{ id: string; start: number; end: number }> {
   const ids: Array<{ id: string; start: number; end: number }> = [];
-  const scoped = new RegExp(matcher.source, matcher.flags.includes('g') ? matcher.flags : `${matcher.flags}g`);
-  for (const match of text.matchAll(scoped)) {
+  matcher.lastIndex = 0;
+  while (true) {
+    const match = matcher.exec(text);
+    if (match === null) break;
     const id = match[0];
     const start = match.index;
-    if (id === undefined || start === undefined) continue;
     ids.push({ id, start, end: start + id.length });
+    if (id.length === 0) matcher.lastIndex += 1;
   }
   return ids;
 }
@@ -131,7 +133,7 @@ function resolveById(id: string, model: VaultModel): ReferenceTarget | undefined
 }
 
 function isInRanges(start: number, end: number, ranges: Array<{ start: number; end: number }>): boolean {
-  return ranges.some((r) => start >= r.start && end <= r.end);
+  return ranges.some((r) => start < r.end && end > r.start);
 }
 
 function findMarkdownLinks(body: string): Array<{
