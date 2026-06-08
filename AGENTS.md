@@ -25,6 +25,10 @@ layer. (One-paragraph version; the full story is [`docs/01-VISION.md`](docs/01-V
 3. **Honor the constraints below.** They are non-negotiable and enforced in review.
 4. **Check acceptance** before declaring done.
 
+**When in doubt, ask — don't assume.** If anything is unclear or underspecified — scope,
+constraints, an ambiguous card, a decision not recorded in the docs/ADRs — stop and ask
+before proceeding. A wrong assumption is more expensive than a question.
+
 ## Non-negotiable constraints
 
 - **The core is pure.** `src/core` imports no framework, no filesystem, no network — only
