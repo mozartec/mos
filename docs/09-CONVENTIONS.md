@@ -67,6 +67,11 @@ on every frontmatter edit — the app never writes these (see §Timestamps below
 - Stories: `Todo` → `Planned` → `In Progress` → `Done`; plus `Blocked` (shown in In
   Progress with a badge).
 
+When an agent finishes a card it sets `status` to Done **and** ticks the card's own `##
+Acceptance` boxes — the one prose edit the read-only rule allows (ADR-002). The ship-card skill's
+`ship_card.py <id> --finish` does both (and bumps `updated`) deterministically, so it isn't
+skipped.
+
 ## Priority and phase
 
 - Priority: `P0` (MVP-critical) · `P1` (next) · `P2` (later) · `P3` (someday).
@@ -80,6 +85,8 @@ rewritten and a vault must read as plain files without git (ADR-010). The rules:
 
 - On **create**, set both `created` and `updated` to now.
 - On **any frontmatter edit**, bump `updated` to now; leave `created` untouched.
+- Always **UTC with a `Z` suffix** (`2026-06-08T09:00:00Z`) — never a local time or `+hh:mm`
+  offset. `bun run validate` enforces this and fails on a non-UTC timestamp.
 - The app **reads** them (relative + absolute display, optional sort) but **never writes**
   them — maintenance is the agent's job (ADR-002).
 - They're **optional**: a doc or card without them is still valid; nothing breaks.

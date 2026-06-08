@@ -7,10 +7,23 @@ name: Copilot Setup Steps
 # Requirements (GitHub docs): the job MUST be named `copilot-setup-steps`, and this file
 # must exist on the default branch to take effect. Only `steps`, `permissions`, `runs-on`,
 # `services`, `snapshot`, and `timeout-minutes` (max 59) are customizable.
+#
+# Model selection is NOT pinned here (this file only provisions the toolchain). The cloud
+# agent's model is chosen per task in the GitHub UI — the issue-assignee dropdown, the
+# `@copilot` PR comment, or the Agents panel/Mobile/Raycast — otherwise it defaults to the
+# repo's Settings > Copilot > Cloud agent default. Left unset, "auto" has been resolving to
+# gpt-5.3-codex. Options include GPT-5.4, Claude Sonnet 4.6, Gemini 2.5 Pro. To compare
+# models for ship jobs, pick the model when you start the task. Docs:
+# https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/changing-the-ai-model
 
 on:
   workflow_dispatch:
+  # Smoke-test that provisioning still installs cleanly whenever this file changes.
+  # Not a required gate — the Copilot agent reads this file from the default branch to
+  # set up its own environment; that path never touches CI. Scope push to main so a PR
+  # gets one run (pull_request, pre-merge), not a duplicate push+PR run on the same commit.
   push:
+    branches: [main]
     paths:
       - .github/workflows/copilot-setup-steps.yml
   pull_request:

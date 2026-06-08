@@ -56,6 +56,13 @@ function validateVault(root) {
   const types = cfg.types;
   const columns = cfg.board.columns;
   const includes = (cfg.board.include || []).map(globToRegExp);
+  // Timestamp fields are config-driven (meta.timestamps); they're optional, but when present
+  // must be UTC ISO 8601 with the `Z` designator — not a local time or a +hh:mm offset (ADR-010).
+  const tsFields = [
+    cfg.meta?.timestamps?.createdField ?? 'created',
+    cfg.meta?.timestamps?.updatedField ?? 'updated',
+  ];
+  const UTC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
   for (const [tn, t] of Object.entries(types)) {
     if (t.parent != null) {
@@ -94,6 +101,12 @@ function validateVault(root) {
         errors.push(
           `${c.id}: parent '${c.parent}' is type '${cards[c.parent].type}', expected '${t.parent}'`,
         );
+    }
+    for (const field of tsFields) {
+      const v = c[field];
+      if (v == null || v === '') continue; // timestamps are optional
+      if (!UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
+        errors.push(`${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`);
     }
   }
 

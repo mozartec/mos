@@ -3,6 +3,8 @@
 
 Zero dependencies. Run with Python 3:
     python3 ship_card.py <card-id> [<vaultDir>] [--json]
+    python3 ship_card.py <card-id> --finish   # close the card: status -> Done,
+                                              # bump updated, tick Acceptance boxes
 
 A "vault" is any directory containing .mos/config.json. With no vaultDir the script
 discovers the nearest vault at or above the current directory. It is config-driven:
@@ -25,6 +27,7 @@ judging whether the card is truly ready — and pausing to ask the human when it
 isn't — is the agent's job (see SKILL.md).
 """
 import json, os, re, sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
@@ -126,12 +129,65 @@ def branch_name(card):
     return f"{card['label'].lower()}/{cid}-{slug}"
 
 
+def set_frontmatter_field(text: str, field: str, value: str):
+    """Replace `field: value` inside the leading frontmatter block, leaving everything
+    else byte-for-byte. Inserts the field before the closing `---` if it's absent. This is
+    the narrow, allowed agent write: frontmatter only (ADR-002)."""
+    m = re.match(r"^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)", text)
+    if not m:
+        return text, False
+    head, fm, tail = m.group(1), m.group(2), m.group(3)
+    line_re = re.compile(r"^(" + re.escape(field) + r":[ \t]*).*$", re.M)
+    if line_re.search(fm):
+        fm = line_re.sub(lambda mm: mm.group(1) + value, fm, count=1)
+    else:
+        fm = fm + "\n" + field + ": " + value
+    return head + fm + tail + text[m.end():], True
+
+
+def tick_acceptance(text: str):
+    """Tick every `- [ ]` in the card's own `## Acceptance` section only — the one prose
+    edit the carve-out permits (ADR-002). Other prose is left untouched."""
+    m = re.match(r"^---\r?\n[\s\S]*?\r?\n---\r?\n?", text)
+    fm_end = m.end() if m else 0
+    body = text[fm_end:]
+    sec = re.search(r"(?:^|\n)#{1,6}[ \t]+Acceptance\b[^\n]*\n", body, re.I)
+    if not sec:
+        return text, 0
+    start = sec.end()
+    nxt = re.search(r"\n#{1,6}[ \t]", body[start:])
+    end = start + nxt.start() if nxt else len(body)
+    new_block, n = re.subn(r"^(\s*[-*][ \t]*)\[ \]", r"\1[x]", body[start:end], flags=re.M)
+    return text[:fm_end] + body[:start] + new_block + body[end:], n
+
+
+def finish(columns, types, card):
+    """Deterministically close a card: set frontmatter `status` to the type's Done state
+    (the one mapping to the last column), bump `updated`, and tick its Acceptance boxes.
+    A script does this so a silent/weak model can't skip the finish line (SKILL.md Step 5)."""
+    last = columns[-1] if columns else None
+    states = types[card["type"]]["states"]
+    done = next((s for s, col in states.items() if col == last), None)
+    if not done:
+        print(f"No Done state for type '{card['type']}' (no status maps to [{last}]).", file=sys.stderr)
+        sys.exit(1)
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    text = card["path"].read_text("utf-8")
+    text, _ = set_frontmatter_field(text, "status", done)
+    text, _ = set_frontmatter_field(text, "updated", now)
+    text, ticked = tick_acceptance(text)
+    card["path"].write_text(text, "utf-8")
+    print(f"✓ {card['id']}: status -> {done}, updated {now}, ticked {ticked} acceptance box(es) "
+          f"in {card['rel']}. Include this in your final commit.")
+
+
 def main():
     args = sys.argv[1:]
     as_json = "--json" in args
-    args = [a for a in args if a != "--json"]
+    as_finish = "--finish" in args
+    args = [a for a in args if a not in ("--json", "--finish")]
     if not args:
-        print("usage: ship_card.py <card-id> [<vaultDir>] [--json]", file=sys.stderr)
+        print("usage: ship_card.py <card-id> [<vaultDir>] [--json] [--finish]", file=sys.stderr)
         sys.exit(2)
 
     card_id = args[0]
@@ -156,6 +212,10 @@ def main():
             msg += " Did you mean: " + ", ".join(near[:5]) + "?"
         print(msg, file=sys.stderr)
         sys.exit(1)
+
+    if as_finish:
+        finish(columns, types, card)
+        return
 
     known_prefixes = {cid.split("-")[0] for cid in cards}
     deps = [d for d in card["deps"] if d.split("-")[0] in known_prefixes and d != card["id"]]

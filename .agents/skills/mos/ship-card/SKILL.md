@@ -126,9 +126,12 @@ git switch main && git pull --ff-only
 git switch -c "story/F-004-S-01-render-columns"
 ```
 
-**Worktrees:** this setup runs with worktrees on by default, so you may already be in a fresh
-worktree for this card — in that case just create/checkout the branch there; don't try to
-re-clone or fight the worktree the harness gave you.
+**If a harness already put you on a work branch, stay on it.** Cloud agents (e.g. Copilot's
+`copilot/*` branches) and worktrees pre-place you on the branch the PR will come from — switching
+to `main` for an "ideal" name just forces a cherry-pick back later, which can silently drop your
+card edit. So if you're already on a non-default branch you didn't create, **keep it and skip the
+`git switch` above** (the name is cosmetic; don't re-clone or fight the worktree). Only create
+`<label>/<id>-slug` when you start from the default branch.
 
 Then mark the card **In Progress**. The board app never writes cards — that's the agent's job —
 so follow the vault's write rules from `AGENTS.md`: **edit frontmatter only, never rewrite the
@@ -152,7 +155,8 @@ the human; touching sibling cards is a common overreach, so resist it.
 (`--filter=@mos/core` for core work). Do **not** re-run the full repo build or any
 security/CodeQL/review pass after every edit: they're slow and verbose, and their output piles up
 until it crowds your own context out (a real failure mode — it can blow the session's size
-limit). Save the full suite for the end (Step 5).
+limit). Save the full suite for the end (Step 5) — and don't run it *before* you've changed
+anything either: a fresh checkout is already green, so a baseline pass just burns the slow run.
 
 **Know when to stop.** When the scoped tests are green and every `## Acceptance` bullet is
 genuinely satisfied, you're **done** — go to Step 5. Don't gold-plate, don't chase nits, and
@@ -178,16 +182,23 @@ it touches. Use a scope that names the area (e.g. `feat(board): …`). Keep comm
 Input: a story that groups board cards into columns by their type→state map
 Output: `feat(board): group cards into columns by type state map`
 
-**Mark the card Done as part of your final commit.** Before that last commit, run the project's
+**Close the card as part of your final commit.** Before that last commit, run the project's
 full checks **once** so you don't open a red PR — in this repo that's
 `bun run lint && bun run test && bun run build && bun run validate` (the last keeps the board
 valid, since this repo is also a vault). This whole-repo pass is the slow one, so run it at the
 end, not in a loop; if it surfaces a failure in a package your card never touched, that's
-pre-existing — say so and leave it. Once your scoped work passes, set the card's `status` to Done (frontmatter only, bump `updated`) and
-include that edit **in the last commit on the branch** — not a separate trailing commit. So if
-the work is one commit, the Done edit rides along in it; if it's several, the Done edit goes into
-the final one. That keeps the branch's tip commit the moment the card is truly finished, and
-keeps the squash-merge clean. Then push and open the PR:
+pre-existing — say so and leave it. Once your scoped work passes, **close the card with the
+script** — it sets `status` to Done, bumps `updated`, and ticks the card's `## Acceptance` boxes
+in one deterministic step (the narrow prose edit the vault permits — see AGENTS.md and ADR-002):
+
+```bash
+python3 .agents/skills/mos/ship-card/scripts/ship_card.py <card-id> --finish
+```
+
+Stage that change **into the last commit on the branch** — not a separate trailing commit. So if
+the work is one commit, the close edit rides along in it; if it's several, it goes into the final
+one. That keeps the branch's tip commit the moment the card is truly finished, and keeps the
+squash-merge clean. Then push and open the PR:
 
 ```bash
 git add -A && git commit -m "feat(board): render columns from config"   # final commit also marks the card Done
@@ -216,20 +227,20 @@ meets acceptance.
 > completion), and the PR is opened from there. If you'd rather Done mean "merged," leave the card
 > In Progress at PR time and say so — but the default is Done-on-the-final-commit.
 
-## Before you open the PR — check the boxes
+## Before you open the PR — the finish line
 
-The finish line. Verify each item is *genuinely* true — don't just assert it. Put the card's
-Acceptance as a **ticked list in the PR body** (above): the card's own prose body is read-only,
-so never tick its boxes there (ADR-002) — the PR is where you record that they're met.
+Verify each is *genuinely* true — don't just assert it. `--finish` (Step 5) records Done in the
+card itself; the PR body mirrors the Acceptance bullets with the check that proves each, so review
+is a quick read.
 
-- [ ] **Every `## Acceptance` bullet is satisfied,** and each maps to a check you actually ran —
-      a test, a command, an observed output — not a hopeful "should work."
-- [ ] **Scoped checks are green:** `bunx turbo run lint test --filter=<package>`.
-- [ ] **Full suite run once and green:** `bun run lint && bun run test && bun run build &&
-      bun run validate`. Any red is in code your card touched — pre-existing failures elsewhere
-      are noted, not chased.
-- [ ] **Scope held:** you changed only what the card scopes, and only the card you're shipping
-      changed state (to Done, in the final commit, frontmatter-only, `updated` bumped).
+- [ ] **Every `## Acceptance` bullet is satisfied,** each mapped to a check you actually ran — a
+      test, a command, an observed output — not a hopeful "should work." (`--finish` ticked the
+      card's boxes; the truth behind them is on you.)
+- [ ] **Scoped checks green** (`bunx turbo run lint test --filter=<package>`), then the **full
+      suite run once and green**. Failures in code your card never touched are pre-existing —
+      noted, not chased.
+- [ ] **Scope held:** only what the card scopes changed, and only this card changed state (to
+      Done, via `--finish`, in the final commit).
 - [ ] **No open question from Step 2** — anything you raised, the human answered.
 
 If a box can't be honestly checked, **don't open the PR**: finish the work, or stop and tell the
