@@ -2,9 +2,9 @@
 id: T-002
 type: task
 title: Dev filesystem server + HttpVaultSource
-status: In Progress
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-08T19:40:00Z
+updated: 2026-06-08T19:55:00Z
 phase: MVP
 priority: P0
 owner: mozart

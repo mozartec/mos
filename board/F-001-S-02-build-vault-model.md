@@ -2,9 +2,9 @@
 id: F-001-S-02
 type: story
 title: Build the in-memory vault model
-status: Planned
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-08T19:56:00Z
 priority: P0
 owner: mozart
 sprint: S1
