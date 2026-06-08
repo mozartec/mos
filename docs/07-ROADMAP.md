@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-08T12:45:00Z
 ---
 
 # Roadmap
@@ -20,6 +20,10 @@ Features `F-001`–`F-006`. See [`06-MVP.md`](06-MVP.md).
   with native filesystem access and watching.
 - **`F-008` Comments as files.** Comments live as their own markdown files linked to a card
   by id, with a "needs attention" view.
+- **`F-012` Dependency graph lens.** A third read-only lens rendering cards as a dependency
+  DAG, with critical-path and ready-set highlighting — the structural view that answers "what
+  can I start in parallel right now." Makes `dependsOn` first-class frontmatter the future MCP
+  (F-009) can read.
 
 ## Future — the ecosystem
 
@@ -33,6 +37,6 @@ Features `F-001`–`F-006`. See [`06-MVP.md`](06-MVP.md).
 
 ## Ideas, unscheduled
 
-Date-based scheduling and a calendar view; sub-card nesting on the board; dependency-graph
-visualization; manual drag ordering; multi-vault support; themes beyond light/dark. These
+Date-based scheduling and a calendar view; sub-card nesting on the board; manual drag
+ordering; multi-vault support; themes beyond light/dark. These
 live as `Draft`/`Deferred` cards or notes and graduate only with a concrete need.
