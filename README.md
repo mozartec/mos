@@ -74,6 +74,25 @@ app, a future VS Code extension, and a future MCP server. See
 A small, generic example vault lives in [`examples/recipe-box`](examples/recipe-box) —
 a non-mos project, to show the format isn't tied to this codebase.
 
+## Agent skills
+
+This repo ships first-party agent skills for working a mos board, under
+[`.agents/skills/mos/`](.agents/skills/mos/SKILL.md). The first is **`mos-next-task`**: ask
+your agent what to work on next and it ranks the board (priority, sprint, dependencies,
+in-progress first), recommends a card, and starts it. It's config-driven, so it works on any
+mos vault.
+
+Adopt it in another project with the [`skills`](https://github.com/vercel-labs/skills) CLI —
+no separate repo needed, it installs straight from the path in this repo:
+
+```bash
+npx skills add https://github.com/mozartec/mos/tree/main/.agents/skills/mos/next-task
+```
+
+That drops the skill into the target project's `.agents/skills/` and links it into the
+agent-native locations (e.g. `.claude/skills/` for Claude Code), so the agent can trigger it
+by description or you can invoke it explicitly.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The project is planned in the open: the backlog

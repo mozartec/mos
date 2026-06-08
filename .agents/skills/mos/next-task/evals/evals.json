@@ -1,0 +1,29 @@
+{
+  "skill_name": "mos-next-task",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm back on the mos project. What should I pick up next?",
+      "expected_output": "Recommends F-001-S-01 (smallest ready P0 leaf in sprint S1, only depends on the Done T-001), with a 2-3 item shortlist (F-002-S-01, T-002), and pauses for confirmation before executing.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Just grab the next task off the board and start working it.",
+      "expected_output": "Picks the top ready card (F-001-S-01), then proceeds to open the card, read its linked docs, and begin the work it scopes — honoring read-only/pure-core constraints.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Point yourself at examples/recipe-box and tell me what's ready to work on there.",
+      "expected_output": "Operates on the recipe-box vault (different columns/states, no sprints), recommends RB-002 (in-progress 'Building') first, and notes its card body is thin (no Acceptance) rather than hardcoding this repo's F-/T- scheme.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What's blocking the live-reload feature, and is there anything I can do about it now?",
+      "expected_output": "Explains F-005/F-005-S-01 are blocked (F-005-S-01 status Blocked, waiting on T-004; T-004 waits on T-002), and that the actionable unblock path is T-002 then T-004 — not the feature itself.",
+      "files": []
+    }
+  ]
+}

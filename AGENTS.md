@@ -65,6 +65,12 @@ A **turborepo** skill is installed at `.agents/skills/turborepo/` — use it for
 Turbo, caching, and internal-package questions (e.g. before editing `turbo.json` or a
 package's `exports`). Angular and daisyUI skills live in [`apps/web`](apps/web/AGENTS.md).
 
+First-party **mos** skills live under [`.agents/skills/mos/`](.agents/skills/mos/SKILL.md) —
+skills for operating this (or any) mos vault. Use
+[`mos/next-task`](.agents/skills/mos/next-task/SKILL.md) when asked what to work on next or to
+start the next task/story/card; it ranks the board and recommends a pick. New mos skills are
+added as sibling folders there.
+
 ## Nested guidance (scoped instructions)
 
 Some folders carry their own `AGENTS.md` for context-specific rules; use the nearest one
