@@ -176,6 +176,9 @@ the display name on the card face; it falls back to the field key.
     "columns": ["Backlog", "Planned", "In Progress", "Done"],
     "sortWithinColumn": ["priority", "id"]
   },
+  "references": {
+    "idPattern": "[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*"
+  },
   "types": {
     "feature": {
       "label": "Feature",
@@ -212,8 +215,8 @@ The wiki resolves these to the right file, whether or not a real link exists:
 2. bare id mentions: `see F-001`, `depends on T-002`
 3. (optional) `[[F-001]]`
 
-Resolution is by `id`, so links survive renames. The id shape is a configurable regex, so
-it isn't locked to the `F-`/`T-` style this repo uses.
+Resolution is by `id`, so links survive renames. The id shape comes from
+`references.idPattern` in config, so it isn't locked to the `F-`/`T-` style this repo uses.
 
 ## 8. Writes happen via the agent
 

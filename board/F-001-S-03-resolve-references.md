@@ -2,9 +2,9 @@
 id: F-001-S-03
 type: story
 title: Resolve references by id
-status: Todo
+status: In Progress
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-08T22:22:45Z
 priority: P0
 owner: mozart
 sprint: S2

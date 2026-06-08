@@ -19,6 +19,7 @@ function validConfig() {
       columns: ['Backlog', 'Planned', 'In Progress', 'Done'],
       sortWithinColumn: ['priority', 'id'],
     },
+    references: { idPattern: '[A-Z]-\\d{3}' },
     types: {
       feature: {
         label: 'Feature',
@@ -83,6 +84,7 @@ describe('loadConfig', () => {
         createdField: 'created',
         updatedField: 'updated',
       });
+      expect(config.references.idPattern).toBe('[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*');
     });
 
     it('respects a custom meta.timestamps mapping when present', () => {
@@ -167,6 +169,14 @@ describe('loadConfig', () => {
         fields: { bad: { type: 'enum', source: 'doesNotExist' } },
       });
       expect(errors.some((e) => /enum source 'doesNotExist' does not resolve/.test(e))).toBe(true);
+    });
+
+    it('rejects an invalid references.idPattern regex', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        references: { idPattern: '[' },
+      });
+      expect(errors.some((e) => /references\.idPattern: invalid regex/.test(e))).toBe(true);
     });
 
     it('collects multiple errors without throwing', () => {

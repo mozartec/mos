@@ -9,8 +9,11 @@ export type {
   TypeDef,
   WikiConfig,
   BoardConfig,
+  ReferenceConfig,
   TimestampConfig,
   VaultConfig,
   LoadConfigResult,
 } from './config.js';
 export { loadConfig } from './config.js';
+export type { Reference, ReferenceTarget } from './references.js';
+export { resolveReferences } from './references.js';

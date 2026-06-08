@@ -31,6 +31,7 @@ describe('buildModel', () => {
     fields: {},
     wiki: { include: ['**/*.md'], exclude: [], fields: [] },
     board: { include: ['board/**/*.md'], columns: ['Backlog', 'Done'], sortWithinColumn: [] },
+    references: { idPattern: '[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*' },
     types: {
       story: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
       task: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
