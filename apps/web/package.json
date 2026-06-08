@@ -23,6 +23,8 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@mos/core": "workspace:*",
+    "dompurify": "3.4.8",
+    "marked": "18.0.5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
