@@ -2,9 +2,9 @@
 id: F-003-S-02
 type: story
 title: Render markdown (GFM)
-status: In Progress
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-08T22:22:30Z
+updated: 2026-06-08T22:24:55Z
 priority: P0
 owner: mozart
 sprint: S2
