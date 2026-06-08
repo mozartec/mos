@@ -18,7 +18,12 @@ name: Copilot Setup Steps
 
 on:
   workflow_dispatch:
+  # Smoke-test that provisioning still installs cleanly whenever this file changes.
+  # Not a required gate — the Copilot agent reads this file from the default branch to
+  # set up its own environment; that path never touches CI. Scope push to main so a PR
+  # gets one run (pull_request, pre-merge), not a duplicate push+PR run on the same commit.
   push:
+    branches: [main]
     paths:
       - .github/workflows/copilot-setup-steps.yml
   pull_request:
