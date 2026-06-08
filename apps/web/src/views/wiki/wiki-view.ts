@@ -22,11 +22,11 @@ export class WikiView {
   constructor() {
     this.source
       .listFiles()
-      .then(async (files) => {
+      .then((files) => {
         this.files.set(files);
         const firstFile = files[0];
         if (firstFile) {
-          await this.select(firstFile);
+          void this.select(firstFile);
         }
       })
       .catch((error: unknown) => {

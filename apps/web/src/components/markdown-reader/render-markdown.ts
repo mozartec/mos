@@ -11,5 +11,5 @@ const markdown = new Marked({
  */
 export function renderMarkdown(body: string): string {
   const unsafeHtml = markdown.parse(body, { async: false });
-  return DOMPurify.sanitize(unsafeHtml, { USE_PROFILES: { html: true } });
+  return DOMPurify.sanitize(unsafeHtml);
 }
