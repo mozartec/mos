@@ -14,9 +14,6 @@ export interface Reference {
   unresolved: boolean;
 }
 
-const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
-const WIKILINK_RE = /\[\[([^[\]]+)\]\]/g;
-
 export function resolveReferences(
   body: string,
   model: VaultModel,
@@ -29,18 +26,9 @@ export function resolveReferences(
   const occupied: Array<{ start: number; end: number }> = [];
   const seen = new Set<string>();
 
-  for (const match of body.matchAll(MARKDOWN_LINK_RE)) {
-    const full = match[0];
-    const label = match[1] ?? '';
-    const href = match[2] ?? '';
-    if (full === undefined || match.index === undefined) continue;
-
-    const spanStart = match.index;
-    const spanEnd = spanStart + full.length;
+  for (const link of findMarkdownLinks(body)) {
+    const { label, href, spanStart, spanEnd, labelStart, hrefStart } = link;
     occupied.push({ start: spanStart, end: spanEnd });
-
-    const labelStart = spanStart + 1; // skip `[`
-    const hrefStart = labelStart + label.length + 2; // `](`
 
     const labelHits = findIds(label, idMatcher);
     const hrefHits = findIds(href, idMatcher);
@@ -52,16 +40,9 @@ export function resolveReferences(
     }
   }
 
-  for (const match of body.matchAll(WIKILINK_RE)) {
-    const full = match[0];
-    const inner = match[1] ?? '';
-    if (full === undefined || match.index === undefined) continue;
-
-    const spanStart = match.index;
-    const spanEnd = spanStart + full.length;
+  for (const link of findWikilinks(body)) {
+    const { inner, spanStart, spanEnd, innerStart } = link;
     occupied.push({ start: spanStart, end: spanEnd });
-
-    const innerStart = spanStart + 2; // skip `[[`
     for (const hit of findIds(inner, idMatcher)) {
       addReference(references, seen, hit.id, innerStart + hit.start, innerStart + hit.end, model);
     }
@@ -151,4 +132,83 @@ function resolveById(id: string, model: VaultModel): ReferenceTarget | undefined
 
 function isInRanges(start: number, end: number, ranges: Array<{ start: number; end: number }>): boolean {
   return ranges.some((r) => start >= r.start && end <= r.end);
+}
+
+function findMarkdownLinks(body: string): Array<{
+  label: string;
+  href: string;
+  spanStart: number;
+  spanEnd: number;
+  labelStart: number;
+  hrefStart: number;
+}> {
+  const links: Array<{
+    label: string;
+    href: string;
+    spanStart: number;
+    spanEnd: number;
+    labelStart: number;
+    hrefStart: number;
+  }> = [];
+
+  let cursor = 0;
+  while (cursor < body.length) {
+    const start = body.indexOf('[', cursor);
+    if (start < 0) break;
+    const labelEnd = body.indexOf(']', start + 1);
+    if (labelEnd < 0 || body[labelEnd + 1] !== '(') {
+      cursor = start + 1;
+      continue;
+    }
+    const hrefEnd = body.indexOf(')', labelEnd + 2);
+    if (hrefEnd < 0) {
+      cursor = start + 1;
+      continue;
+    }
+
+    const labelStart = start + 1;
+    const hrefStart = labelEnd + 2;
+    links.push({
+      label: body.slice(labelStart, labelEnd),
+      href: body.slice(hrefStart, hrefEnd),
+      spanStart: start,
+      spanEnd: hrefEnd + 1,
+      labelStart,
+      hrefStart,
+    });
+    cursor = hrefEnd + 1;
+  }
+
+  return links;
+}
+
+function findWikilinks(body: string): Array<{
+  inner: string;
+  spanStart: number;
+  spanEnd: number;
+  innerStart: number;
+}> {
+  const links: Array<{
+    inner: string;
+    spanStart: number;
+    spanEnd: number;
+    innerStart: number;
+  }> = [];
+
+  let cursor = 0;
+  while (cursor < body.length) {
+    const start = body.indexOf('[[', cursor);
+    if (start < 0) break;
+    const end = body.indexOf(']]', start + 2);
+    if (end < 0) break;
+    links.push({
+      inner: body.slice(start + 2, end),
+      spanStart: start,
+      spanEnd: end + 2,
+      innerStart: start + 2,
+    });
+    cursor = end + 2;
+  }
+
+  return links;
 }
