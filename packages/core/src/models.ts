@@ -9,6 +9,7 @@
 
 import type { VaultConfig } from './config.js';
 import type { ParsedFile } from './parse-file.js';
+import { globToRegExp, toPosixPath } from './path-glob.js';
 
 /** A single card parsed from a markdown file's frontmatter and body. */
 export interface Card {
@@ -28,7 +29,7 @@ export interface Card {
 export interface VaultModel {
   /** Every card discovered in the vault, keyed by {@link Card.id}. */
   cards: Record<string, Card>;
-  /** Vault-relative paths of all markdown files, in listing order. */
+  /** Vault-relative paths of wiki-scope markdown files, in listing order. */
   files: string[];
 }
 
@@ -56,14 +57,19 @@ export function buildModel(
 ): BuildModelResult {
   const model = createEmptyVaultModel();
   const diagnostics: string[] = [];
+  const wikiIncludeMatchers = config.wiki.include.map(globToRegExp);
+  const wikiExcludeMatchers = config.wiki.exclude.map(globToRegExp);
   const boardMatchers = config.board.include.map(globToRegExp);
 
   for (const file of files) {
-    model.files.push(file.path);
-
     const relPath = toPosixPath(file.path);
+    const inWikiScope =
+      wikiIncludeMatchers.some((re) => re.test(relPath)) &&
+      !wikiExcludeMatchers.some((re) => re.test(relPath));
+    if (inWikiScope) model.files.push(file.path);
+
     const inBoardScope = boardMatchers.some((re) => re.test(relPath));
-    const type = asString(file.data['type']);
+    const type = asScalarString(file.data['type']);
     const isRecognizedType = type !== '' && config.types[type] !== undefined;
 
     if (!inBoardScope) continue;
@@ -73,7 +79,7 @@ export function buildModel(
       continue;
     }
 
-    const id = asString(file.data['id']);
+    const id = asScalarString(file.data['id']);
     if (id === '') {
       diagnostics.push(`${file.path}: card has no id`);
       continue;
@@ -87,8 +93,8 @@ export function buildModel(
     model.cards[id] = {
       id,
       type,
-      title: asString(file.data['title']),
-      status: asString(file.data['status']),
+      title: asScalarString(file.data['title']),
+      status: asScalarString(file.data['status']),
       path: file.path,
     };
   }
@@ -96,58 +102,11 @@ export function buildModel(
   return { model, diagnostics };
 }
 
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
-function toPosixPath(path: string): string {
-  return path.replaceAll('\\', '/');
-}
-
-function globToRegExp(glob: string): RegExp {
-  const pattern = toPosixPath(glob);
-  let re = '^';
-
-  // Supported glob tokens:
-  // - `**/` => zero or more path segments
-  // - `**`  => any sequence (including `/`)
-  // - `*`   => any sequence except `/`
-  // - `?`   => exactly one character
-  for (let i = 0; i < pattern.length; ) {
-    const ch = pattern[i];
-
-    if (ch === '*') {
-      const next = pattern[i + 1];
-      const charAfterNext = i + 2 < pattern.length ? pattern[i + 2] : '';
-      if (next === '*' && charAfterNext === '/') {
-        re += '(?:[^/]+/)*';
-        i += 3;
-        continue;
-      }
-      if (next === '*') {
-        re += '.*';
-        i += 2;
-        continue;
-      }
-      re += '[^/]*';
-      i += 1;
-      continue;
-    }
-
-    if (ch === '?') {
-      re += '.';
-      i += 1;
-      continue;
-    }
-
-    re += escapeRegExpChar(ch);
-    i += 1;
-  }
-
-  re += '$';
-  return new RegExp(re);
-}
-
-function escapeRegExpChar(ch: string): string {
-  return /[-\\^$.*+?()[\]{}|]/.test(ch) ? `\\${ch}` : ch;
+function asScalarString(value: unknown): string {
+  return typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+    ? String(value)
+    : '';
 }

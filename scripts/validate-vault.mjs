@@ -15,6 +15,7 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { globToRegExp } from '../packages/core/src/path-glob.js';
 
 const IGNORE = new Set(['node_modules', '.git', '.angular', '.turbo', 'dist', '.cache']);
 
@@ -32,18 +33,6 @@ function walk(dir, acc = []) {
     else acc.push(p);
   }
   return acc;
-}
-
-function globToRe(glob) {
-  let re = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  re = re
-    .replace(/\*\*\//g, '§§')
-    .replace(/\*\*/g, '§')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\?/g, '.')
-    .replace(/§§/g, '(?:.*/)?')
-    .replace(/§/g, '.*');
-  return new RegExp('^' + re + '$');
 }
 
 function parseFrontmatter(text) {
@@ -66,7 +55,7 @@ function validateVault(root) {
   const cfg = JSON.parse(readFileSync(join(root, '.mos', 'config.json'), 'utf8'));
   const types = cfg.types;
   const columns = cfg.board.columns;
-  const includes = (cfg.board.include || []).map(globToRe);
+  const includes = (cfg.board.include || []).map(globToRegExp);
 
   for (const [tn, t] of Object.entries(types)) {
     if (t.parent != null) {
