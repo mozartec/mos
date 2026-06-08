@@ -143,6 +143,23 @@ where cold agents overreach, so respect it. Honor the vault's non-negotiable con
 `AGENTS.md` (in this repo: pure core, read-only app, config-driven, folder is source of truth).
 Check the card's Acceptance list as you go; it's the definition of done.
 
+**Edit only the card you're shipping.** Don't change another card's status or body — even one
+that looks stale or "already done." Whether a *different* card is finished is a separate call for
+the human; touching sibling cards is a common overreach, so resist it.
+
+**Iterate with the cheap check, not the expensive one.** While writing code, run only the fast,
+*scoped* unit tests for the package you're touching — `bunx turbo run test --filter=<package>`
+(`--filter=@mos/core` for core work). Do **not** re-run the full repo build or any
+security/CodeQL/review pass after every edit: they're slow and verbose, and their output piles up
+until it crowds your own context out (a real failure mode — it can blow the session's size
+limit). Save the full suite for the end (Step 5).
+
+**Know when to stop.** When the scoped tests are green and every `## Acceptance` bullet is
+genuinely satisfied, you're **done** — go to Step 5. Don't gold-plate, don't chase nits, and
+don't try to make a green-but-noisy full build "greener." Pre-existing warnings or failures in
+packages your card never touched are **out of scope**: note them in your close-out, don't fix
+them.
+
 ## Step 5 — commit, push, open the PR
 
 Commit with **Conventional Commits** — the format this project uses (see the releasing doc the
@@ -162,9 +179,11 @@ Input: a story that groups board cards into columns by their type→state map
 Output: `feat(board): group cards into columns by type state map`
 
 **Mark the card Done as part of your final commit.** Before that last commit, run the project's
-checks so you don't open a red PR — in this repo that's `bun run lint`, `bun run test`,
-`bun run build`, and `bun run validate` (the last keeps the board valid, since this repo is also a
-vault). Once they pass, set the card's `status` to Done (frontmatter only, bump `updated`) and
+full checks **once** so you don't open a red PR — in this repo that's
+`bun run lint && bun run test && bun run build && bun run validate` (the last keeps the board
+valid, since this repo is also a vault). This whole-repo pass is the slow one, so run it at the
+end, not in a loop; if it surfaces a failure in a package your card never touched, that's
+pre-existing — say so and leave it. Once your scoped work passes, set the card's `status` to Done (frontmatter only, bump `updated`) and
 include that edit **in the last commit on the branch** — not a separate trailing commit. So if
 the work is one commit, the Done edit rides along in it; if it's several, the Done edit goes into
 the final one. That keeps the branch's tip commit the moment the card is truly finished, and
@@ -173,9 +192,15 @@ keeps the squash-merge clean. Then push and open the PR:
 ```bash
 git add -A && git commit -m "feat(board): render columns from config"   # final commit also marks the card Done
 git push -u origin HEAD
-gh pr create --fill --base main \
+gh pr create --base main \
   --title "feat(board): render columns from config" \
-  --body "Closes F-004-S-01. <what changed, how it meets acceptance>"
+  --body "Closes F-004-S-01.
+
+<one-paragraph summary of what changed>
+
+## Acceptance
+- [x] <acceptance bullet 1> — <the check that proves it>
+- [x] <acceptance bullet 2> — <the check that proves it>"
 ```
 
 Make the **PR title a Conventional Commit** — PRs squash-merge here, so that one line becomes the
@@ -191,11 +216,31 @@ meets acceptance.
 > completion), and the PR is opened from there. If you'd rather Done mean "merged," leave the card
 > In Progress at PR time and say so — but the default is Done-on-the-final-commit.
 
+## Before you open the PR — check the boxes
+
+The finish line. Verify each item is *genuinely* true — don't just assert it. Put the card's
+Acceptance as a **ticked list in the PR body** (above): the card's own prose body is read-only,
+so never tick its boxes there (ADR-002) — the PR is where you record that they're met.
+
+- [ ] **Every `## Acceptance` bullet is satisfied,** and each maps to a check you actually ran —
+      a test, a command, an observed output — not a hopeful "should work."
+- [ ] **Scoped checks are green:** `bunx turbo run lint test --filter=<package>`.
+- [ ] **Full suite run once and green:** `bun run lint && bun run test && bun run build &&
+      bun run validate`. Any red is in code your card touched — pre-existing failures elsewhere
+      are noted, not chased.
+- [ ] **Scope held:** you changed only what the card scopes, and only the card you're shipping
+      changed state (to Done, in the final commit, frontmatter-only, `updated` bumped).
+- [ ] **No open question from Step 2** — anything you raised, the human answered.
+
+If a box can't be honestly checked, **don't open the PR**: finish the work, or stop and tell the
+human exactly which box is failing and why.
+
 ## What you hand back
 
-A short close-out: the PR link, the branch name, which Acceptance bullets are satisfied, and
-anything you deliberately left out of scope. If you paused for the human at step 2 and they
-haven't answered, stop there — an open question is a fine place to end a turn.
+A short close-out: the PR link, the branch name, the finish-line boxes you checked (and how each
+Acceptance bullet was proven), and anything you deliberately left out of scope. If you paused for
+the human at step 2 and they haven't answered, stop there — an open question is a fine place to
+end a turn.
 
 ## Example
 
