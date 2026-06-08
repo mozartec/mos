@@ -66,12 +66,12 @@ A developer building a card face (F-004-S-02) or the markdown reader (F-003-S-02
 
 ## Acceptance
 
-- [ ] UI text renders in Inter and monospace contexts in JetBrains Mono, both self-hosted
+- [x] UI text renders in Inter and monospace contexts in JetBrains Mono, both self-hosted
       (no network font requests).
-- [ ] Fonts are exposed as Tailwind/daisyUI theme tokens so `font-mono`/`font-sans` resolve
+- [x] Fonts are exposed as Tailwind/daisyUI theme tokens so `font-mono`/`font-sans` resolve
       to them; no hardcoded font-family in components.
-- [ ] A Tabler icon renders via a single reusable mechanism; only Tabler is used.
-- [ ] `bun run lint` and `bun run build` pass with the new deps; bundle only includes the
+- [x] A Tabler icon renders via a single reusable mechanism; only Tabler is used.
+- [x] `bun run lint` and `bun run build` pass with the new deps; bundle only includes the
       weights used.
 
 ## Dependencies

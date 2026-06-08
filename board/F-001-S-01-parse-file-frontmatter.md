@@ -49,9 +49,9 @@ fence becomes `body`; a file with no frontmatter yields `data: {}` and the full 
 
 ## Acceptance
 
-- [ ] A file with valid frontmatter yields its fields; a file without yields body only.
-- [ ] Invalid YAML is reported in `errors`, not thrown past the caller.
-- [ ] The body is returned byte-for-byte (no trimming/rewriting).
+- [x] A file with valid frontmatter yields its fields; a file without yields body only.
+- [x] Invalid YAML is reported in `errors`, not thrown past the caller.
+- [x] The body is returned byte-for-byte (no trimming/rewriting).
 
 ## Dependencies
 

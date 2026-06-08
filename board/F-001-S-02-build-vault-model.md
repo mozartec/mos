@@ -2,9 +2,9 @@
 id: F-001-S-02
 type: story
 title: Build the in-memory vault model
-status: Planned
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-08T19:56:00Z
 priority: P0
 owner: mozart
 sprint: S1
@@ -52,9 +52,9 @@ dropped. This fills out the placeholder `VaultModel` from T-001.
 
 ## Acceptance
 
-- [ ] Cards are keyed by `id`; duplicate ids are reported.
-- [ ] Files in board scope without a recognized type are flagged "not a card", not dropped.
-- [ ] Running it over this repo's files matches `validate-vault.mjs`'s card count.
+- [x] Cards are keyed by `id`; duplicate ids are reported.
+- [x] Files in board scope without a recognized type are flagged "not a card", not dropped.
+- [x] Running it over this repo's files matches `validate-vault.mjs`'s card count.
 
 ## Dependencies
 
