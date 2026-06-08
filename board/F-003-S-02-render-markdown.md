@@ -4,7 +4,7 @@ type: story
 title: Render markdown (GFM)
 status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-08T22:24:55Z
+updated: 2026-06-08T22:43:00Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -56,10 +56,10 @@ it hits the DOM.
 
 ## Acceptance
 
-- [ ] Tables, fenced code, and task lists render correctly.
-- [ ] A file with frontmatter renders only its body; the YAML block never appears.
-- [ ] Output is sanitized (no active content survives).
-- [ ] The same component instance is used by the wiki and (later) the board card reader.
+- [x] Tables, fenced code, and task lists render correctly.
+- [x] A file with frontmatter renders only its body; the YAML block never appears.
+- [x] Output is sanitized (no active content survives).
+- [x] The same component instance is used by the wiki and (later) the board card reader.
 
 ## Dependencies
 
