@@ -1,0 +1,244 @@
+/**
+ * Load and validate a vault's `.mos/config.json`.
+ *
+ * Pure function — a JSON string or already-parsed object in, a typed result
+ * out. No I/O, no exceptions propagated to callers (ADR-001, ADR-003). Missing
+ * optional keys are filled with their documented defaults; structural problems
+ * are surfaced in `errors` rather than thrown.
+ */
+
+/** A frontmatter field's declared data type (VAULT_SPEC §5a). */
+export type FieldType = 'string' | 'enum' | 'id' | 'date' | 'datetime';
+
+const KNOWN_FIELD_TYPES: readonly FieldType[] = [
+  'string',
+  'enum',
+  'id',
+  'date',
+  'datetime',
+];
+
+/** A typed frontmatter field in the optional `fields` registry. */
+export interface FieldDef {
+  /** Data type used to render, validate, and sort the field. */
+  type: FieldType;
+  /** Display name on the card face; falls back to the field key. */
+  label?: string;
+  /** Allowed values for an `enum` declared inline. */
+  values?: string[];
+  /** Config key (e.g. `sprints`) whose list supplies an `enum`'s values. */
+  source?: string;
+}
+
+/** A card type: its states-to-columns map, parent rule, and card-face fields. */
+export interface TypeDef {
+  /** Display label (e.g. `Story`). */
+  label?: string;
+  /** Parent type name, or `null` for a top-level type. Nesting is one level. */
+  parent: string | null;
+  /** Workflow state → board column (or `null` to hide from the board). */
+  states: Record<string, string | null>;
+  /** Fields shown on the card face, in order. */
+  card?: { fields: string[] };
+}
+
+/** Which frontmatter fields the wiki reads, and which files it includes. */
+export interface WikiConfig {
+  include: string[];
+  exclude: string[];
+  fields: string[];
+}
+
+/** Board layout: which files are cards, the columns, and the sort within one. */
+export interface BoardConfig {
+  include: string[];
+  columns: string[];
+  sortWithinColumn: string[];
+}
+
+/** Names of the two timestamp roles in frontmatter (VAULT_SPEC §4a). */
+export interface TimestampConfig {
+  createdField: string;
+  updatedField: string;
+}
+
+/** A fully-resolved vault config: every optional key filled with its default. */
+export interface VaultConfig {
+  specVersion: string;
+  vault: { name: string };
+  meta: { timestamps: TimestampConfig };
+  fields: Record<string, FieldDef>;
+  wiki: WikiConfig;
+  board: BoardConfig;
+  types: Record<string, TypeDef>;
+  sprints: string[];
+}
+
+/** Result of {@link loadConfig}: the resolved config plus any diagnostics. */
+export interface LoadConfigResult {
+  config: VaultConfig;
+  errors: string[];
+}
+
+/**
+ * Parse, default, and validate a vault config. Never throws.
+ *
+ * @param input  The config as a JSON string or an already-parsed object.
+ *               Never a path — reading the file is the caller's job (ADR-001).
+ */
+export function loadConfig(input: string | object): LoadConfigResult {
+  const errors: string[] = [];
+
+  let raw: unknown = input;
+  if (typeof input === 'string') {
+    try {
+      raw = JSON.parse(input);
+    } catch (e) {
+      errors.push(
+        `config: invalid JSON — ${e instanceof Error ? e.message : 'parse error'}`,
+      );
+      return { config: defaultConfig(), errors };
+    }
+  }
+
+  if (!isObject(raw)) {
+    errors.push('config: expected a JSON object');
+    return { config: defaultConfig(), errors };
+  }
+
+  const config = normalize(raw);
+  validate(config, errors);
+  return { config, errors };
+}
+
+/** A minimal, well-shaped config used when input is unusable. */
+function defaultConfig(): VaultConfig {
+  return {
+    specVersion: '',
+    vault: { name: '' },
+    meta: { timestamps: { createdField: 'created', updatedField: 'updated' } },
+    fields: {},
+    wiki: { include: [], exclude: [], fields: [] },
+    board: { include: [], columns: [], sortWithinColumn: ['priority', 'id'] },
+    types: {},
+    sprints: [],
+  };
+}
+
+/** Fill every optional key with its documented default. */
+function normalize(obj: Record<string, unknown>): VaultConfig {
+  const vault = isObject(obj.vault) ? obj.vault : {};
+  const meta = isObject(obj.meta) ? obj.meta : {};
+  const timestamps = isObject(meta.timestamps) ? meta.timestamps : {};
+  const wiki = isObject(obj.wiki) ? obj.wiki : {};
+  const board = isObject(obj.board) ? obj.board : {};
+
+  return {
+    specVersion: typeof obj.specVersion === 'string' ? obj.specVersion : '',
+    vault: { name: typeof vault.name === 'string' ? vault.name : '' },
+    meta: {
+      timestamps: {
+        createdField: asString(timestamps.createdField, 'created'),
+        updatedField: asString(timestamps.updatedField, 'updated'),
+      },
+    },
+    fields: isObject(obj.fields) ? (obj.fields as Record<string, FieldDef>) : {},
+    wiki: {
+      include: asStringArray(wiki.include),
+      exclude: asStringArray(wiki.exclude),
+      fields: asStringArray(wiki.fields),
+    },
+    board: {
+      include: asStringArray(board.include),
+      columns: asStringArray(board.columns),
+      sortWithinColumn:
+        board.sortWithinColumn === undefined
+          ? ['priority', 'id']
+          : asStringArray(board.sortWithinColumn),
+    },
+    types: isObject(obj.types) ? (obj.types as Record<string, TypeDef>) : {},
+    sprints: asStringArray(obj.sprints),
+  };
+}
+
+/**
+ * Validate structure generically (never special-casing this vault's type
+ * names): parent nesting ≤ 1, every state maps to a real column or `null`, and
+ * every registered field has a known type with a usable `enum` source.
+ */
+function validate(config: VaultConfig, errors: string[]): void {
+  const columns = config.board.columns;
+  const types = config.types as Record<string, unknown>;
+
+  for (const [typeName, typeRaw] of Object.entries(types)) {
+    const type = isObject(typeRaw) ? typeRaw : {};
+
+    const parent = type.parent;
+    if (parent != null) {
+      if (typeof parent !== 'string' || !(parent in types)) {
+        errors.push(
+          `type ${typeName}: parent type '${String(parent)}' is not defined`,
+        );
+      } else {
+        const parentDef = types[parent];
+        if (isObject(parentDef) && parentDef.parent != null) {
+          errors.push(
+            `type ${typeName}: parent '${parent}' itself has a parent (nesting > 1)`,
+          );
+        }
+      }
+    }
+
+    const states = isObject(type.states) ? type.states : {};
+    for (const [state, col] of Object.entries(states)) {
+      if (col != null && (typeof col !== 'string' || !columns.includes(col))) {
+        errors.push(
+          `type ${typeName}: state '${state}' maps to unknown column '${String(col)}'`,
+        );
+      }
+    }
+  }
+
+  const fields = config.fields as Record<string, unknown>;
+  for (const [fieldName, fieldRaw] of Object.entries(fields)) {
+    const field = isObject(fieldRaw) ? fieldRaw : {};
+    const fieldType = field.type;
+    if (
+      typeof fieldType !== 'string' ||
+      !KNOWN_FIELD_TYPES.includes(fieldType as FieldType)
+    ) {
+      errors.push(`field ${fieldName}: unknown type '${String(fieldType)}'`);
+      continue;
+    }
+    if (fieldType === 'enum') {
+      const hasValues = Array.isArray(field.values) && field.values.length > 0;
+      if (hasValues) continue;
+      const source = field.source;
+      if (source === undefined) {
+        errors.push(`field ${fieldName}: enum needs 'values' or 'source'`);
+      } else if (
+        typeof source !== 'string' ||
+        !Array.isArray((config as unknown as Record<string, unknown>)[source])
+      ) {
+        errors.push(
+          `field ${fieldName}: enum source '${String(source)}' does not resolve to a config list`,
+        );
+      }
+    }
+  }
+}
+
+/** A non-null, non-array object. */
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** The string `v`, or `fallback` when `v` is not a string. */
+function asString(v: unknown, fallback: string): string {
+  return typeof v === 'string' ? v : fallback;
+}
+
+/** `v` as a string array, dropping non-string members; `[]` if not an array. */
+function asStringArray(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
