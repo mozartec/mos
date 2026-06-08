@@ -24,11 +24,32 @@ jobs:
       issues: read
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
+    env:
+      NODE_OPTIONS: "--disable-warning=DEP0205"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      # --- Make the repo's toolchain available to Claude (mirrors ci.yml) ---
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Run Claude Code
         id: claude
@@ -40,11 +61,8 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
-          # prompt: 'Update the pull request description to include a summary of changes.'
-
-          # Optional: Add claude_args to customize behavior and configuration
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
-
+          # Pre-approve the commands this repo needs. Without this, every Bash
+          # call is denied in CI (there's no human to approve it), which is why
+          # `bun install` / vitest / validate-vault.mjs couldn't run.
+          claude_args: |
+            --allowed-tools "Bash(bun:*),Bash(bunx:*),Bash(node:*),Bash(npx:*),Bash(git status),Bash(git diff:*),Bash(git log:*)"
