@@ -4,8 +4,8 @@ import { VAULT_SOURCE } from '../../sources/vault-source.token';
 import { MarkdownReader } from '../../components/markdown-reader/markdown-reader';
 
 /**
- * Empty Wiki view. It is fed by the injected {@link VaultSource} (it lists the
- * file paths) but renders no markdown yet — rendering arrives in F-003.
+ * Wiki view. Lists vault file paths from the injected {@link VaultSource} and
+ * renders the selected file's body as sanitized HTML via {@link MarkdownReader}.
  */
 @Component({
   selector: 'app-wiki-view',
@@ -41,11 +41,15 @@ export class WikiView {
     this.selectedPath.set(path);
     try {
       const text = await this.source.readFile(path);
+      // A newer selection may have won the race while this read was in flight;
+      // bail rather than overwrite the current file's body with stale content.
+      if (this.selectedPath() !== path) return;
       const parsed = parseFile(path, text);
       this.selectedBody.set(parsed.body);
     } catch (error: unknown) {
-      this.selectedBody.set('');
       console.error(`Failed to read markdown file "${path}"`, error);
+      if (this.selectedPath() !== path) return;
+      this.selectedBody.set('');
     }
   }
 }

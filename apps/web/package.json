@@ -36,6 +36,7 @@
     "@eslint/js": "^10.0.1",
     "@tabler/icons": "^3.44.0",
     "@tailwindcss/postcss": "^4.1.12",
+    "@tailwindcss/typography": "^0.5.20",
     "angular-eslint": "22.0.0",
     "daisyui": "^5.5.23",
     "eslint": "^10.3.0",

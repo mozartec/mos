@@ -8,6 +8,7 @@
 @import '@fontsource/jetbrains-mono/500.css';
 
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
 @plugin 'daisyui';
 
 /* Expose project typefaces as Tailwind/daisyUI theme tokens.
