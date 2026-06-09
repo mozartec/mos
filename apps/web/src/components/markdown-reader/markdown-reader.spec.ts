@@ -22,6 +22,7 @@ const TEST_MODEL: VaultModel = {
       title: 'First Feature',
       status: 'Done',
       path: 'board/F-001-story.md',
+      fields: {},
     },
   },
   files: ['board/F-001-story.md', 'docs/intro.md'],

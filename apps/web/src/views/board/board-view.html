@@ -42,15 +42,17 @@
               } @else {
                 <ul role="list" aria-label="{{ col.name }} cards" class="flex flex-col gap-2">
                   @for (card of col.cards; track cardTrack($index, card)) {
-                    <li class="card bg-base-100 shadow-sm">
-                      <div class="card-body gap-1 p-3">
-                        <p class="font-mono text-xs text-base-content/50">{{ card.id }}</p>
-                        <p class="text-sm font-medium leading-snug">{{ card.title }}</p>
-                        @if (card.priority) {
-                          <span class="badge badge-outline badge-xs">{{ card.priority }}</span>
-                        }
-                      </div>
-                    </li>
+                    @if (config(); as cfg) {
+                      <li class="list-none">
+                        <app-card
+                          [card]="card"
+                          [typeDef]="cfg.types[card.type]"
+                          [fieldsRegistry]="cfg.fields"
+                          [blocked]="isCardBlocked(card, cfg)"
+                          (cardSelect)="onCardSelect($event)"
+                        />
+                      </li>
+                    }
                   }
                 </ul>
               }
