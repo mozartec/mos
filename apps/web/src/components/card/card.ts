@@ -49,42 +49,33 @@ export class CardComponent {
   protected readonly iconLock = IconLock;
 
   protected readonly hostClass = computed(() => {
-    const base = 'card bg-base-100/95 border border-base-content/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ease-out cursor-pointer block rounded-box p-3.5 focus:outline-none focus:ring-2 focus:ring-primary/40';
+    const base = 'card bg-base-100/95 border-y border-r border-base-content/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ease-out cursor-pointer block rounded-box p-3.5 focus:outline-none focus:ring-2 focus:ring-primary/40';
     const accent = this.accentClass();
-    const blockedClass = this.blocked() ? 'border-error/40 shadow-error/5 bg-error/5' : '';
+    const blockedClass = this.blocked() ? 'border border-error/40 border-l-error shadow-error/5 bg-error/5' : '';
     return `${base} ${accent} ${blockedClass}`.trim();
   });
 
   protected readonly accentClass = computed(() => {
-    const priority = this.card().priority;
     const type = this.card().type;
-
-    let borderClass = 'border-l-4 border-l-base-content/25';
-    if (priority === 'P0') {
-      borderClass = 'border-l-4 border-l-error';
-    } else if (priority === 'P1') {
-      borderClass = 'border-l-4 border-l-warning';
-    } else if (priority === 'P2') {
-      borderClass = 'border-l-4 border-l-info';
-    } else if (priority === 'P3') {
-      borderClass = 'border-l-4 border-l-success';
-    } else {
-      if (type === 'feature') {
-        borderClass = 'border-l-4 border-l-secondary';
-      } else if (type === 'story') {
-        borderClass = 'border-l-4 border-l-primary';
-      } else if (type === 'task') {
-        borderClass = 'border-l-4 border-l-accent';
-      }
+    if (type === 'feature') {
+      return 'border-l-4 border-l-purple-500';
+    } else if (type === 'story') {
+      return 'border-l-4 border-l-emerald-500';
+    } else if (type === 'task') {
+      return 'border-l-4 border-l-sky-500';
     }
-    return borderClass;
+    return 'border-l-4 border-l-base-content/25';
   });
 
   protected readonly typeBadgeClass = computed(() => {
     const type = this.card().type;
-    if (type === 'feature') return 'badge-secondary text-secondary-content';
-    if (type === 'story') return 'badge-primary text-primary-content';
-    return 'badge-accent text-accent-content';
+    if (type === 'feature') {
+      return 'bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50';
+    }
+    if (type === 'story') {
+      return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50';
+    }
+    return 'bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/50';
   });
 
   protected readonly renderedFields = computed<RenderField[]>(() => {

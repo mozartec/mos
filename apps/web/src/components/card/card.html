@@ -53,7 +53,11 @@
                 </span>
               }
               @case ('enum') {
-                <span class="badge badge-neutral badge-xs font-semibold px-1.5 py-0.5 text-[9px] tracking-tight rounded-sm">
+                <span class="badge badge-xs font-semibold px-1.5 py-0.5 text-[9px] tracking-tight rounded-sm badge-soft"
+                      [class.badge-error]="field.key === 'priority' && field.formattedValue === 'P0'"
+                      [class.badge-warning]="field.key === 'priority' && field.formattedValue === 'P1'"
+                      [class.badge-info]="field.key === 'priority' && field.formattedValue === 'P2'"
+                      [class.badge-neutral]="field.key !== 'priority' || field.formattedValue === 'P3'">
                   {{ field.formattedValue }}
                 </span>
               }
