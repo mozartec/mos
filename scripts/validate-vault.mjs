@@ -108,6 +108,17 @@ function validateVault(root) {
       if (!UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
         errors.push(`${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`);
     }
+    // Every id in a list-of-id field (e.g. dependsOn, F-012-S-01) must resolve to a card.
+    for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
+      if (def?.type !== 'id' || def?.list !== true) continue;
+      const raw = c[fieldName];
+      if (raw == null || raw === '' || raw === '[]') continue;
+      const inline = /^\[(.*)\]$/.exec(raw);
+      const ids = inline ? inline[1].split(',').map((s) => s.trim()).filter(Boolean) : [raw];
+      for (const id of ids) {
+        if (!cards[id]) errors.push(`${c.id}: ${fieldName} '${id}' does not resolve to a card`);
+      }
+    }
   }
 
   const rank = { P0: 0, P1: 1, P2: 2, P3: 3 };

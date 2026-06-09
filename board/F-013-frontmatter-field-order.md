@@ -3,8 +3,9 @@ id: F-013
 type: feature
 title: Frontmatter field order
 status: Draft
+dependsOn: [T-001]
 created: 2026-06-09T20:18:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:20:00Z
 phase: Phase 2
 priority: P2
 owner: mozart

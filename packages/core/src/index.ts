@@ -22,3 +22,5 @@ export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';
 export type { CardPlacement } from './place-card.js';
 export { placeCard, sortWithinColumn } from './place-card.js';
+export type { DependencyEdge, BuildEdgesResult } from './edges.js';
+export { buildEdges, deriveBlocks, DEPENDS_ON_FIELD } from './edges.js';

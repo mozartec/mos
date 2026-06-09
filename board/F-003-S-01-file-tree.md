@@ -3,8 +3,9 @@ id: F-003-S-01
 type: story
 title: File tree browser
 status: Done
+dependsOn: [F-001-S-02, T-002]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T00:28:42Z
+updated: 2026-06-09T23:20:00Z
 priority: P0
 owner: mozart
 sprint: S2

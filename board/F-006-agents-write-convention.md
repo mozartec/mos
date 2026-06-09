@@ -3,8 +3,9 @@ id: F-006
 type: feature
 title: AI write convention (AGENTS.md)
 status: Draft
+dependsOn: []
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T23:20:00Z
 phase: MVP
 priority: P1
 owner: mozart

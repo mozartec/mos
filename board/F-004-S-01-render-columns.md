@@ -3,8 +3,9 @@ id: F-004-S-01
 type: story
 title: Render columns from config
 status: Done
+dependsOn: [F-002-S-02, F-001-S-02]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T14:33:23Z
+updated: 2026-06-09T23:20:00Z
 priority: P0
 owner: mozart
 sprint: S2

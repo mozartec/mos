@@ -65,6 +65,8 @@ export type CardIcon = (typeof CARD_ICONS)[number];
 export interface FieldDef {
   /** Data type used to render, validate, and sort the field. */
   type: FieldType;
+  /** True when the frontmatter value is a YAML list of `type` (§5a), e.g. `dependsOn`. */
+  list?: boolean;
   /** Display name on the card face; falls back to the field key. */
   label?: string;
   /** Allowed values for an `enum` declared inline. */
@@ -296,6 +298,10 @@ function validate(config: VaultConfig, errors: string[]): void {
       !(CARD_ICONS as readonly string[]).includes(icon as string)
     ) {
       errors.push(`field ${fieldName}: unknown icon '${String(icon)}'`);
+    }
+    const list = field['list'];
+    if (list !== undefined && typeof list !== 'boolean') {
+      errors.push(`field ${fieldName}: 'list' must be a boolean`);
     }
     const valueColors = field['valueColors'];
     if (valueColors != null) {

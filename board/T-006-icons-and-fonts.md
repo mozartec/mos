@@ -3,8 +3,9 @@ id: T-006
 type: task
 title: Icon set (Tabler) + self-hosted fonts (Fontsource)
 status: Done
+dependsOn: [T-001]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-08T16:45:00Z
+updated: 2026-06-09T23:20:00Z
 phase: MVP
 priority: P1
 owner: mozart
