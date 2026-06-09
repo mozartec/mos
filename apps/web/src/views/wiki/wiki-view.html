@@ -1,13 +1,34 @@
 <section aria-labelledby="wiki-heading">
   <h2 id="wiki-heading" class="text-xl font-semibold">Wiki</h2>
   <p class="mt-1 text-base-content/70">
-    {{ files().length }} markdown files in the vault. Rendering arrives later (F-003).
+    {{ files().length }} markdown files in the vault.
   </p>
-  <ul class="mt-3 w-full max-w-sm rounded-box bg-base-100 p-2 shadow-sm">
-    @for (path of files(); track path) {
-      <li class="px-3 py-1 font-mono text-sm">{{ path }}</li>
-    } @empty {
-      <li class="px-3 py-1 text-base-content/50">No files in vault.</li>
-    }
-  </ul>
+  <div class="mt-3 grid gap-3 lg:grid-cols-[22rem_1fr]">
+    <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm">
+      @for (path of files(); track path) {
+        <li>
+          <button
+            type="button"
+            class="btn btn-ghost w-full justify-start font-mono text-sm font-normal"
+            [class.btn-active]="selectedPath() === path"
+            [attr.aria-pressed]="selectedPath() === path"
+            (click)="select(path)"
+          >
+            {{ path }}
+          </button>
+        </li>
+      } @empty {
+        <li class="px-3 py-1 text-base-content/50">No files in vault.</li>
+      }
+    </ul>
+
+    <section class="rounded-box bg-base-100 p-4 shadow-sm">
+      @if (selectedPath()) {
+        <h3 class="mb-3 font-mono text-sm text-base-content/70">{{ selectedPath() }}</h3>
+        <app-markdown-reader [body]="selectedBody()" />
+      } @else {
+        <p class="text-base-content/50">Select a markdown file to preview it.</p>
+      }
+    </section>
+  </div>
 </section>
