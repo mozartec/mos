@@ -2,9 +2,9 @@
 id: F-003-S-01
 type: story
 title: File tree browser
-status: Todo
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T00:28:42Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -46,9 +46,9 @@ built from `model.files` — no disk access in the component.
 
 ## Acceptance
 
-- [ ] The tree lists the vault's wiki-scope markdown, nested by folder, collapsible.
-- [ ] Selecting a file notifies the view of the chosen path.
-- [ ] Excluded paths (`apps/**`, `node_modules/**`, …) don't appear.
+- [x] The tree lists the vault's wiki-scope markdown, nested by folder, collapsible.
+- [x] Selecting a file notifies the view of the chosen path.
+- [x] Excluded paths (`apps/**`, `node_modules/**`, …) don't appear.
 
 ## Dependencies
 
