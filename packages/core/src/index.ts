@@ -18,3 +18,5 @@ export { loadConfig } from './config.js';
 export type { Reference, ReferenceTarget } from './references.js';
 export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';
+export type { CardPlacement } from './place-card.js';
+export { placeCard, sortWithinColumn } from './place-card.js';

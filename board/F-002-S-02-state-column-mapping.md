@@ -2,9 +2,9 @@
 id: F-002-S-02
 type: story
 title: Apply the type state-to-column mapping
-status: Todo
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T00:24:49Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -48,10 +48,10 @@ to decide where a card goes. `column: null` means "valid status, off the board."
 
 ## Acceptance
 
-- [ ] A `Deferred`/`Dropped` card returns `column: null` (excluded from the board).
-- [ ] A `Blocked` story returns `column: "In Progress"` and `blocked: true`.
-- [ ] Two states sharing a column both resolve to it.
-- [ ] An unknown status is reported, not silently placed.
+- [x] A `Deferred`/`Dropped` card returns `column: null` (excluded from the board).
+- [x] A `Blocked` story returns `column: "In Progress"` and `blocked: true`.
+- [x] Two states sharing a column both resolve to it.
+- [x] An unknown status is reported, not silently placed.
 
 ## Dependencies
 
