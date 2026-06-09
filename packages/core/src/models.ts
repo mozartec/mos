@@ -23,6 +23,8 @@ export interface Card {
   status: string;
   /** Vault-relative path of the source file. */
   path: string;
+  /** Priority for sorting within a column (e.g. P0, P1, P2, P3). Optional. */
+  priority?: string;
 }
 
 /** The whole vault parsed into memory. The app renders its views from this. */
@@ -96,6 +98,7 @@ export function buildModel(
       title: asScalarString(file.data['title']),
       status: asScalarString(file.data['status']),
       path: file.path,
+      priority: asScalarString(file.data['priority']) || undefined,
     };
   }
 
