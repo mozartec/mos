@@ -63,7 +63,12 @@
     <section class="rounded-box bg-base-100 p-4 shadow-sm">
       @if (selectedPath()) {
         <h3 class="mb-3 font-mono text-sm text-base-content/70">{{ selectedPath() }}</h3>
-        <app-markdown-reader [body]="selectedBody()" />
+        <app-markdown-reader
+          [body]="selectedBody()"
+          [model]="model()"
+          [config]="config()"
+          (navigate)="select($event)"
+        />
       } @else {
         <p class="text-base-content/50">Select a markdown file to preview it.</p>
       }
