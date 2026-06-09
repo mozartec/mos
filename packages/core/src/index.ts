@@ -17,3 +17,5 @@ export type {
 export { loadConfig } from './config.js';
 export type { Reference, ReferenceTarget } from './references.js';
 export { resolveReferences } from './references.js';
+export type { CardPlacement } from './place-card.js';
+export { placeCard, sortWithinColumn } from './place-card.js';
