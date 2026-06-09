@@ -2,9 +2,9 @@
 id: T-004
 type: task
 title: File watcher (debounced, atomic-save safe)
-status: In Progress
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T11:16:00Z
+updated: 2026-06-09T11:20:03Z
 phase: MVP
 priority: P1
 owner: mozart
@@ -52,10 +52,10 @@ is the disk-side half of the "AI writes / you see" loop; F-005-S-01 is the app-s
 
 ## Acceptance
 
-- [ ] Editing a file emits exactly one change event after debounce; a broken read retries
+- [x] Editing a file emits exactly one change event after debounce; a broken read retries
       cleanly.
-- [ ] A temp-file + rename save surfaces as a single change to the real path, not noise.
-- [ ] Events flow through the T-002 change stream unchanged in shape.
+- [x] A temp-file + rename save surfaces as a single change to the real path, not noise.
+- [x] Events flow through the T-002 change stream unchanged in shape.
 
 ## Dependencies
 
