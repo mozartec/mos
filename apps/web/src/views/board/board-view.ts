@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { buildModel, loadConfig, parseFile, placeCard, sortWithinColumn, toPosixPath } from '@mos/core';
+import { buildModel, globToRegExp, loadConfig, parseFile, placeCard, sortWithinColumn, toPosixPath } from '@mos/core';
 import type { Card } from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
 
@@ -47,10 +47,16 @@ export class BoardView {
 
       const { config } = loadConfig(configText);
 
-      // Read and parse each file (POSIX-normalised).
+      // Pre-filter to board-scope paths before reading, so we don't fetch every
+      // wiki/doc file — each readFile is a round-trip on a remote/HTTP source.
+      const boardMatchers = config.board.include.map(globToRegExp);
+      const boardPaths = allPaths
+        .map(toPosixPath)
+        .filter((p) => boardMatchers.some((re) => re.test(p)));
+
+      // Read and parse only board-scope files.
       const parsedFiles = await Promise.all(
-        allPaths.map(async (rawPath) => {
-          const posix = toPosixPath(rawPath);
+        boardPaths.map(async (posix) => {
           try {
             const text = await this.source.readFile(posix);
             return parseFile(posix, text);
