@@ -15,7 +15,9 @@ const TEST_CONFIG = JSON.stringify({
 });
 
 class TestVaultSource implements VaultSource {
-  private readonly files: Record<string, string> = {
+  private readonly watchers: Array<(path: string) => void> = [];
+
+  readonly files: Record<string, string> = {
     '.mos/config.json': TEST_CONFIG,
     'board/T-001-sample.md': [
       '---',
@@ -44,8 +46,14 @@ class TestVaultSource implements VaultSource {
       : Promise.resolve(file);
   }
 
-  watch(): () => void {
+  watch(onChange: (path: string) => void): () => void {
+    this.watchers.push(onChange);
     return () => undefined;
+  }
+
+  /** Simulate a file-change event from the dev-server watcher. */
+  emit(path: string): void {
+    for (const watcher of this.watchers) watcher(path);
   }
 }
 
@@ -241,5 +249,42 @@ describe('WikiView', () => {
     fixture.detectChanges();
 
     expect(component['expandedFolders']().has('board')).toBe(false);
+  });
+
+  // ── Acceptance F-005 / F-005-S-01: live re-render on file change ──────────
+
+  it('re-renders the open file when it changes on disk, without a refresh', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    for (let i = 0; i < 5; i++) {
+      await fixture.whenStable();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    fixture.detectChanges();
+
+    // The first wiki file (board/T-001-sample.md) is auto-selected on load.
+    expect(fixture.nativeElement.textContent).toContain('A body line.');
+
+    const source = TestBed.inject(VAULT_SOURCE) as TestVaultSource;
+    source.files['board/T-001-sample.md'] = [
+      '---',
+      'id: T-001',
+      'type: task',
+      'status: Done',
+      '---',
+      '',
+      '# Sample task',
+      '',
+      'An updated body line.',
+    ].join('\n');
+    source.emit('board/T-001-sample.md');
+    for (let i = 0; i < 5; i++) {
+      await fixture.whenStable();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('An updated body line.');
+    expect(text).not.toContain('A body line.');
   });
 });

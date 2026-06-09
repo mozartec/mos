@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -9,11 +10,13 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  applyFileChange,
   buildModel,
   createEmptyVaultModel,
   loadConfig,
   parseFile,
   toPosixPath,
+  type ParsedFile,
   type VaultConfig,
   type VaultModel,
 } from '@mos/core';
@@ -86,6 +89,38 @@ export class ReaderView {
       this.path(); // track
       if (this.modelReady) void this.loadBody();
     });
+
+    // Live re-index: keep the model and the open file fresh (F-005-S-01).
+    const unwatch = this.source.watch((path) => void this.onFileChange(path));
+    inject(DestroyRef).onDestroy(unwatch);
+  }
+
+  /** Patch the model for one changed file; re-render it if it's the open one. */
+  private async onFileChange(path: string): Promise<void> {
+    if (!this.modelReady) return;
+    const posix = toPosixPath(path);
+    if (posix === '.mos/config.json') {
+      void this.init();
+      return;
+    }
+
+    let parsed: ParsedFile | null;
+    try {
+      parsed = parseFile(posix, await this.source.readFile(posix));
+    } catch {
+      parsed = null; // unreadable = treat as deleted
+    }
+    this.model.set(applyFileChange(this.model(), this.config(), posix, parsed).model);
+
+    if (this.path() === posix) {
+      if (parsed === null) {
+        this.body.set('');
+        this.bodyError.set(`Couldn't read "${posix}": the file is gone.`);
+      } else {
+        this.body.set(parsed.body);
+        this.bodyError.set('');
+      }
+    }
   }
 
   private async init(): Promise<void> {

@@ -55,30 +55,57 @@ function makeCard(
 }
 
 class TestVaultSource implements VaultSource {
-  constructor(private readonly files: Record<string, string>) {}
+  /** Paths handed to readFile, for re-parse accounting. */
+  readonly readPaths: string[] = [];
+  /** How many watch subscriptions have been disposed. */
+  unwatchedCount = 0;
+  private readonly watchers: Array<(path: string) => void> = [];
+
+  constructor(readonly files: Record<string, string>) {}
 
   listFiles(): Promise<string[]> {
     return Promise.resolve(Object.keys(this.files));
   }
 
   readFile(path: string): Promise<string> {
+    this.readPaths.push(path);
     const content = this.files[path];
     return content === undefined
       ? Promise.reject(new Error(`No such file: ${path}`))
       : Promise.resolve(content);
   }
 
-  watch(): () => void {
-    return () => undefined;
+  watch(onChange: (path: string) => void): () => void {
+    this.watchers.push(onChange);
+    return () => {
+      this.unwatchedCount++;
+    };
+  }
+
+  /** Simulate a file-change event from the dev-server watcher. */
+  emit(path: string): void {
+    for (const watcher of this.watchers) watcher(path);
   }
 }
 
 describe('BoardView', () => {
+  let lastSource: TestVaultSource;
+
+  /** Drain the queued microtask/macrotask rounds of async work. */
+  async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges(): void }) {
+    for (let i = 0; i < 5; i++) {
+      await fixture.whenStable();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    fixture.detectChanges();
+  }
+
   async function createBoard(extraFiles: Record<string, string> = {}) {
     const source = new TestVaultSource({
       '.mos/config.json': TEST_CONFIG,
       ...extraFiles,
     });
+    lastSource = source;
     await TestBed.configureTestingModule({
       imports: [BoardView],
       providers: [provideRouter([]), { provide: VAULT_SOURCE, useValue: source }],
@@ -333,6 +360,63 @@ describe('BoardView', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/reader'], {
       queryParams: { path: 'board/S-001.md', from: 'board', sprint: 'S1' },
     });
+  });
+
+  // ── Acceptance F-005-S-01: live re-index ──────────────────────────────────
+
+  it('moves a card on the board when its status changes on disk', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+    });
+    lastSource.files['board/S-001.md'] = makeCard('S-001', 'story', 'Done');
+    lastSource.emit('board/S-001.md');
+    await settle(fixture);
+    const columns = fixture.componentInstance['columns']();
+    expect(columns.find((c) => c.name === 'Backlog')?.cards).toEqual([]);
+    expect(columns.find((c) => c.name === 'Done')?.cards.map((c) => c.id)).toEqual(['S-001']);
+  });
+
+  it('re-parses only the changed file on a change event', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+      'board/S-002.md': makeCard('S-002', 'story', 'Todo'),
+    });
+    lastSource.readPaths.length = 0;
+    lastSource.files['board/S-001.md'] = makeCard('S-001', 'story', 'Done');
+    lastSource.emit('board/S-001.md');
+    await settle(fixture);
+    expect(lastSource.readPaths).toEqual(['board/S-001.md']);
+  });
+
+  it('removes a card from the board when its file is deleted', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+    });
+    delete lastSource.files['board/S-001.md'];
+    lastSource.emit('board/S-001.md');
+    await settle(fixture);
+    const allCards = fixture.componentInstance['columns']().flatMap((c) => c.cards);
+    expect(allCards).toEqual([]);
+  });
+
+  it('adds a card to the board when a new file appears', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+    });
+    lastSource.files['board/S-090.md'] = makeCard('S-090', 'story', 'In Progress');
+    lastSource.emit('board/S-090.md');
+    await settle(fixture);
+    const inProgress = fixture.componentInstance['columns']().find((c) => c.name === 'In Progress');
+    expect(inProgress?.cards.map((c) => c.id)).toEqual(['S-090']);
+  });
+
+  it('disposes the watch subscription on destroy (no leaks)', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+    });
+    expect(lastSource.unwatchedCount).toBe(0);
+    fixture.destroy();
+    expect(lastSource.unwatchedCount).toBe(1);
   });
 
   // ── LoadState transitions ─────────────────────────────────────────────────
