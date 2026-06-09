@@ -7,42 +7,56 @@
 
     <!-- File tree -->
     <nav aria-label="File tree">
-      <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm" role="tree" aria-label="File tree">
+      <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm" role="tree">
         @for (entry of visibleEntries(); track entryKey($index, entry)) {
           @if (entry.kind === 'folder') {
-            <li role="treeitem" [attr.aria-expanded]="expandedFolders().has(entry.key)" aria-selected="false">
-              <button
-                type="button"
-                class="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm font-medium hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
-                [style.padding-left.rem]="0.5 + entry.depth * 1"
-                [attr.aria-expanded]="expandedFolders().has(entry.key)"
-                (click)="toggleFolder(entry.key)"
-              >
-                <span aria-hidden="true" class="shrink-0 text-base-content/50">
-                  {{ expandedFolders().has(entry.key) ? '▾' : '▸' }}
-                </span>
-                <span>{{ entry.name }}/</span>
-              </button>
-            </li>
+            <button
+              #treeItem
+              role="treeitem"
+              type="button"
+              class="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm font-medium hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              [style.padding-left.rem]="0.5 + entry.depth * 1"
+              [attr.aria-expanded]="expandedFolders().has(entry.key)"
+              [attr.aria-level]="entry.depth + 1"
+              [attr.aria-setsize]="entry.siblingCount"
+              [attr.aria-posinset]="entry.siblingIndex + 1"
+              aria-selected="false"
+              [attr.tabindex]="focusedIndex() === $index ? 0 : -1"
+              (click)="toggleFolder(entry.key)"
+              (focus)="focusedIndex.set($index)"
+              (keydown)="onKeydown($event, $index)"
+            >
+              <span aria-hidden="true" class="shrink-0 text-base-content/50">
+                {{ expandedFolders().has(entry.key) ? '▾' : '▸' }}
+              </span>
+              <span>{{ entry.name }}/</span>
+            </button>
           } @else {
-            <li role="treeitem" [attr.aria-selected]="selectedPath() === entry.path">
-              <button
-                type="button"
-                class="w-full truncate rounded px-2 py-1 text-left font-mono text-xs hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
-                [style.padding-left.rem]="0.5 + entry.depth * 1"
-                [class.bg-primary]="selectedPath() === entry.path"
-                [class.text-primary-content]="selectedPath() === entry.path"
-                [attr.aria-pressed]="selectedPath() === entry.path"
-                (click)="select(entry.path)"
-              >
-                {{ entry.name }}
-              </button>
-            </li>
+            <button
+              #treeItem
+              role="treeitem"
+              type="button"
+              class="w-full truncate rounded px-2 py-1 text-left font-mono text-xs hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              [style.padding-left.rem]="0.5 + entry.depth * 1"
+              [class.bg-primary]="selectedPath() === entry.path"
+              [class.text-primary-content]="selectedPath() === entry.path"
+              [attr.aria-selected]="selectedPath() === entry.path"
+              [attr.aria-level]="entry.depth + 1"
+              [attr.aria-setsize]="entry.siblingCount"
+              [attr.aria-posinset]="entry.siblingIndex + 1"
+              [attr.tabindex]="focusedIndex() === $index ? 0 : -1"
+              (click)="select(entry.path)"
+              (focus)="focusedIndex.set($index)"
+              (keydown)="onKeydown($event, $index)"
+            >
+              {{ entry.name }}
+            </button>
           }
-        } @empty {
-          <li class="px-3 py-1 text-base-content/50">No files in vault.</li>
         }
       </ul>
+      @if (visibleEntries().length === 0) {
+        <p class="px-3 py-1 text-base-content/50">No files in vault.</p>
+      }
     </nav>
 
     <!-- File reader -->

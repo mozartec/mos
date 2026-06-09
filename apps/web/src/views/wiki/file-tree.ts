@@ -31,8 +31,9 @@ export type TreeNode = FileNode | FolderNode;
 /**
  * A flattened tree entry ready for linear rendering.
  *
- * Folders and files both carry a `key` (unique within the tree) and a `depth`
- * (zero-based nesting level) so the template can indent without recursion.
+ * Folders and files both carry a `key` (unique within the tree), a `depth`
+ * (zero-based nesting level) so the template can indent without recursion, and
+ * `siblingIndex`/`siblingCount` for `aria-posinset`/`aria-setsize`.
  * Only the nodes that are currently visible (i.e. all their ancestor folders
  * are in the `expanded` set passed to {@link flattenTree}) are included.
  */
@@ -43,6 +44,10 @@ export type FlatEntry =
       readonly key: string;
       readonly name: string;
       readonly depth: number;
+      /** 0-based position within the sibling group (for `aria-posinset`). */
+      readonly siblingIndex: number;
+      /** Total number of siblings in the group (for `aria-setsize`). */
+      readonly siblingCount: number;
     }
   | {
       readonly kind: 'file';
@@ -52,6 +57,10 @@ export type FlatEntry =
       readonly path: string;
       readonly name: string;
       readonly depth: number;
+      /** 0-based position within the sibling group (for `aria-posinset`). */
+      readonly siblingIndex: number;
+      /** Total number of siblings in the group (for `aria-setsize`). */
+      readonly siblingCount: number;
     };
 
 // ---------------------------------------------------------------------------
@@ -66,14 +75,17 @@ export type FlatEntry =
  * each folder. Excluded paths must not arrive here — filtering is the caller's
  * responsibility.
  *
+ * Children within each folder are sorted: folders first (alphabetical), then
+ * files (alphabetical).
+ *
  * @example
  * buildFileTree(['README.md', 'docs/a.md', 'docs/b.md'])
  * // → [
- * //   { kind: 'file',   name: 'README.md', path: 'README.md' },
  * //   { kind: 'folder', name: 'docs', children: [
  * //     { kind: 'file', name: 'a.md', path: 'docs/a.md' },
  * //     { kind: 'file', name: 'b.md', path: 'docs/b.md' },
  * //   ]},
+ * //   { kind: 'file',   name: 'README.md', path: 'README.md' },
  * // ]
  */
 export function buildFileTree(paths: readonly string[]): readonly TreeNode[] {
@@ -81,6 +93,7 @@ export function buildFileTree(paths: readonly string[]): readonly TreeNode[] {
   for (const path of paths) {
     insertPath(root, path.split('/'), 0, path);
   }
+  sortChildren(root);
   return root.children;
 }
 
@@ -117,6 +130,21 @@ function insertPath(
   insertPath(folder, parts, depth + 1, fullPath);
 }
 
+/** Recursively sort children: folders first (alphabetical), then files (alphabetical). */
+function sortChildren(node: MutableFolder): void {
+  node.children.sort((a, b) => {
+    if (a.kind !== b.kind) {
+      return a.kind === 'folder' ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name, 'en');
+  });
+  for (const child of node.children) {
+    if (child.kind === 'folder') {
+      sortChildren(child as MutableFolder);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // flattenTree
 // ---------------------------------------------------------------------------
@@ -141,15 +169,25 @@ export function flattenTree(
   parentKey = '',
 ): FlatEntry[] {
   const result: FlatEntry[] = [];
-  for (const node of nodes) {
+  const siblingCount = nodes.length;
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]!;
     const key = parentKey ? `${parentKey}/${node.name}` : node.name;
     if (node.kind === 'folder') {
-      result.push({ kind: 'folder', key, name: node.name, depth });
+      result.push({ kind: 'folder', key, name: node.name, depth, siblingIndex: i, siblingCount });
       if (expanded.has(key)) {
         result.push(...flattenTree(node.children, expanded, depth + 1, key));
       }
     } else {
-      result.push({ kind: 'file', key: node.path, path: node.path, name: node.name, depth });
+      result.push({
+        kind: 'file',
+        key: node.path,
+        path: node.path,
+        name: node.name,
+        depth,
+        siblingIndex: i,
+        siblingCount,
+      });
     }
   }
   return result;

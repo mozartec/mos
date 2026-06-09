@@ -41,15 +41,16 @@ describe('buildFileTree', () => {
 
   it('handles a mix of root files and nested paths', () => {
     const nodes = buildFileTree(['README.md', 'docs/a.md']);
+    // Folders come before files after sorting
     expect(nodes).toHaveLength(2);
-    expect(nodes[0]).toEqual<FileNode>({
+    const folder = nodes[0] as FolderNode;
+    expect(folder.kind).toBe('folder');
+    expect(folder.name).toBe('docs');
+    expect(nodes[1]).toEqual<FileNode>({
       kind: 'file',
       name: 'README.md',
       path: 'README.md',
     });
-    const folder = nodes[1] as FolderNode;
-    expect(folder.kind).toBe('folder');
-    expect(folder.name).toBe('docs');
   });
 
   it('nests folders deeply', () => {
@@ -87,6 +88,18 @@ describe('buildFileTree', () => {
     expect(folderNodes).toHaveLength(1);
     const docs = folderNodes[0] as FolderNode;
     expect(docs.children).toHaveLength(2);
+  });
+
+  it('sorts children: folders first then files, alphabetically', () => {
+    const nodes = buildFileTree(['docs/b.md', 'docs/a.md', 'README.md', 'src/util.md']);
+    // Root: folders ('docs', 'src') before files ('README.md'), alphabetical within each kind
+    expect(nodes[0]).toMatchObject({ kind: 'folder', name: 'docs' });
+    expect(nodes[1]).toMatchObject({ kind: 'folder', name: 'src' });
+    expect(nodes[2]).toMatchObject({ kind: 'file', name: 'README.md' });
+    // Within docs: files sorted alphabetically despite insertion order (b before a)
+    const docs = nodes[0] as FolderNode;
+    expect((docs.children[0] as FileNode).name).toBe('a.md');
+    expect((docs.children[1] as FileNode).name).toBe('b.md');
   });
 });
 

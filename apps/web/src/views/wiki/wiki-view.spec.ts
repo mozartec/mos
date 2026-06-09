@@ -83,11 +83,11 @@ describe('WikiView', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
-    // 'board' and 'docs' folders should appear (both collapsed by default)
-    const buttons = Array.from(host.querySelectorAll('button')) as HTMLButtonElement[];
-    const folderNames = buttons.map((b) => b.textContent?.trim() ?? '');
-    expect(folderNames.some((n) => n.includes('board/'))).toBe(true);
-    expect(folderNames.some((n) => n.includes('docs/'))).toBe(true);
+    // 'board' and 'docs' folders should appear as treeitem buttons
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+    const names = items.map((el) => el.textContent?.trim() ?? '');
+    expect(names.some((n) => n.includes('board/'))).toBe(true);
+    expect(names.some((n) => n.includes('docs/'))).toBe(true);
   });
 
   it('does not show excluded paths (apps/**) in the tree', async () => {
@@ -101,28 +101,37 @@ describe('WikiView', () => {
     expect(text).not.toContain('App readme');
   });
 
-  it('expands a folder and reveals its children when toggled', async () => {
+  it('auto-expands the initial file\'s ancestor folders on load', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // board/ should be expanded because T-001-sample.md is the first selected file
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('T-001-sample.md');
+  });
+
+  it('expands a collapsed folder and reveals its children when toggled', async () => {
     const fixture = TestBed.createComponent(WikiView);
     await fixture.whenStable();
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
 
-    // Find the 'board/' folder toggle button
-    const buttons = Array.from(host.querySelectorAll('button')) as HTMLButtonElement[];
-    const boardBtn = buttons.find((b) => b.textContent?.trim().includes('board/'));
-    expect(boardBtn).toBeDefined();
+    // Find the 'docs/' folder toggle (it starts collapsed)
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+    const docsItem = items.find((el) => el.textContent?.trim().includes('docs/'));
+    expect(docsItem).toBeDefined();
 
     // Click to expand
-    boardBtn!.click();
+    docsItem!.click();
     fixture.detectChanges();
 
-    // The file inside 'board/' should now be visible
-    const updatedText = host.textContent ?? '';
-    expect(updatedText).toContain('T-001-sample.md');
+    // The file inside 'docs/' should now be visible
+    expect((host.textContent ?? '')).toContain('intro.md');
   });
 
-  it('marks the selected file button as pressed', async () => {
+  it('marks the selected file treeitem as aria-selected="true"', async () => {
     const fixture = TestBed.createComponent(WikiView);
     await fixture.whenStable();
     fixture.detectChanges();
@@ -130,21 +139,107 @@ describe('WikiView', () => {
     const component = fixture.componentInstance;
     const host = fixture.nativeElement as HTMLElement;
 
-    // Expand the board folder first
-    const buttons = Array.from(host.querySelectorAll('button')) as HTMLButtonElement[];
-    const boardBtn = buttons.find((b) => b.textContent?.trim().includes('board/'));
-    boardBtn!.click();
-    fixture.detectChanges();
-
-    // Select the file
+    // board/ is already expanded; select the board file
     await component['select']('board/T-001-sample.md');
     fixture.detectChanges();
 
-    const updatedButtons = Array.from(host.querySelectorAll('button')) as HTMLButtonElement[];
-    const fileBtn = updatedButtons.find((b) =>
-      b.textContent?.trim().includes('T-001-sample.md'),
-    );
-    expect(fileBtn).toBeDefined();
-    expect(fileBtn!.getAttribute('aria-pressed')).toBe('true');
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+    const fileItem = items.find((el) => el.textContent?.trim().includes('T-001-sample.md'));
+    expect(fileItem).toBeDefined();
+    expect(fileItem!.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('sets aria-level, aria-setsize, and aria-posinset on treeitems', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+
+    // board/ folder is at depth 0 — aria-level should be 1
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+    const boardFolder = items.find((el) => el.textContent?.trim().includes('board/'));
+    expect(boardFolder).toBeDefined();
+    expect(boardFolder!.getAttribute('aria-level')).toBe('1');
+
+    // board/ and docs/ are siblings at root — setsize should be 2
+    expect(boardFolder!.getAttribute('aria-setsize')).toBe('2');
+
+    // T-001-sample.md is inside board/ (depth 1) — aria-level should be 2
+    const fileItem = items.find((el) => el.textContent?.trim().includes('T-001-sample.md'));
+    expect(fileItem).toBeDefined();
+    expect(fileItem!.getAttribute('aria-level')).toBe('2');
+  });
+
+  it('implements keyboard ArrowDown / ArrowUp navigation', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const host = fixture.nativeElement as HTMLElement;
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+
+    // Initial focused index is 0
+    expect(component['focusedIndex']()).toBe(0);
+
+    // ArrowDown should move focus to index 1
+    items[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    fixture.detectChanges();
+    expect(component['focusedIndex']()).toBe(1);
+
+    // ArrowUp should move focus back to index 0
+    items[1]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    fixture.detectChanges();
+    expect(component['focusedIndex']()).toBe(0);
+  });
+
+  it('implements keyboard ArrowRight to expand a folder', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const host = fixture.nativeElement as HTMLElement;
+
+    // docs/ folder is the second treeitem (board/ is first, expanded)
+    // We find docs/ by navigating — use ArrowDown from the file inside board
+    // to reach docs/ and then expand it via ArrowRight
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+    const docsItem = items.find((el) => el.textContent?.trim().includes('docs/'));
+    expect(docsItem).toBeDefined();
+    const docsIndex = items.indexOf(docsItem!);
+
+    // Confirm docs is collapsed
+    expect(docsItem!.getAttribute('aria-expanded')).toBe('false');
+
+    // Press ArrowRight on the docs folder to expand it
+    docsItem!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+
+    // docs/ should now be expanded
+    expect(component['expandedFolders']().has('docs')).toBe(true);
+
+    // Focus should move to the first child
+    expect(component['focusedIndex']()).toBe(docsIndex + 1);
+  });
+
+  it('implements keyboard ArrowLeft to collapse a folder', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const host = fixture.nativeElement as HTMLElement;
+
+    // board/ is auto-expanded on load — find it and collapse with ArrowLeft
+    const items = Array.from(host.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
+    const boardItem = items.find((el) => el.textContent?.trim().includes('board/'));
+    expect(boardItem).toBeDefined();
+
+    boardItem!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component['expandedFolders']().has('board')).toBe(false);
   });
 });
