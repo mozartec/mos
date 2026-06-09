@@ -37,9 +37,14 @@ export class MarkdownReader {
       const modelVal = this.model();
       const configVal = this.config();
 
-      // Render innerHTML manually to prevent Angular from overwriting manual DOM changes.
+      // renderMarkdown runs DOMPurify before producing this HTML, so bypassing
+      // Angular's [innerHTML] sanitizer here does not regress XSS safety.
       containerEl.innerHTML = htmlVal;
 
+      // resolveReferences is used only for id→path resolution here; the DOM
+      // walk below is the single source of truth for which text tokens get
+      // decorated. The core's position/offset data is intentionally unused —
+      // the card spec forbids source-offset indexing into HTML (F-003-S-03).
       const references = resolveReferences(bodyVal, modelVal, configVal);
       const resolvedMap = new Map<string, string>();
       for (const ref of references) {
@@ -57,19 +62,24 @@ export class MarkdownReader {
         return;
       }
 
+      // Elements whose text should never be decorated (links, code, and other
+      // verbatim elements). Decorating code examples would turn `F-001` in a
+      // code fence into a live wiki link, which is incorrect.
+      const SKIP_TAGS = new Set(['a', 'code', 'pre', 'kbd', 'samp']);
+
       const textNodes: Text[] = [];
       const walk = (node: Node) => {
         if (node.nodeType === 3) { // TEXT_NODE
           let parent: Node | null = node.parentNode;
-          let insideAnchor = false;
+          let insideSkipped = false;
           while (parent && parent !== containerEl) {
-            if (parent.nodeName.toLowerCase() === 'a') {
-              insideAnchor = true;
+            if (SKIP_TAGS.has(parent.nodeName.toLowerCase())) {
+              insideSkipped = true;
               break;
             }
             parent = parent.parentNode;
           }
-          if (!insideAnchor) {
+          if (!insideSkipped) {
             textNodes.push(node as Text);
           }
         } else {
@@ -112,10 +122,15 @@ export class MarkdownReader {
 
           if (targetPath !== undefined) {
             const a = document.createElement('a');
+            a.setAttribute('href', '#');
             a.setAttribute('data-path', targetPath);
             a.textContent = matchedText;
             newNodes.push(a);
           } else {
+            // Render unresolved IDs as dimmed non-links. Per card F-003-S-03,
+            // unresolved ids must be "visibly dim" so the reader can tell a
+            // bare id-shaped token has no target. Tokens like UTF-8 or COVID-19
+            // may be false-positives but the tradeoff is accepted for MVP.
             const span = document.createElement('span');
             span.className = 'reference-inert';
             span.textContent = matchedText;

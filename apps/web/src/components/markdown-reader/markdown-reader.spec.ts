@@ -115,4 +115,57 @@ describe('MarkdownReader', () => {
     expect(anchors[0].getAttribute('href')).toBe('http://example.com');
     expect(anchors[0].getAttribute('data-path')).toBeNull();
   });
+
+  it('skips decoration on ID inside inline code', async () => {
+    const fixture = TestBed.createComponent(MarkdownReader);
+
+    fixture.componentRef.setInput('body', 'Use `F-001` as an example.');
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('a[data-path]')).toBeNull();
+    expect(host.querySelector('span.reference-inert')).toBeNull();
+    const code = host.querySelector('code');
+    expect(code?.textContent).toBe('F-001');
+  });
+
+  it('skips decoration on ID inside a fenced code block', async () => {
+    const fixture = TestBed.createComponent(MarkdownReader);
+
+    fixture.componentRef.setInput('body', '```\nF-001\n```');
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('a[data-path]')).toBeNull();
+    expect(host.querySelector('span.reference-inert')).toBeNull();
+    const pre = host.querySelector('pre');
+    expect(pre).toBeTruthy();
+  });
+
+  it('generated reference anchor has href and is keyboard-accessible', async () => {
+    const fixture = TestBed.createComponent(MarkdownReader);
+
+    fixture.componentRef.setInput('body', 'See F-001 for details.');
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const anchor = host.querySelector('a[data-path]') as HTMLAnchorElement | null;
+    expect(anchor).toBeTruthy();
+    expect(anchor?.getAttribute('href')).not.toBeNull();
+  });
 });
