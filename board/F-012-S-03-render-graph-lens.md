@@ -2,14 +2,14 @@
 id: F-012-S-03
 type: story
 title: Render the Graph lens in the web app
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-012
 estimate: L
 dependsOn: [F-012-S-02, F-003-S-02, F-004-S-04]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:40:00Z
 ---
 
 # F-012-S-03 — Render the Graph lens
@@ -59,10 +59,10 @@ backlog actually has.
 
 ## Acceptance
 
-- [ ] A Graph lens renders nodes + directional edges from the core graph model.
-- [ ] Nodes are coloured by status and labelled with id + title; cycle-broken edges are marked.
-- [ ] Clicking a node opens the card in the F-003 reader with a way back.
-- [ ] Opening this repo as a vault reproduces its real dependency graph.
+- [x] A Graph lens renders nodes + directional edges from the core graph model.
+- [x] Nodes are coloured by status and labelled with id + title; cycle-broken edges are marked.
+- [x] Clicking a node opens the card in the F-003 reader with a way back.
+- [x] Opening this repo as a vault reproduces its real dependency graph.
 
 ## Dependencies
 

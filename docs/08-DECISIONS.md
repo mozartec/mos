@@ -207,3 +207,32 @@ timestamps, since the read-only app won't, and an un-maintained vault will have 
 validation is best-effort and non-fatal, so bad data degrades gracefully rather than
 crashing a render. If automatic maintenance becomes important, the later MCP write server
 (F-009) is the natural place to enforce it.
+
+## ADR-011 — Three lenses: wiki, board, and dependency graph
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** ADR-004 established two independent, read-only lenses over the same vault — the
+wiki (files as documents) and the board (cards as workflow state). Both look at one card at a
+time. What neither shows is the *structure between* cards: which work blocks which, where the
+critical path runs, and what could start in parallel right now. With `dependsOn` now a typed,
+machine-readable field (F-012-S-01) and a pure layered layout in core (F-012-S-02), that
+structure is data the app already has, with no view that renders it.
+
+**Decision.** Add a third lens: the **dependency graph** (`GraphView`, routed like wiki and
+board). It follows exactly the rules the first two lenses set. It is read-only (ADR-002) — it
+renders and navigates, never edits an edge or a status. It is a thin projection (ADR-001) —
+ranks, ordering, cycle handling, and (later) critical-path/ready-set math live in
+`packages/core`; the component only positions and paints what core computed. It is
+config-driven (ADR-003) — the relation comes from the field registry, node colors derive from
+each type's state→column mapping, and nothing about this vault's type names is hardcoded. And
+it reuses the shared reader (ADR-004) — clicking a node opens the card the same way a board
+card opens, with a way back. Lenses stay independent: removing the graph lens (like removing
+the board) breaks nothing else.
+
+**Consequences.** "What should I kick off next, and what's in the way?" becomes answerable by
+looking, for humans and (through the same core data) for future agents/MCP (F-009). The cost
+is a third surface to keep consistent with the lens rules above; the mitigation is that each
+new lens consumes core output rather than computing its own, so consistency is enforced by
+the architecture. Adding further lenses (e.g. a timeline) should follow this same pattern and
+supersede or extend this ADR.

@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadComponent: () => import('../views/board/board-view').then((m) => m.BoardView),
   },
   {
+    path: 'graph',
+    loadComponent: () => import('../views/graph/graph-view').then((m) => m.GraphView),
+  },
+  {
     path: 'reader',
     loadComponent: () => import('../views/reader/reader-view').then((m) => m.ReaderView),
   },

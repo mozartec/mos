@@ -1,0 +1,116 @@
+<section aria-labelledby="graph-heading" class="flex h-full flex-col gap-4 overflow-hidden p-4">
+  <h2 id="graph-heading" class="text-xl font-semibold">Graph</h2>
+
+  @switch (loadState()) {
+    @case ('loading') {
+      <p class="text-base-content/60">Loading graph…</p>
+    }
+    @case ('error') {
+      <p class="text-error">Failed to load the graph: {{ loadError() }}</p>
+    }
+    @default {
+      @if (graphErrors().length > 0) {
+        <div role="alert" class="alert alert-warning">
+          <details>
+            <summary class="cursor-pointer text-sm font-medium">
+              {{ graphErrors().length }} dependency
+              {{ graphErrors().length === 1 ? 'issue' : 'issues' }} found
+            </summary>
+            <ul class="mt-1 list-inside list-disc text-xs">
+              @for (err of graphErrors(); track err) {
+                <li>{{ err }}</li>
+              }
+            </ul>
+          </details>
+        </div>
+      }
+
+      @if (nodes().length === 0) {
+        <p class="text-base-content/60">No cards to graph.</p>
+      } @else {
+        <div class="flex-1 overflow-auto rounded-box bg-base-100 shadow-sm">
+          <svg
+            [attr.width]="canvas().width"
+            [attr.height]="canvas().height"
+            role="img"
+            aria-label="Dependency graph: prerequisites on the left, dependents on the right"
+          >
+            <defs>
+              <marker
+                id="arrow"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" class="fill-base-content/40" />
+              </marker>
+            </defs>
+
+            <!-- Edges: prerequisite → dependent -->
+            @for (edge of edges(); track edgeTrack($index, edge)) {
+              <line
+                [attr.x1]="edge.x1"
+                [attr.y1]="edge.y1"
+                [attr.x2]="edge.x2"
+                [attr.y2]="edge.y2"
+                marker-end="url(#arrow)"
+                class="stroke-base-content/40"
+                [class.stroke-error]="edge.broken"
+                [attr.stroke-dasharray]="edge.broken ? '6 4' : null"
+                stroke-width="1.5"
+              >
+                @if (edge.broken) {
+                  <title>Cycle-broken dependency</title>
+                }
+              </line>
+            }
+
+            <!-- Nodes -->
+            @for (node of nodes(); track nodeTrack($index, node)) {
+              <g
+                role="link"
+                tabindex="0"
+                class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                [attr.aria-label]="node.id + ' — ' + node.title + ' (' + node.status + ')'"
+                (click)="openNode(node)"
+                (keydown.enter)="openNode(node)"
+              >
+                <rect
+                  [attr.x]="node.x"
+                  [attr.y]="node.y"
+                  [attr.width]="NODE_W"
+                  [attr.height]="NODE_H"
+                  rx="8"
+                  stroke-width="1.5"
+                  [class]="
+                    'transition-opacity hover:opacity-80 ' +
+                    (node.tone === 'done'
+                      ? 'fill-success/15 stroke-success'
+                      : node.tone === 'blocked'
+                        ? 'fill-error/15 stroke-error'
+                        : node.tone === 'active'
+                          ? 'fill-info/15 stroke-info'
+                          : 'fill-base-200 stroke-base-content/30')
+                  "
+                />
+                <text
+                  [attr.x]="node.x + 10"
+                  [attr.y]="node.y + 20"
+                  class="fill-base-content font-mono text-xs font-bold"
+                >
+                  {{ node.id }}
+                </text>
+                <text [attr.x]="node.x + 10" [attr.y]="node.y + 38" class="fill-base-content/70 text-xs">
+                  {{ node.title.length > 28 ? node.title.slice(0, 27) + '…' : node.title }}
+                </text>
+              </g>
+            }
+          </svg>
+        </div>
+      }
+    }
+  }
+</section>

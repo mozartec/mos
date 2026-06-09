@@ -68,8 +68,18 @@ export class ReaderView {
   /** Which lens opened the reader; decides where "back" goes. */
   private readonly from = computed(() => this.queryParams().get('from'));
 
-  protected readonly backLink = computed(() => (this.from() === 'board' ? '/board' : '/wiki'));
-  protected readonly backLabel = computed(() => (this.from() === 'board' ? 'Board' : 'Wiki'));
+  protected readonly backLink = computed(() => {
+    const from = this.from();
+    if (from === 'board') return '/board';
+    if (from === 'graph') return '/graph';
+    return '/wiki';
+  });
+  protected readonly backLabel = computed(() => {
+    const from = this.from();
+    if (from === 'board') return 'Board';
+    if (from === 'graph') return 'Graph';
+    return 'Wiki';
+  });
 
   /** Round-trip the sprint filter so back lands on the same filtered board. */
   protected readonly backQueryParams = computed(() => {

@@ -1,6 +1,10 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import type { VaultConfig } from './config.js';
-import type { Card, VaultModel } from './models.js';
+import { loadConfig, type VaultConfig } from './config.js';
+import { parseFile } from './parse-file.js';
+import { buildModel, type Card, type VaultModel } from './models.js';
 import { buildDependencyGraph } from './graph.js';
 
 const config: VaultConfig = {
@@ -139,5 +143,53 @@ describe('buildDependencyGraph', () => {
   it('carries status and title onto nodes for rendering', () => {
     const graph = buildDependencyGraph(model([{ id: 'T-001', status: 'Done' }]), config);
     expect(graph.nodes[0]).toMatchObject({ id: 'T-001', status: 'Done', title: 'Title T-001' });
+  });
+});
+
+// ── This repository's own vault as the acceptance fixture (F-012-S-03) ──────
+
+const WALK_IGNORE = new Set([
+  'node_modules',
+  '.git',
+  '.angular',
+  '.turbo',
+  'dist',
+  '.cache',
+  'examples',
+]);
+
+function walkMarkdown(dir: string, files: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    if (WALK_IGNORE.has(name)) continue;
+    const absPath = join(dir, name);
+    let st;
+    try {
+      st = statSync(absPath);
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) walkMarkdown(absPath, files);
+    else if (absPath.endsWith('.md')) files.push(absPath);
+  }
+  return files;
+}
+
+describe('buildDependencyGraph on this repository vault', () => {
+  it('reproduces the real dependency structure: edges resolve, no cycles', () => {
+    const vaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+    const { config: repoConfig } = loadConfig(
+      readFileSync(join(vaultRoot, '.mos', 'config.json'), 'utf8'),
+    );
+    const parsed = walkMarkdown(vaultRoot).map((absPath) =>
+      parseFile(relative(vaultRoot, absPath).replaceAll('\\', '/'), readFileSync(absPath, 'utf8')),
+    );
+    const graph = buildDependencyGraph(buildModel(parsed, repoConfig).model, repoConfig);
+
+    expect(graph.errors).toEqual([]);
+    expect(graph.edges.length).toBeGreaterThan(20);
+    const ranks = Object.fromEntries(graph.nodes.map((n) => [n.id, n.rank]));
+    for (const edge of graph.edges) {
+      expect(ranks[edge.from]).toBeGreaterThan(ranks[edge.to]);
+    }
   });
 });
