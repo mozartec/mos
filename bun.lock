@@ -13,6 +13,9 @@
     "apps/dev-server": {
       "name": "@mos/dev-server",
       "version": "0.0.0",
+      "dependencies": {
+        "chokidar": "^5.0.0",
+      },
       "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@types/bun": "^1.2.17",
