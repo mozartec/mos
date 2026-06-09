@@ -3,8 +3,9 @@ id: F-004
 type: feature
 title: Board lens
 status: Draft
+dependsOn: [F-001, F-002, T-002]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T20:18:00Z
 phase: MVP
 priority: P0
 owner: mozart

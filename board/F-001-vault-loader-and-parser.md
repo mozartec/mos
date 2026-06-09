@@ -2,9 +2,10 @@
 id: F-001
 type: feature
 title: Vault loader and parser
-status: Planned
+status: Done
+dependsOn: [T-001, F-002]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T20:18:00Z
 phase: MVP
 priority: P0
 owner: mozart
@@ -54,10 +55,10 @@ with Vitest fixtures; export the public surface from `packages/core/src/index.ts
 
 ## Acceptance
 
-- [ ] `parseFile`, `buildModel`, and `resolveReferences` exist, are pure, and are exported.
-- [ ] Pointing the pipeline at this repo's `board/` + `docs/` reproduces the card set the
+- [x] `parseFile`, `buildModel`, and `resolveReferences` exist, are pure, and are exported.
+- [x] Pointing the pipeline at this repo's `board/` + `docs/` reproduces the card set the
       interim `validate-vault.mjs` prints.
-- [ ] Zero framework / `fs` / network imports across the new core files.
+- [x] Zero framework / `fs` / network imports across the new core files.
 
 ## Stories
 

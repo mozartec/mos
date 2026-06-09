@@ -7,8 +7,9 @@ priority: P1
 owner: mozart
 parent: F-012
 estimate: L
+dependsOn: [F-012-S-02, F-003-S-02, F-004-S-04]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-08T12:45:00Z
+updated: 2026-06-09T20:18:00Z
 ---
 
 # F-012-S-03 — Render the Graph lens
@@ -48,6 +49,8 @@ backlog actually has.
 
 ## Plan
 
+0. Write the "three lenses" ADR in [`docs/08-DECISIONS.md`](../docs/08-DECISIONS.md) recording
+   the decision to add a Graph lens alongside Wiki and Board.
 1. New `GraphView` (`views/graph/`), routable/toggleable like Wiki and Board.
 2. Render nodes from `{ rank, order }` into an SVG/lay grid; draw edges as arrows; colour by
    status; show id + title; flag any cycle-broken edge.

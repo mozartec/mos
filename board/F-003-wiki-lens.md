@@ -2,9 +2,10 @@
 id: F-003
 type: feature
 title: Wiki lens
-status: Draft
+status: Done
+dependsOn: [F-001, T-002]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T20:18:00Z
 phase: MVP
 priority: P0
 owner: mozart
@@ -55,9 +56,9 @@ fed by the `VaultSource` token already in `apps/web/src/sources`.
 
 ## Acceptance
 
-- [ ] The tree lists the vault's markdown; selecting a file renders it.
-- [ ] GFM (tables, fenced code, task lists) renders and is sanitized.
-- [ ] A bare `F-001` mention in a doc is a working in-app link (MVP acceptance #3).
+- [x] The tree lists the vault's markdown; selecting a file renders it.
+- [x] GFM (tables, fenced code, task lists) renders and is sanitized.
+- [x] A bare `F-001` mention in a doc is a working in-app link (MVP acceptance #3).
 
 ## Stories
 

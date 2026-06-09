@@ -7,8 +7,9 @@ priority: P1
 owner: mozart
 parent: F-012
 estimate: M
+dependsOn: [F-001-S-02, F-001-S-03, F-002-S-01]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-08T12:45:00Z
+updated: 2026-06-09T20:18:00Z
 ---
 
 # F-012-S-01 — Structured dependency edges
@@ -51,13 +52,17 @@ with the prose left intact.
 
 ## Plan
 
-1. Add the `dependsOn` field to the field registry (§5a) and to each type's `card.fields` in
-   `.mos/config.json`; extend the registry with a list-of-id type if needed.
-2. In core, after the model builds, resolve `dependsOn` ids to edges; collect unresolved ids
-   and any cycle into `errors`. Expose `edges` (and a derived `blocks` view) on the model.
-3. Backfill: for every card in `board/`, read its `## Dependencies` prose and add the matching
-   `dependsOn:` list to frontmatter; bump `updated`. Leave prose untouched.
-4. Vitest fixtures: valid edges, an unresolved id, a self/cycle, and a card with no deps.
+The `dependsOn` field is already declared in the field registry (`.mos/config.json`), added
+to each type's `card.fields`, and backfilled into all non-done cards' frontmatter. What
+remains:
+
+1. In core, extend `FieldDef` with an optional `list?: boolean` property so the typed field
+   registry can represent `dependsOn: { "type": "id", "list": true }` faithfully.
+2. After the model builds, resolve each card's `dependsOn` ids to edges; collect unresolved
+   ids and any cycle into `errors`. Expose `edges` (and a derived `blocks` view) on the
+   model.
+3. Vitest fixtures: valid edges, an unresolved id, a self/cycle, and a card with no deps.
+4. Update `validate-vault.mjs` if needed to check `dependsOn` consistency.
 
 ## Acceptance
 
