@@ -70,12 +70,12 @@ is the disk-side half of the "AI writes / you see" loop; F-005-S-01 is the app-s
 
 ## Acceptance
 
-- [ ] Editing a file emits exactly one change event after debounce; a broken read retries
+- [x] Editing a file emits exactly one change event after debounce; a broken read retries
       cleanly.
- - [x] A temp-file + rename save surfaces as a single change to the real path, not noise.
- - [x] Events flow through the T-002 change stream unchanged in shape (`{ path }` over SSE).
- - [x] `chokidar` is a declared devDependency of `@mos/dev-server`; `bun run dev` still serves.
- - [x] `bun test` runs in `apps/dev-server` and the watcher tests pass.
+- [x] A temp-file + rename save surfaces as a single change to the real path, not noise.
+- [x] Events flow through the T-002 change stream unchanged in shape (`{ path }` over SSE).
+- [x] `chokidar` is a declared devDependency of `@mos/dev-server`; `bun run dev` still serves.
+- [x] `bun test` runs in `apps/dev-server` and the watcher tests pass.
 
 ## Dependencies
 

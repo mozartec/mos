@@ -7,6 +7,7 @@ const MOS_CONFIG_PATH = '.mos/config.json';
 const DEFAULT_RETRY_DELAY_MS = 30;
 const WATCHER_STABILITY_THRESHOLD_MS = 50;
 const WATCHER_POLL_INTERVAL_MS = 10;
+const WATCHER_IGNORED_DIRS_PATTERN = /(^|[\\/])(node_modules|\.git)([\\/]|$)/;
 
 export interface VaultChangeEvent {
   path: string;
@@ -63,8 +64,8 @@ export async function retryUntilReadable(
   return false;
 }
 
-function mergeKinds(current: ChangeKind, incoming: ChangeKind): ChangeKind {
-  return current === 'changed' || incoming === 'changed' ? 'changed' : 'deleted';
+function mergeKinds(_current: ChangeKind, incoming: ChangeKind): ChangeKind {
+  return incoming;
 }
 
 export function createDebouncedEmitter(
@@ -126,6 +127,7 @@ export function startVaultWatcher({
 
   const watcher = chokidar.watch(vaultDir, {
     ignoreInitial: true,
+    ignored: (path) => WATCHER_IGNORED_DIRS_PATTERN.test(path),
     // Keep values short for responsive updates while still smoothing atomic-save bursts.
     awaitWriteFinish: {
       stabilityThreshold: WATCHER_STABILITY_THRESHOLD_MS,

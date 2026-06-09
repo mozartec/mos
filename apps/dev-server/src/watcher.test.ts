@@ -66,7 +66,20 @@ describe('createDebouncedEmitter', () => {
     ]);
   });
 
-  it('prefers changed over deleted when events are merged', async () => {
+  it('keeps the latest kind when events are merged', async () => {
+    const events: VaultChangeEvent[] = [];
+    const emit = createDebouncedEmitter((event) => {
+      events.push(event);
+    }, 10);
+
+    emit({ path: 'board/T-004.md', kind: 'changed' });
+    emit({ path: 'board/T-004.md', kind: 'deleted' });
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 30));
+    expect(events).toEqual([{ path: 'board/T-004.md', kind: 'deleted' }]);
+  });
+
+  it('emits changed when a delete is followed by recreate', async () => {
     const events: VaultChangeEvent[] = [];
     const emit = createDebouncedEmitter((event) => {
       events.push(event);
