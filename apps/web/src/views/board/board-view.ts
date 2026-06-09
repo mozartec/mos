@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { buildModel, loadConfig, parseFile, placeCard, sortWithinColumn, toPosixPath } from '@mos/core';
-import type { Card, VaultConfig } from '@mos/core';
+import type { Card } from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
+
+/** Discriminated load state to drive the template honestly. */
+type LoadState = 'loading' | 'loaded' | 'error';
 
 /** One column on the board, with its name and sorted cards. */
 export interface BoardColumn {
@@ -25,8 +28,8 @@ export interface BoardColumn {
 export class BoardView {
   private readonly source = inject(VAULT_SOURCE);
 
-  /** Loaded vault config, or null before first load. */
-  protected readonly config = signal<VaultConfig | null>(null);
+  /** Discriminated load state: drives the template to show loading / error / content. */
+  protected readonly loadState = signal<LoadState>('loading');
 
   /** Columns in config order, each with their sorted cards. */
   protected readonly columns = signal<BoardColumn[]>([]);
@@ -43,7 +46,6 @@ export class BoardView {
       ]);
 
       const { config } = loadConfig(configText);
-      this.config.set(config);
 
       // Read and parse each file (POSIX-normalised).
       const parsedFiles = await Promise.all(
@@ -87,8 +89,10 @@ export class BoardView {
       }));
 
       this.columns.set(sorted);
+      this.loadState.set('loaded');
     } catch (error: unknown) {
       console.error('Failed to load board', error);
+      this.loadState.set('error');
     }
   }
 
