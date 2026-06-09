@@ -4,24 +4,62 @@
     {{ files().length }} markdown files in the vault.
   </p>
   <div class="mt-3 grid gap-3 lg:grid-cols-[22rem_1fr]">
-    <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm">
-      @for (path of files(); track path) {
-        <li>
-          <button
-            type="button"
-            class="btn btn-ghost w-full justify-start font-mono text-sm font-normal"
-            [class.btn-active]="selectedPath() === path"
-            [attr.aria-pressed]="selectedPath() === path"
-            (click)="select(path)"
-          >
-            {{ path }}
-          </button>
-        </li>
-      } @empty {
-        <li class="px-3 py-1 text-base-content/50">No files in vault.</li>
-      }
-    </ul>
 
+    <!-- File tree -->
+    <nav aria-label="File tree">
+      <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm" role="tree">
+        @for (entry of visibleEntries(); track entryKey($index, entry)) {
+          @if (entry.kind === 'folder') {
+            <button
+              #treeItem
+              role="treeitem"
+              type="button"
+              class="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm font-medium hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              [style.padding-left.rem]="0.5 + entry.depth * 1"
+              [attr.aria-expanded]="expandedFolders().has(entry.key)"
+              [attr.aria-level]="entry.depth + 1"
+              [attr.aria-setsize]="entry.siblingCount"
+              [attr.aria-posinset]="entry.siblingIndex + 1"
+              aria-selected="false"
+              [attr.tabindex]="focusedIndex() === $index ? 0 : -1"
+              (click)="toggleFolder(entry.key)"
+              (focus)="focusedIndex.set($index)"
+              (keydown)="onKeydown($event, $index)"
+            >
+              <span aria-hidden="true" class="shrink-0 text-base-content/50">
+                {{ expandedFolders().has(entry.key) ? '▾' : '▸' }}
+              </span>
+              <span>{{ entry.name }}/</span>
+            </button>
+          } @else {
+            <button
+              #treeItem
+              role="treeitem"
+              type="button"
+              class="w-full truncate rounded px-2 py-1 text-left font-mono text-xs hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              [style.padding-left.rem]="0.5 + entry.depth * 1"
+              [class.bg-primary]="selectedPath() === entry.path"
+              [class.text-primary-content]="selectedPath() === entry.path"
+              [attr.aria-selected]="selectedPath() === entry.path"
+              [attr.aria-level]="entry.depth + 1"
+              [attr.aria-setsize]="entry.siblingCount"
+              [attr.aria-posinset]="entry.siblingIndex + 1"
+              [attr.tabindex]="focusedIndex() === $index ? 0 : -1"
+              (click)="select(entry.path)"
+              (focus)="focusedIndex.set($index)"
+              (keydown)="onKeydown($event, $index)"
+            >
+              {{ entry.name }}
+            </button>
+          }
+        }
+      </ul>
+      @if (visibleEntries().length === 0) {
+        <p class="px-3 py-1 text-base-content/50">No files in vault.</p>
+      }
+    </nav>
+
+    <!-- File reader -->
     <section class="rounded-box bg-base-100 p-4 shadow-sm">
       @if (selectedPath()) {
         <h3 class="mb-3 font-mono text-sm text-base-content/70">{{ selectedPath() }}</h3>
@@ -30,5 +68,6 @@
         <p class="text-base-content/50">Select a markdown file to preview it.</p>
       }
     </section>
+
   </div>
 </section>
