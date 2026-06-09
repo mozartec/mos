@@ -76,7 +76,7 @@ const DEFAULT_PRIORITY_RANK: readonly string[] = ['P0', 'P1', 'P2', 'P3'];
  * `config.fields.priority?.values` if declared (enum field type).
  * Falls back to DEFAULT_PRIORITY_RANK when absent or not an enum.
  */
-function getPriorityRank(config: VaultConfig): readonly string[] {
+export function getPriorityRank(config: VaultConfig): readonly string[] {
   const priorityField = config.fields['priority'];
   if (priorityField?.type === 'enum' && priorityField?.values?.length) {
     return priorityField.values;
