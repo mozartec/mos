@@ -39,6 +39,12 @@ export class BoardView {
   /** Columns in config order, each with their sorted cards. */
   protected readonly columns = signal<BoardColumn[]>([]);
 
+  /** Placement diagnostics for cards that couldn't be placed (unknown type/status). */
+  protected readonly placementErrors = signal<string[]>([]);
+
+  /** Message describing why the board failed to load, shown in the error state. */
+  protected readonly loadError = signal<string>('');
+
   constructor() {
     void this.loadBoard();
   }
@@ -77,22 +83,23 @@ export class BoardView {
         config,
       );
 
-      // Group cards into columns; place each card (guarded per constraint).
+      // Group cards into columns; collect placement errors so the user sees them.
       const columnMap = new Map<string, Card[]>(config.board.columns.map((col) => [col, []]));
+      const errors: string[] = [];
 
       for (const card of Object.values(model.cards)) {
-        try {
-          const placement = placeCard(card, config);
-          if (placement.column === null) continue; // hidden-state card (Deferred/Dropped)
-          const bucket = columnMap.get(placement.column);
-          if (bucket) {
-            bucket.push(card);
-          }
-        } catch (err: unknown) {
-          // Bad card (unrecognized type/status): skip without crashing the board.
-          console.error('Skipping unplaceable card', card.id, err);
+        const placement = placeCard(card, config);
+        if (placement.error !== undefined) {
+          errors.push(placement.error);
+          continue;
+        }
+        if (placement.column === null) continue; // hidden-state card (Deferred/Dropped)
+        const bucket = columnMap.get(placement.column);
+        if (bucket) {
+          bucket.push(card);
         }
       }
+      this.placementErrors.set(errors);
 
       // Sort each column and assemble the final signal value.
       const sorted: BoardColumn[] = config.board.columns.map((name) => ({
@@ -103,7 +110,7 @@ export class BoardView {
       this.columns.set(sorted);
       this.loadState.set('loaded');
     } catch (error: unknown) {
-      console.error('Failed to load board', error);
+      this.loadError.set(error instanceof Error ? error.message : String(error));
       this.loadState.set('error');
     }
   }
@@ -124,11 +131,7 @@ export class BoardView {
   }
 
   protected isCardBlocked(card: Card, config: VaultConfig): boolean {
-    try {
-      return placeCard(card, config).blocked;
-    } catch {
-      return false;
-    }
+    return placeCard(card, config).blocked;
   }
 
   protected onCardSelect(card: Card): void {

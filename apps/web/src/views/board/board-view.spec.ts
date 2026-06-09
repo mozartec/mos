@@ -205,17 +205,37 @@ describe('BoardView', () => {
     expect(allCards.map((c) => c.id)).not.toContain('T-001');
   });
 
-  // ── Resilience: bad cards are skipped, board does not crash ───────────────
+  // ── Resilience: bad cards are skipped visibly, board does not crash ───────
 
-  it('skips a card with an unrecognized status without crashing the board', async () => {
+  it('keeps a card with an unrecognized status off the columns without crashing', async () => {
     const fixture = await createBoard({
       'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
       'board/S-BAD.md': makeCard('S-BAD', 'story', 'UNKNOWN_STATUS'),
     });
-    // The board still renders; the good card is visible
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('S-001');
-    expect(text).not.toContain('S-BAD');
+    const component = fixture.componentInstance;
+    const allCards = component['columns']().flatMap((c) => c.cards);
+    expect(allCards.map((c) => c.id)).toContain('S-001');
+    expect(allCards.map((c) => c.id)).not.toContain('S-BAD');
+  });
+
+  it('surfaces placement errors visibly instead of only logging (T-007)', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+      'board/S-BAD.md': makeCard('S-BAD', 'story', 'UNKNOWN_STATUS'),
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert?.textContent).toContain("1 card couldn't be placed");
+    expect(alert?.textContent).toContain('S-BAD');
+  });
+
+  it('shows no placement alert when every card places cleanly', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('[role="alert"]')).toBeNull();
   });
 
   // ── LoadState transitions ─────────────────────────────────────────────────

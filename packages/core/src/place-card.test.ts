@@ -122,7 +122,7 @@ describe('placeCard', () => {
     expect(placeCard(card2, testConfig).column).toBe('In Progress');
   });
 
-  it('throws on unknown type', () => {
+  it('returns an error result on unknown type (never throws)', () => {
     const card: Card = {
       id: 'X-001',
       type: 'unknown',
@@ -130,10 +130,13 @@ describe('placeCard', () => {
       status: 'Todo',
       path: 'board/X-001.md',
     };
-    expect(() => placeCard(card, testConfig)).toThrow("Unknown card type 'unknown'");
+    const result = placeCard(card, testConfig);
+    expect(result.column).toBeNull();
+    expect(result.blocked).toBe(false);
+    expect(result.error).toContain("Unknown card type 'unknown'");
   });
 
-  it('throws on unknown status', () => {
+  it('returns an error result on unknown status (never throws)', () => {
     const card: Card = {
       id: 'F-001-S-08',
       type: 'story',
@@ -141,7 +144,9 @@ describe('placeCard', () => {
       status: 'UnknownStatus',
       path: 'board/F-001-S-08.md',
     };
-    expect(() => placeCard(card, testConfig)).toThrow("Unknown status 'UnknownStatus'");
+    const result = placeCard(card, testConfig);
+    expect(result.column).toBeNull();
+    expect(result.error).toContain("Unknown status 'UnknownStatus'");
   });
 
   it('reports card id in error messages', () => {
@@ -152,7 +157,18 @@ describe('placeCard', () => {
       status: 'Todo',
       path: 'board/F-002-S-01.md',
     };
-    expect(() => placeCard(card, testConfig)).toThrow('F-002-S-01');
+    expect(placeCard(card, testConfig).error).toContain('F-002-S-01');
+  });
+
+  it('omits error on successful placement', () => {
+    const card: Card = {
+      id: 'F-001-S-01',
+      type: 'story',
+      title: 'Good card',
+      status: 'Todo',
+      path: 'board/F-001-S-01.md',
+    };
+    expect(placeCard(card, testConfig).error).toBeUndefined();
   });
 });
 

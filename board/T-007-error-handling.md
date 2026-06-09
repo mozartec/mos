@@ -2,10 +2,10 @@
 id: T-007
 type: task
 title: Consistent error handling across core
-status: Todo
+status: Done
 dependsOn: [T-001]
 created: 2026-06-09T20:18:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T22:49:00Z
 phase: MVP
 priority: P1
 owner: mozart
@@ -60,10 +60,10 @@ placed") instead of hiding them in `console.error`.
 
 ## Acceptance
 
-- [ ] `placeCard` returns errors in the result, not thrown.
-- [ ] The board UI shows a visible message when cards can't be placed (not just console).
-- [ ] All public core functions follow the same error-return pattern.
-- [ ] Existing tests pass; new tests cover the error paths.
+- [x] `placeCard` returns errors in the result, not thrown.
+- [x] The board UI shows a visible message when cards can't be placed (not just console).
+- [x] All public core functions follow the same error-return pattern.
+- [x] Existing tests pass; new tests cover the error paths.
 
 ## Dependencies
 
