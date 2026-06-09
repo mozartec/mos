@@ -1,4 +1,7 @@
 <article class="prose max-w-none">
-  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <!-- The container is a non-interactive delegation host (links live inside it),
+       so it intentionally stays non-focusable; keyboard activation is delegated
+       via (keydown). Only interactive-supports-focus needs suppressing. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
   <div #container (click)="onContainerClick($event)" (keydown)="onContainerKeydown($event)"></div>
 </article>
