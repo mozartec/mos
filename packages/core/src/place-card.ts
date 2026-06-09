@@ -53,15 +53,36 @@ export function placeCard(card: Card, config: VaultConfig): CardPlacement {
 }
 
 /**
+ * Priority field rank order fallback when not configured in fields.
+ * This is the default priority ranking per VAULT_SPEC.
+ */
+const DEFAULT_PRIORITY_RANK: readonly string[] = ['P0', 'P1', 'P2', 'P3'];
+
+/**
+ * Derive priority ranking from config, or use defaults.
+ *
+ * Per ADR-003 (config-driven), priority rank comes from
+ * `config.fields.priority?.values` if declared (enum field type).
+ * Falls back to DEFAULT_PRIORITY_RANK when absent or not an enum.
+ */
+function getPriorityRank(config: VaultConfig): readonly string[] {
+  const priorityField = config.fields['priority'];
+  if (priorityField?.type === 'enum' && priorityField?.values?.length) {
+    return priorityField.values;
+  }
+  return DEFAULT_PRIORITY_RANK;
+}
+
+/**
  * Sort cards by the config's `board.sortWithinColumn` ranking.
  *
  * The default ranking is `['priority', 'id']`: sorts first by priority
- * (P0 < P1 < P2 < P3, unknown priorities sort last), then by card id
- * (lexicographic).
+ * (according to rank order), then by card id (lexicographic).
+ * Priority rank is config-driven; see {@link getPriorityRank}.
  *
  * @param cards The cards to sort.
  * @param config The vault config, which defines the sort order.
- * @returns A new array of cards, sorted in place.
+ * @returns A new sorted array; the input array is not mutated.
  */
 export function sortWithinColumn(cards: Card[], config: VaultConfig): Card[] {
   const result = [...cards];
@@ -71,18 +92,21 @@ export function sortWithinColumn(cards: Card[], config: VaultConfig): Card[] {
     return result;
   }
 
+  const priorityRank = getPriorityRank(config);
+  const rankMap = new Map(priorityRank.map((rank, index) => [rank, index]));
+
   result.sort((a, b) => {
     for (const field of sortFields) {
       let cmp = 0;
 
       if (field === 'priority') {
-        const rankOrder: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
-        const aRank = rankOrder[a.priority ?? ''] ?? 9;
-        const bRank = rankOrder[b.priority ?? ''] ?? 9;
+        const aRank = rankMap.get(a.priority ?? '') ?? priorityRank.length;
+        const bRank = rankMap.get(b.priority ?? '') ?? priorityRank.length;
         cmp = aRank - bRank;
       } else if (field === 'id') {
         cmp = (a.id ?? '').localeCompare(b.id ?? '');
       }
+      // Other sort-field names are intentionally no-ops for MVP.
 
       if (cmp !== 0) {
         return cmp;

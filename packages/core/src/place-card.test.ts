@@ -233,4 +233,37 @@ describe('sortWithinColumn', () => {
     // Should sort by id only, ignoring priority
     expect(sorted.map((c) => c.id)).toEqual(['T-001', 'T-002', 'T-003']);
   });
+
+  it('respects reversed priority rank from config.fields.priority.values', () => {
+    const reversedConfig: VaultConfig = {
+      ...testConfig,
+      fields: {
+        priority: { type: 'enum', values: ['P3', 'P2', 'P1', 'P0'] },
+      },
+    };
+    const cards: Card[] = [
+      { id: 'T-001', type: 'story', title: '', status: 'Todo', path: 'b/1.md', priority: 'P0' },
+      { id: 'T-002', type: 'story', title: '', status: 'Todo', path: 'b/2.md', priority: 'P3' },
+      { id: 'T-003', type: 'story', title: '', status: 'Todo', path: 'b/3.md', priority: 'P1' },
+    ];
+    const sorted = sortWithinColumn(cards, reversedConfig);
+    // Reversed config means P3 < P2 < P1 < P0
+    expect(sorted.map((c) => c.id)).toEqual(['T-002', 'T-003', 'T-001']);
+  });
+
+  it('falls back to default priority rank when fields.priority is absent', () => {
+    const noFieldsConfig: VaultConfig = {
+      ...testConfig,
+      fields: {}, // priority field not defined
+    };
+    const cards: Card[] = [
+      { id: 'T-003', type: 'story', title: '', status: 'Todo', path: 'b/3.md', priority: 'P1' },
+      { id: 'T-001', type: 'story', title: '', status: 'Todo', path: 'b/1.md', priority: 'P0' },
+      { id: 'T-004', type: 'story', title: '', status: 'Todo', path: 'b/4.md', priority: 'P3' },
+      { id: 'T-002', type: 'story', title: '', status: 'Todo', path: 'b/2.md', priority: 'P2' },
+    ];
+    const sorted = sortWithinColumn(cards, noFieldsConfig);
+    // Should use default: P0 < P1 < P2 < P3
+    expect(sorted.map((c) => c.id)).toEqual(['T-001', 'T-003', 'T-002', 'T-004']);
+  });
 });
