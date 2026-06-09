@@ -2,10 +2,10 @@
 id: F-004-S-02
 type: story
 title: Card component showing type fields
-status: Todo
+status: Done
 dependsOn: [F-001-S-02, F-002-S-01]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T21:16:05Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -74,13 +74,13 @@ data in, click event out — living in `apps/web/src/components/`.
 
 ## Acceptance
 
-- [ ] The core `Card` carries its frontmatter as `fields`, populated by `buildModel` (with a
+- [x] The core `Card` carries its frontmatter as `fields`, populated by `buildModel` (with a
       test); the component reads field values from it.
-- [ ] A card shows exactly the fields its type declares, in declared order.
-- [ ] Datetime fields (`created`/`updated`) render relative + absolute; a card missing them
+- [x] A card shows exactly the fields its type declares, in declared order.
+- [x] Datetime fields (`created`/`updated`) render relative + absolute; a card missing them
       shows no empty slot.
-- [ ] A `Blocked` card shows the badge; others don't.
-- [ ] The component takes inputs and emits a select event — no I/O inside it.
+- [x] A `Blocked` card shows the badge; others don't.
+- [x] The component takes inputs and emits a select event — no I/O inside it.
 
 ## Dependencies
 

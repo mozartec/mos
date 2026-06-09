@@ -18,6 +18,49 @@ const KNOWN_FIELD_TYPES: readonly FieldType[] = [
   'datetime',
 ];
 
+/**
+ * The curated card-color palette (VAULT_SPEC §5b). mos owns this list rather
+ * than borrowing daisyUI's intent tokens (`primary`/`info`/...), so a color
+ * names a fixed hue independent of theme. `loadConfig` validates against it;
+ * the rendering layer maps each name to concrete styles.
+ */
+export const CARD_COLORS = [
+  'slate',
+  'red',
+  'orange',
+  'amber',
+  'green',
+  'teal',
+  'blue',
+  'indigo',
+  'purple',
+  'pink',
+] as const;
+
+/** A color name from the curated {@link CARD_COLORS} palette. */
+export type CardColor = (typeof CARD_COLORS)[number];
+
+/**
+ * The curated card-icon set (VAULT_SPEC §5b). Each name is backed by a bundled
+ * glyph in the rendering layer; keep this list in sync with what the app
+ * bundles. `loadConfig` validates against it.
+ */
+export const CARD_ICONS = [
+  'user',
+  'calendar',
+  'flag',
+  'hourglass',
+  'clock',
+  'git-commit',
+  'tag',
+  'target',
+  'stack',
+  'bookmark',
+] as const;
+
+/** An icon name from the curated {@link CARD_ICONS} set. */
+export type CardIcon = (typeof CARD_ICONS)[number];
+
 /** A typed frontmatter field in the optional `fields` registry. */
 export interface FieldDef {
   /** Data type used to render, validate, and sort the field. */
@@ -28,6 +71,10 @@ export interface FieldDef {
   values?: string[];
   /** Config key (e.g. `sprints`) whose list supplies an `enum`'s values. */
   source?: string;
+  /** Icon glyph shown beside this field on the card face (§5b). */
+  icon?: CardIcon;
+  /** Per-value colors for an `enum` field: value → palette color (§5b). */
+  valueColors?: Record<string, CardColor>;
 }
 
 /** A card type: its states-to-columns map, parent rule, and card-face fields. */
@@ -40,6 +87,8 @@ export interface TypeDef {
   states: Record<string, string | null>;
   /** Fields shown on the card face, in order. */
   card?: { fields: string[] };
+  /** Accent color for the card face and type badge (§5b). */
+  color?: CardColor;
 }
 
 /** Which frontmatter fields the wiki reads, and which files it includes. */
@@ -220,6 +269,14 @@ function validate(config: VaultConfig, errors: string[]): void {
         );
       }
     }
+
+    const color = type['color'];
+    if (
+      color != null &&
+      !(CARD_COLORS as readonly string[]).includes(color as string)
+    ) {
+      errors.push(`type ${typeName}: unknown color '${String(color)}'`);
+    }
   }
 
   const fields = config.fields as Record<string, unknown>;
@@ -232,6 +289,27 @@ function validate(config: VaultConfig, errors: string[]): void {
     ) {
       errors.push(`field ${fieldName}: unknown type '${String(fieldType)}'`);
       continue;
+    }
+    const icon = field['icon'];
+    if (
+      icon != null &&
+      !(CARD_ICONS as readonly string[]).includes(icon as string)
+    ) {
+      errors.push(`field ${fieldName}: unknown icon '${String(icon)}'`);
+    }
+    const valueColors = field['valueColors'];
+    if (valueColors != null) {
+      if (!isObject(valueColors)) {
+        errors.push(`field ${fieldName}: valueColors must be an object`);
+      } else {
+        for (const [val, c] of Object.entries(valueColors)) {
+          if (!(CARD_COLORS as readonly string[]).includes(c as string)) {
+            errors.push(
+              `field ${fieldName}: value '${val}' has unknown color '${String(c)}'`,
+            );
+          }
+        }
+      }
     }
     if (fieldType === 'enum') {
       const hasValues = Array.isArray(field['values']) && (field['values'] as unknown[]).length > 0;

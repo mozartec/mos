@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { buildModel, globToRegExp, loadConfig, parseFile, placeCard, sortWithinColumn, toPosixPath } from '@mos/core';
-import type { Card } from '@mos/core';
+import type { Card, VaultConfig } from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
+import { CardComponent } from '../../components/card/card';
 
 /** Discriminated load state to drive the template honestly. */
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -23,6 +24,7 @@ export interface BoardColumn {
 @Component({
   selector: 'app-board-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CardComponent],
   templateUrl: './board-view.html',
 })
 export class BoardView {
@@ -30,6 +32,9 @@ export class BoardView {
 
   /** Discriminated load state: drives the template to show loading / error / content. */
   protected readonly loadState = signal<LoadState>('loading');
+
+  /** Full vault config loaded from source. */
+  protected readonly config = signal<VaultConfig | null>(null);
 
   /** Columns in config order, each with their sorted cards. */
   protected readonly columns = signal<BoardColumn[]>([]);
@@ -46,6 +51,7 @@ export class BoardView {
       ]);
 
       const { config } = loadConfig(configText);
+      this.config.set(config);
 
       // Pre-filter to board-scope paths before reading, so we don't fetch every
       // wiki/doc file — each readFile is a round-trip on a remote/HTTP source.
@@ -115,5 +121,17 @@ export class BoardView {
   /** Track function for cards @for loop. */
   protected cardTrack(_index: number, card: Card): string {
     return card.id;
+  }
+
+  protected isCardBlocked(card: Card, config: VaultConfig): boolean {
+    try {
+      return placeCard(card, config).blocked;
+    } catch {
+      return false;
+    }
+  }
+
+  protected onCardSelect(card: Card): void {
+    console.log('Selected card:', card.id);
   }
 }

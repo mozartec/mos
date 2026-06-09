@@ -145,6 +145,29 @@ describe('buildModel', () => {
       title: '99',
       status: 'true',
       path: 'board/numeric-id.md',
+      priority: undefined,
+      fields: { id: 123, type: 'task', title: 99, status: true },
+    });
+  });
+
+  it('carries the raw frontmatter values in fields property', () => {
+    const files: ParsedFile[] = [
+      {
+        path: 'board/task-1.md',
+        data: { id: 'T-1', type: 'task', title: 'Task 1', status: 'Todo', custom_field: 'hello', count: 5 },
+        body: '',
+        errors: [],
+      },
+    ];
+
+    const { model } = buildModel(files, config);
+    expect(model.cards['T-1']?.fields).toEqual({
+      id: 'T-1',
+      type: 'task',
+      title: 'Task 1',
+      status: 'Todo',
+      custom_field: 'hello',
+      count: 5,
     });
   });
 

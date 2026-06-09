@@ -7,6 +7,8 @@ export type {
   FieldType,
   FieldDef,
   TypeDef,
+  CardColor,
+  CardIcon,
   WikiConfig,
   BoardConfig,
   ReferenceConfig,
@@ -14,7 +16,7 @@ export type {
   VaultConfig,
   LoadConfigResult,
 } from './config.js';
-export { loadConfig } from './config.js';
+export { loadConfig, CARD_COLORS, CARD_ICONS } from './config.js';
 export type { Reference, ReferenceTarget } from './references.js';
 export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';

@@ -1,0 +1,81 @@
+<div class="flex flex-col gap-2.5">
+  <!-- Card Header: ID, Type Badge, and Blocked Badge -->
+  <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center gap-1.5">
+      <span class="font-mono text-[11px] font-semibold text-base-content/40 tracking-wider">
+        {{ card().id }}
+      </span>
+      <span class="badge badge-sm uppercase text-[9px] tracking-wider py-1 font-bold rounded" 
+            [class]="typeBadgeClass()">
+        {{ card().type }}
+      </span>
+    </div>
+    
+    @if (blocked()) {
+      <span class="badge badge-error badge-sm gap-1 text-white font-bold animate-pulse py-1 rounded">
+        <app-icon [icon]="iconLock" [size]="11" />
+        Blocked
+      </span>
+    }
+  </div>
+
+  <!-- Title -->
+  <h4 class="text-sm font-semibold leading-snug text-base-content group-hover:text-primary transition-colors">
+    {{ card().title }}
+  </h4>
+
+  <!-- Fields List/Grid -->
+  @if (renderedFields().length > 0) {
+    <div class="mt-1 flex flex-col gap-1.5 border-t border-base-content/5 pt-2">
+      @for (field of renderedFields(); track field.key) {
+        <div class="flex items-start justify-between gap-4 text-xs">
+          <!-- Field Name / Icon Label -->
+          <div class="flex items-center gap-1.5 text-base-content/50 min-w-0 shrink-0">
+            @if (field.icon) {
+              <app-icon [icon]="field.icon" [size]="12" class="text-base-content/40 shrink-0" />
+            }
+            <span class="font-medium truncate max-w-[80px]" [attr.title]="field.label">
+              {{ field.label }}
+            </span>
+          </div>
+
+          <!-- Field Value -->
+          <div class="text-right min-w-0 font-medium">
+            @switch (field.type) {
+              @case ('datetime') {
+                <span class="font-mono text-[10px] text-base-content/70 cursor-help" [attr.title]="field.absoluteTime">
+                  {{ field.relativeTime }}
+                </span>
+              }
+              @case ('date') {
+                <span class="font-mono text-[10px] text-base-content/70 cursor-help" [attr.title]="field.absoluteTime">
+                  {{ field.relativeTime }}
+                </span>
+              }
+              @case ('enum') {
+                <span class="badge badge-xs font-semibold px-1.5 py-0.5 text-[9px] tracking-tight rounded-sm badge-soft"
+                      [class]="field.chipClass">
+                  {{ field.formattedValue }}
+                </span>
+              }
+              @case ('id') {
+                <div class="flex flex-wrap justify-end gap-1">
+                  @for (val of field.listValues; track val) {
+                    <span class="font-mono text-[10px] bg-base-200 px-1 py-0.5 rounded text-base-content/85">
+                      {{ val }}
+                    </span>
+                  }
+                </div>
+              }
+              @default {
+                <span class="text-base-content/85 truncate block max-w-[150px]" [attr.title]="field.formattedValue">
+                  {{ field.formattedValue }}
+                </span>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

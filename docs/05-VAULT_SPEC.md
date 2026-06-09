@@ -11,14 +11,16 @@ repo are a living implementation of it.
 
 ## 0. Spec version
 
-The current vault format is **spec version `0.2`**. It is versioned separately from the
+The current vault format is **spec version `0.3`**. It is versioned separately from the
 mos app, because the format is a contract that vaults depend on. Each vault declares the
 version it targets via `specVersion` in `.mos/config.json`, and the app states which spec
 versions it supports. Bump this only when the format itself changes. See
 [`11-RELEASING.md`](11-RELEASING.md) for the versioning policy.
 
 `0.2` adds an optional **field-types registry** (§5a) and **created/updated timestamps**
-(§4a), both purely additive: a `0.1` vault with neither is still valid, and every new field
+(§4a). `0.3` adds an optional **card-color palette and icon set** (§5b): a type may set a
+`color`, and a field may set an `icon` or per-value `valueColors`. All of these are purely
+additive: a `0.1`/`0.2` vault that declares none of them is still valid, and every new key
 is optional, so nothing breaks if it's absent.
 
 ## 1. Two lenses over one folder
@@ -126,6 +128,10 @@ validates this on load.
 A state may map to `null`, meaning "valid status, hidden from the board" (e.g. `Deferred`,
 `Dropped`). Multiple states may map to one column (e.g. `Blocked` → `In Progress`).
 
+A type may also set an optional **`color`** — a name from the curated palette (§5b) — used
+as the card's accent and type badge. It's optional and config-driven: mos never colors a
+type by its name, so a vault's own types (`epic`, `bug`, `chore`, ...) style themselves.
+
 ## 5a. Field types
 
 The optional top-level `fields` registry gives a frontmatter field a **data type**, so mos
@@ -156,6 +162,26 @@ that type rather than a single value. In YAML, list values use the inline `[a, b
 dependsOn: [F-001-S-02, F-002-S-01]
 ```
 
+### Field icons and enum colors
+
+A field may carry two optional presentation hints, both drawn from curated sets (§5b) so the
+face stays config-driven and theme-independent:
+
+- **`icon`** — a glyph name from the icon set, shown beside the field on the card.
+- **`valueColors`** — for an `enum` field, a map of value → palette color, so each value
+  renders as a colored chip (e.g. `P0` red, `P3` slate). Values with no entry fall back to a
+  neutral chip.
+
+```jsonc
+"priority": {
+  "type": "enum",
+  "values": ["P0", "P1", "P2", "P3"],
+  "label": "Priority",
+  "icon": "flag",
+  "valueColors": { "P0": "red", "P1": "amber", "P2": "blue", "P3": "slate" }
+}
+```
+
 ### Registry example
 
 ```jsonc
@@ -172,23 +198,56 @@ Validation is **best-effort and non-fatal**: a value that doesn't match its decl
 reported as a diagnostic, not a crash, and the card still renders. An optional `label` sets
 the display name on the card face; it falls back to the field key.
 
+## 5b. Card colors and icons
+
+To style cards without hardcoding type names or asking authors for CSS, mos defines two small
+curated sets. A config value must be one of these names (validated on load); the app maps
+each name to concrete styles, so the same config renders consistently across themes. These
+are deliberately **not** daisyUI intent tokens (`primary`/`info`/...) — a card color names a
+fixed hue for categorization, not a UI role. The sets are intentionally small and may grow in
+a future spec version.
+
+**Colors** (`color`, `valueColors`):
+
+```
+slate · red · orange · amber · green · teal · blue · indigo · purple · pink
+```
+
+**Icons** (`icon`):
+
+```
+user · calendar · flag · hourglass · clock · git-commit · tag · target · stack · bookmark
+```
+
+Where they apply:
+
+- **`color`** on a **type** — the card's accent and type badge.
+- **`icon`** on a **field** — a glyph beside the field on the card face.
+- **`valueColors`** on an **enum field** — a colored chip per value.
+
+All three are optional; a vault that sets none renders with neutral defaults.
+
 ## 6. config.json
 
 ```jsonc
 {
-  "specVersion": "0.2",
+  "specVersion": "0.3",
   "vault": { "name": "My Project" },
 
   // optional: maps the two timestamp roles to frontmatter field names (defaults shown)
   "meta": { "timestamps": { "createdField": "created", "updatedField": "updated" } },
 
   // optional: types for frontmatter fields (§5a). Omit for all-string behavior.
+  // `icon` / `valueColors` are optional presentation hints from the curated sets (§5b).
   "fields": {
-    "priority":  { "type": "enum", "values": ["P0", "P1", "P2", "P3"] },
-    "sprint":    { "type": "enum", "source": "sprints" },
-    "dependsOn": { "type": "id", "list": true, "label": "Depends on" },
-    "created":   { "type": "datetime", "label": "Created" },
-    "updated":   { "type": "datetime", "label": "Updated" }
+    "priority":  { "type": "enum", "values": ["P0", "P1", "P2", "P3"],
+                   "icon": "flag",
+                   "valueColors": { "P0": "red", "P1": "amber", "P2": "blue", "P3": "slate" } },
+    "sprint":    { "type": "enum", "source": "sprints", "icon": "calendar" },
+    "owner":     { "type": "string", "label": "Owner", "icon": "user" },
+    "dependsOn": { "type": "id", "list": true, "label": "Depends on", "icon": "git-commit" },
+    "created":   { "type": "datetime", "label": "Created", "icon": "clock" },
+    "updated":   { "type": "datetime", "label": "Updated", "icon": "clock" }
   },
 
   // wiki.fields: optional frontmatter a doc may carry (typed via the registry)
@@ -206,6 +265,7 @@ the display name on the card face; it falls back to the field key.
     "feature": {
       "label": "Feature",
       "parent": null,
+      "color": "purple",
       "states": { "Draft": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done",
                   "Deferred": null, "Dropped": null },
@@ -214,6 +274,7 @@ the display name on the card face; it falls back to the field key.
     "story": {
       "label": "Story",
       "parent": "feature",
+      "color": "green",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Blocked": "In Progress", "Done": "Done" },
       "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
@@ -221,6 +282,7 @@ the display name on the card face; it falls back to the field key.
     "task": {
       "label": "Task",
       "parent": null,
+      "color": "blue",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done", "Deferred": null },
       "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }

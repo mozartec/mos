@@ -25,6 +25,8 @@ export interface Card {
   path: string;
   /** Priority for sorting within a column (e.g. P0, P1, P2, P3). Optional. */
   priority?: string;
+  /** Raw frontmatter parsed fields as a generic map. */
+  fields: Record<string, unknown>;
 }
 
 /** The whole vault parsed into memory. The app renders its views from this. */
@@ -99,6 +101,7 @@ export function buildModel(
       status: asScalarString(file.data['status']),
       path: file.path,
       priority: asScalarString(file.data['priority']) || undefined,
+      fields: file.data,
     };
   }
 

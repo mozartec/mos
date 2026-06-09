@@ -31,7 +31,21 @@ const here = dirname(fileURLToPath(import.meta.url));
  * Icons to bundle, as Tabler `outline` names (https://tabler.io/icons).
  * Add a name here, re-run, and commit the regenerated file.
  */
-const ICONS = ['sun', 'moon'];
+const ICONS = [
+  'sun',
+  'moon',
+  'lock',
+  'user',
+  'calendar',
+  'flag',
+  'hourglass',
+  'git-commit',
+  'clock',
+  'tag',
+  'target',
+  'stack',
+  'bookmark',
+];
 
 /** Resolve the installed @tabler/icons package root via its `exports` map. */
 function tablerIconsRoot() {
