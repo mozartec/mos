@@ -8,8 +8,7 @@ import type { VaultSource } from '@mos/core';
  * these fetches are same-origin from the browser's perspective.
  *
  * - `listFiles` and `readFile` use the Fetch API (no direct disk access).
- * - `watch` opens an SSE connection; the real fs watcher is wired in T-004.
- *   Until then, the stream stays open but emits no change events.
+ * - `watch` opens an SSE connection and forwards per-file change events.
  *
  * Swapping back to `StaticVaultSource` for tests requires only a DI binding
  * change in `app.config.ts` — the UI and core are untouched. (ADR-006)
@@ -32,7 +31,7 @@ export class HttpVaultSource implements VaultSource {
   watch(onChange: (path: string) => void): () => void {
     const es = new EventSource('/vault/watch');
     es.onmessage = (event: MessageEvent<string>) => {
-      const data = JSON.parse(event.data) as { path: string };
+      const data = JSON.parse(event.data) as { path: string; kind: string };
       onChange(data.path);
     };
     return () => es.close();

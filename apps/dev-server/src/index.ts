@@ -6,8 +6,8 @@
  *
  *   GET /vault/files              → { files: string[] }   (vault-relative paths)
  *   GET /vault/file?path=<rel>    → file contents as UTF-8 text
- *   GET /vault/watch              → SSE stream of { path: string } change events
- *                                    (real watcher wired in T-004; here just the shape)
+ *   GET /vault/watch              → SSE stream of { path: string, kind: "changed" | "deleted" }
+ *                                    change events
  *
  * Configuration:
  *   VAULT_DIR  Path to the vault root (default: three levels up from this file,
@@ -20,12 +20,20 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { startVaultWatcher, type VaultChangeEvent } from './watcher';
 
 const VAULT_DIR = resolve(process.env['VAULT_DIR'] ?? join(import.meta.dir, '../../..'));
 const PORT = Number(process.env['PORT'] ?? '3001');
 
 /** Active SSE client broadcast functions. */
-const clients = new Set<(path: string) => void>();
+const clients = new Set<(event: VaultChangeEvent) => void>();
+
+startVaultWatcher({
+  vaultDir: VAULT_DIR,
+  onChange(event) {
+    for (const send of clients) send(event);
+  },
+});
 
 // ---------------------------------------------------------------------------
 // File listing
@@ -130,18 +138,16 @@ Bun.serve({
     }
 
     // ── GET /vault/watch ──────────────────────────────────────────────────
-    // SSE endpoint. Keeps the connection open and broadcasts change events
-    // emitted by whatever wires into `clients`. The real fs watcher is T-004;
-    // here we just establish the shape the HttpVaultSource consumes.
+    // SSE endpoint. Keeps the connection open and broadcasts file change events.
     if (url.pathname === '/vault/watch') {
       const encoder = new TextEncoder();
-      let send: ((path: string) => void) | undefined;
+      let send: ((event: VaultChangeEvent) => void) | undefined;
 
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
-          send = (path: string) => {
+          send = (event: VaultChangeEvent) => {
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ path })}\n\n`),
+              encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
             );
           };
           clients.add(send);

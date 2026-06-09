@@ -8,7 +8,11 @@
     "dev": "bun --watch src/index.ts",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
