@@ -56,13 +56,13 @@ describe('createDebouncedEmitter', () => {
 
     emit({ path: 'board/T-004.md', kind: 'changed' });
     emit({ path: 'board/T-004.md', kind: 'changed' });
-    emit({ path: 'board/.tmp.md', kind: 'changed' });
+    emit({ path: 'board/T-005.md', kind: 'changed' });
 
     await new Promise<void>((resolve) => setTimeout(resolve, 30));
 
     expect(events).toEqual([
       { path: 'board/T-004.md', kind: 'changed' },
-      { path: 'board/.tmp.md', kind: 'changed' },
+      { path: 'board/T-005.md', kind: 'changed' },
     ]);
   });
 

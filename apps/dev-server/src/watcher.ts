@@ -13,9 +13,12 @@ type ReadText = (path: string) => Promise<string>;
 type Sleep = (ms: number) => Promise<void>;
 
 export function isWatchedRelativePath(path: string): boolean {
-  if (path === '.mos/config.json') return true;
+  const segments = path.split('/');
+  const isMosConfig =
+    segments.length === 2 && segments[0] === '.mos' && segments[1] === 'config.json';
+  if (isMosConfig) return true;
   if (!path.endsWith('.md')) return false;
-  return !path.split('/').some((segment) => segment.startsWith('.'));
+  return !segments.some((segment) => segment.startsWith('.'));
 }
 
 export function toVaultRelativePath(
@@ -35,7 +38,7 @@ export async function retryUntilReadable(
     retries = 2,
     delaysMs = [30, 75],
     readText = (path: string) => readFile(path, 'utf-8'),
-    sleep = (ms: number) => new Promise<void>((resolveDelay) => setTimeout(resolveDelay, ms)),
+    sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
   }: {
     retries?: number;
     delaysMs?: number[];
