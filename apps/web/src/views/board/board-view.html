@@ -1,11 +1,63 @@
-<section aria-labelledby="board-heading">
+<section aria-labelledby="board-heading" class="flex h-full flex-col gap-4 overflow-hidden p-4">
   <h2 id="board-heading" class="text-xl font-semibold">Board</h2>
-  <p class="mt-1 text-base-content/70">
-    {{ files().length }} files loaded. Columns and cards arrive later (F-004).
-  </p>
-  <div class="card mt-3 max-w-sm bg-base-100 shadow-sm">
-    <div class="card-body">
-      <p class="text-base-content/50">Board view placeholder.</p>
-    </div>
-  </div>
+
+  @switch (loadState()) {
+    @case ('loading') {
+      <p class="text-base-content/60">Loading board…</p>
+    }
+    @case ('error') {
+      <p class="text-error">Failed to load the board. Check the console for details.</p>
+    }
+    @default {
+      @if (columns().length === 0) {
+        <p class="text-base-content/60">No columns configured.</p>
+      } @else {
+        <p class="text-sm text-base-content/60">
+          {{ totalCards() }} {{ totalCards() === 1 ? 'card' : 'cards' }} across
+          {{ columns().length }} columns
+        </p>
+
+        <!-- Kanban columns: horizontally scrollable row -->
+        <div
+          role="list"
+          aria-label="Board columns"
+          class="flex flex-1 gap-4 overflow-x-auto pb-2"
+        >
+          @for (col of columns(); track colTrack($index, col)) {
+            <div
+              role="listitem"
+              class="flex w-72 shrink-0 flex-col gap-2 rounded-box bg-base-200 p-3"
+            >
+              <!-- Column header -->
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/70">
+                  {{ col.name }}
+                </h3>
+                <span class="badge badge-neutral badge-sm">{{ col.cards.length }}</span>
+              </div>
+
+              <!-- Cards -->
+              @if (col.cards.length === 0) {
+                <p class="py-4 text-center text-xs text-base-content/40">No cards</p>
+              } @else {
+                <ul role="list" aria-label="{{ col.name }} cards" class="flex flex-col gap-2">
+                  @for (card of col.cards; track cardTrack($index, card)) {
+                    <li class="card bg-base-100 shadow-sm">
+                      <div class="card-body gap-1 p-3">
+                        <p class="font-mono text-xs text-base-content/50">{{ card.id }}</p>
+                        <p class="text-sm font-medium leading-snug">{{ card.title }}</p>
+                        @if (card.priority) {
+                          <span class="badge badge-outline badge-xs">{{ card.priority }}</span>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  }
 </section>

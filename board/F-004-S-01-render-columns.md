@@ -2,9 +2,9 @@
 id: F-004-S-01
 type: story
 title: Render columns from config
-status: Todo
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T10:00:00Z
+updated: 2026-06-09T14:33:23Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -62,11 +62,11 @@ each visible card in the column computed by F-002-S-02. Within a column, cards s
 
 ## Acceptance
 
-- [ ] The board builds its model from the source (load → `parseFile` → `buildModel`), not a
+- [x] The board builds its model from the source (load → `parseFile` → `buildModel`), not a
       hardcoded list, and an unplaceable card is skipped without crashing the board.
-- [ ] Columns appear in config order; each visible card is in its computed column.
-- [ ] Cards within a column are ordered by priority then id.
-- [ ] Hidden-state cards (`Deferred`/`Dropped`) are absent.
+- [x] Columns appear in config order; each visible card is in its computed column.
+- [x] Cards within a column are ordered by priority then id.
+- [x] Hidden-state cards (`Deferred`/`Dropped`) are absent.
 
 ## Dependencies
 
