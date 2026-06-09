@@ -2,7 +2,7 @@
 id: F-003-S-03
 type: story
 title: Clickable internal links
-status: Todo
+status: Done
 created: 2026-06-07T13:00:00Z
 updated: 2026-06-09T10:00:00Z
 priority: P0
