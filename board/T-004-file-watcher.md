@@ -2,9 +2,9 @@
 id: T-004
 type: task
 title: File watcher (debounced, atomic-save safe)
-status: Todo
+status: In Progress
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T11:16:00Z
 phase: MVP
 priority: P1
 owner: mozart
