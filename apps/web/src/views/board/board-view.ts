@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { buildModel, globToRegExp, loadConfig, parseFile, placeCard, sortWithinColumn, toPosixPath } from '@mos/core';
 import type { Card, VaultConfig } from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
@@ -38,6 +39,23 @@ export function filterColumnsBySprint(columns: BoardColumn[], filter: SprintFilt
 }
 
 /**
+ * URL form of the sprint filter (`?sprint=…`): absent = All, `backlog` = cards
+ * with no sprint, anything else = that sprint name. A sprint literally named
+ * "backlog" would collide; config sprints are expected to avoid that word.
+ */
+const BACKLOG_PARAM = 'backlog';
+
+export function sprintFilterToParam(filter: SprintFilter): string | undefined {
+  if (filter === null) return undefined;
+  return filter === '' ? BACKLOG_PARAM : filter;
+}
+
+export function paramToSprintFilter(param: string | null): SprintFilter {
+  if (param === null || param === '') return null;
+  return param === BACKLOG_PARAM ? '' : param;
+}
+
+/**
  * Board view. Loads the vault config and all board-scope files, builds the
  * VaultModel via core helpers, places each card in its config-driven column,
  * and sorts within columns by priority then id (F-004-S-01).
@@ -53,6 +71,8 @@ export function filterColumnsBySprint(columns: BoardColumn[], filter: SprintFilt
 })
 export class BoardView {
   private readonly source = inject(VAULT_SOURCE);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   /** Discriminated load state: drives the template to show loading / error / content. */
   protected readonly loadState = signal<LoadState>('loading');
@@ -81,6 +101,9 @@ export class BoardView {
   protected readonly loadError = signal<string>('');
 
   constructor() {
+    // Restore the sprint filter from the URL so the board state is bookmarkable
+    // and "back" from the reader lands on the same filtered board (F-004-S-04).
+    this.sprintFilter.set(paramToSprintFilter(this.route.snapshot.queryParamMap.get('sprint')));
     void this.loadBoard();
   }
 
@@ -186,9 +209,23 @@ export class BoardView {
     if (value === this.ALL_VALUE) this.sprintFilter.set(null);
     else if (value === this.BACKLOG_VALUE) this.sprintFilter.set('');
     else this.sprintFilter.set(value);
+
+    // Mirror the filter into the URL (no history entry per keystroke-y change).
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sprint: sprintFilterToParam(this.sprintFilter()) ?? null },
+      replaceUrl: true,
+    });
   }
 
+  /** Open the card's file in the shared reader, carrying the way back (ADR-004). */
   protected onCardSelect(card: Card): void {
-    console.log('Selected card:', card.id);
+    void this.router.navigate(['/reader'], {
+      queryParams: {
+        path: card.path,
+        from: 'board',
+        sprint: sprintFilterToParam(this.sprintFilter()),
+      },
+    });
   }
 }

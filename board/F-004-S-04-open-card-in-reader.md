@@ -2,10 +2,10 @@
 id: F-004-S-04
 type: story
 title: Open a card in the wiki reader
-status: Todo
+status: Done
 dependsOn: [F-004-S-02, F-003-S-02, F-003-S-03]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:03:00Z
 priority: P1
 owner: mozart
 sprint: S3
@@ -56,9 +56,9 @@ renderer, two entry points (ADR-004) — no duplicate reading surface.
 
 ## Acceptance
 
-- [ ] Clicking a card opens its file in the F-003 reader (same renderer).
-- [ ] There's a clear way back to the board, preserving the sprint filter.
-- [ ] Internal links inside the card are clickable.
+- [x] Clicking a card opens its file in the F-003 reader (same renderer).
+- [x] There's a clear way back to the board, preserving the sprint filter.
+- [x] Internal links inside the card are clickable.
 
 ## Dependencies
 

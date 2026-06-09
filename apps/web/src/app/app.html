@@ -2,29 +2,26 @@
   <header class="navbar bg-base-100 shadow-sm">
     <div class="navbar-start gap-2">
       <span class="text-lg font-semibold">Markdown on Steroids</span>
-      <span class="badge badge-ghost badge-sm">{{ cardCount() }} cards</span>
     </div>
     <div class="navbar-end gap-2">
-      <div class="join" role="group" aria-label="Choose view">
-        <button
-          type="button"
+      <nav class="join" aria-label="Choose view">
+        <a
           class="btn join-item"
-          [class.btn-active]="view() === 'wiki'"
-          [attr.aria-pressed]="view() === 'wiki'"
-          (click)="select('wiki')"
+          routerLink="/wiki"
+          routerLinkActive="btn-active"
+          ariaCurrentWhenActive="page"
         >
           Wiki
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
           class="btn join-item"
-          [class.btn-active]="view() === 'board'"
-          [attr.aria-pressed]="view() === 'board'"
-          (click)="select('board')"
+          routerLink="/board"
+          routerLinkActive="btn-active"
+          ariaCurrentWhenActive="page"
         >
           Board
-        </button>
-      </div>
+        </a>
+      </nav>
 
       <button
         type="button"
@@ -43,10 +40,6 @@
   </header>
 
   <main class="p-4">
-    @if (view() === 'wiki') {
-      <app-wiki-view />
-    } @else {
-      <app-board-view />
-    }
+    <router-outlet />
   </main>
 </div>

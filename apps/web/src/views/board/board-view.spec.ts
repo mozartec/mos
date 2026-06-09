@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import type { VaultSource } from '@mos/core';
 import { BoardView } from './board-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
@@ -80,7 +81,7 @@ describe('BoardView', () => {
     });
     await TestBed.configureTestingModule({
       imports: [BoardView],
-      providers: [{ provide: VAULT_SOURCE, useValue: source }],
+      providers: [provideRouter([]), { provide: VAULT_SOURCE, useValue: source }],
     }).compileComponents();
     const fixture = TestBed.createComponent(BoardView);
     await fixture.whenStable();
@@ -137,7 +138,7 @@ describe('BoardView', () => {
     };
     await TestBed.configureTestingModule({
       imports: [BoardView],
-      providers: [{ provide: VAULT_SOURCE, useValue: trackingSource }],
+      providers: [provideRouter([]), { provide: VAULT_SOURCE, useValue: trackingSource }],
     }).compileComponents();
     const fixture = TestBed.createComponent(BoardView);
     await fixture.whenStable();
@@ -312,6 +313,28 @@ describe('BoardView', () => {
     expect(visible).toEqual(['S-002']);
   });
 
+  // ── Acceptance F-004-S-04: card click opens the reader ────────────────────
+
+  it('navigates to the reader with the card path and sprint filter on select', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo', 'P0', 'S1'),
+    });
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    fixture.componentInstance['sprintFilter'].set('S1');
+    fixture.componentInstance['onCardSelect']({
+      id: 'S-001',
+      type: 'story',
+      title: 'S-001',
+      status: 'Todo',
+      path: 'board/S-001.md',
+      fields: {},
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(['/reader'], {
+      queryParams: { path: 'board/S-001.md', from: 'board', sprint: 'S1' },
+    });
+  });
+
   // ── LoadState transitions ─────────────────────────────────────────────────
 
   it('transitions loadState to "loaded" after a successful load', async () => {
@@ -329,7 +352,7 @@ describe('BoardView', () => {
     };
     await TestBed.configureTestingModule({
       imports: [BoardView],
-      providers: [{ provide: VAULT_SOURCE, useValue: source }],
+      providers: [provideRouter([]), { provide: VAULT_SOURCE, useValue: source }],
     }).compileComponents();
     const fixture = TestBed.createComponent(BoardView);
     await fixture.whenStable();

@@ -2,10 +2,10 @@
 id: F-004
 type: feature
 title: Board lens
-status: Draft
+status: Done
 dependsOn: [F-001, F-002, T-002]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:03:00Z
 phase: MVP
 priority: P0
 owner: mozart
@@ -57,12 +57,12 @@ projection.
 
 ## Acceptance
 
-- [ ] Columns render in config order; visible cards land in the right column, sorted by
+- [x] Columns render in config order; visible cards land in the right column, sorted by
       priority then id.
-- [ ] `Deferred`/`Dropped` are off the board; `Blocked` shows in In Progress with a badge.
-- [ ] Card faces show their type's configured fields; sprint filter works.
-- [ ] Clicking a card opens its file in the F-003 reader with a way back.
-- [ ] Opening this repo as a vault matches `validate-vault.mjs`'s board layout.
+- [x] `Deferred`/`Dropped` are off the board; `Blocked` shows in In Progress with a badge.
+- [x] Card faces show their type's configured fields; sprint filter works.
+- [x] Clicking a card opens its file in the F-003 reader with a way back.
+- [x] Opening this repo as a vault matches `validate-vault.mjs`'s board layout.
 
 ## Stories
 
