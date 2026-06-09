@@ -5,17 +5,24 @@ import type { Card, FieldDef, TypeDef } from '@mos/core';
 describe('CardComponent', () => {
   const testFieldsRegistry: Record<string, FieldDef> = {
     id: { type: 'id', label: 'ID' },
-    priority: { type: 'enum', values: ['P0', 'P1', 'P2', 'P3'], label: 'Priority' },
-    owner: { type: 'string', label: 'Owner' },
-    sprint: { type: 'enum', values: ['S1', 'S2', 'S3'], label: 'Sprint' },
-    created: { type: 'datetime', label: 'Created' },
-    updated: { type: 'datetime', label: 'Updated' },
-    dependsOn: { type: 'id', label: 'Depends on' },
+    priority: {
+      type: 'enum',
+      values: ['P0', 'P1', 'P2', 'P3'],
+      label: 'Priority',
+      icon: 'flag',
+      valueColors: { P0: 'red', P1: 'amber', P2: 'blue', P3: 'slate' },
+    },
+    owner: { type: 'string', label: 'Owner', icon: 'user' },
+    sprint: { type: 'enum', values: ['S1', 'S2', 'S3'], label: 'Sprint', icon: 'calendar' },
+    created: { type: 'datetime', label: 'Created', icon: 'clock' },
+    updated: { type: 'datetime', label: 'Updated', icon: 'clock' },
+    dependsOn: { type: 'id', label: 'Depends on', icon: 'git-commit' },
   };
 
   const testTypeDef: TypeDef = {
     label: 'Story',
     parent: 'feature',
+    color: 'green',
     states: { Todo: 'Backlog', Done: 'Done' },
     card: { fields: ['id', 'priority', 'owner', 'sprint', 'created', 'updated', 'dependsOn'] },
   };
@@ -157,5 +164,66 @@ describe('CardComponent', () => {
     emittedCard = undefined;
     host.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
     expect(emittedCard).toEqual(testCard);
+  });
+
+  it('applies the type color to the accent and the type badge', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+
+    // Accent comes from the type's color ('green'), not the type name.
+    expect(host.className).toContain('border-l-green-500');
+    // Type badge is colored from the same token.
+    expect(host.innerHTML).toContain('bg-green-100');
+  });
+
+  it('falls back to a neutral accent when the type declares no color', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: { ...testTypeDef, color: undefined },
+      fieldsRegistry: testFieldsRegistry,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.className).toContain('border-l-base-content/25');
+    expect(host.className).not.toContain('border-l-green-500');
+  });
+
+  it('colors an enum value chip from the field valueColors map', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+    });
+    // priority P0 → 'red' per valueColors.
+    expect(fixture.nativeElement.innerHTML).toContain('bg-red-100');
+  });
+
+  it('renders an icon for a field that declares one', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+    });
+    // Not blocked, so any <svg> present comes from a field icon (owner/priority/...).
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('svg').length).toBeGreaterThan(0);
+  });
+
+  it('renders no field icons when no field declares one', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: {
+        priority: { type: 'enum', values: ['P0', 'P1', 'P2', 'P3'], label: 'Priority' },
+        owner: { type: 'string', label: 'Owner' },
+        sprint: { type: 'enum', values: ['S1', 'S2', 'S3'], label: 'Sprint' },
+        created: { type: 'datetime', label: 'Created' },
+      },
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('svg').length).toBe(0);
   });
 });

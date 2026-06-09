@@ -179,6 +179,46 @@ describe('loadConfig', () => {
       expect(errors.some((e) => /references\.idPattern: invalid regex/.test(e))).toBe(true);
     });
 
+    it('accepts a type color and field icon/valueColors from the curated sets', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        types: { feature: { parent: null, color: 'purple', states: { Done: 'Done' } } },
+        fields: {
+          priority: {
+            type: 'enum',
+            values: ['P0', 'P1'],
+            icon: 'flag',
+            valueColors: { P0: 'red', P1: 'amber' },
+          },
+        },
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('rejects a type color outside the palette', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        types: { feature: { parent: null, color: 'fuchsia', states: { Done: 'Done' } } },
+      });
+      expect(errors.some((e) => /type feature: unknown color 'fuchsia'/.test(e))).toBe(true);
+    });
+
+    it('rejects a field icon outside the curated set', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        fields: { owner: { type: 'string', icon: 'rocket' } },
+      });
+      expect(errors.some((e) => /field owner: unknown icon 'rocket'/.test(e))).toBe(true);
+    });
+
+    it('rejects a valueColors entry outside the palette', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        fields: { priority: { type: 'enum', values: ['P0'], valueColors: { P0: 'crimson' } } },
+      });
+      expect(errors.some((e) => /value 'P0' has unknown color 'crimson'/.test(e))).toBe(true);
+    });
+
     it('collects multiple errors without throwing', () => {
       const { errors } = loadConfig({
         board: { columns: ['Done'] },

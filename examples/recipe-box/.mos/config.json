@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.2",
+  "specVersion": "0.3",
   "vault": { "name": "Recipe Box" },
 
   "meta": {
@@ -8,10 +8,10 @@
 
   "fields": {
     "id": { "type": "id", "label": "ID" },
-    "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority" },
-    "owner": { "type": "string", "label": "Owner" },
-    "created": { "type": "datetime", "label": "Created" },
-    "updated": { "type": "datetime", "label": "Updated" }
+    "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority", "icon": "flag", "valueColors": { "P0": "red", "P1": "amber", "P2": "blue", "P3": "slate" } },
+    "owner": { "type": "string", "label": "Owner", "icon": "user" },
+    "created": { "type": "datetime", "label": "Created", "icon": "clock" },
+    "updated": { "type": "datetime", "label": "Updated", "icon": "clock" }
   },
 
   "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"], "fields": ["created", "updated"] },
@@ -26,12 +26,14 @@
     "feature": {
       "label": "Feature",
       "parent": null,
+      "color": "teal",
       "states": { "Idea": "Inbox", "Building": "Doing", "Done": "Shipped", "Parked": null },
       "card": { "fields": ["id", "priority", "owner", "created", "updated"] }
     },
     "bug": {
       "label": "Bug",
       "parent": null,
+      "color": "red",
       "states": { "Reported": "Inbox", "Fixing": "Doing", "Fixed": "Shipped" },
       "card": { "fields": ["id", "priority", "owner", "created", "updated"] }
     }

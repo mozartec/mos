@@ -1,15 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { Card, FieldDef, FieldType, TypeDef } from '@mos/core';
 import { IconComponent } from '../icon/icon';
-import {
-  IconCalendar,
-  IconClock,
-  IconFlag,
-  IconGitCommit,
-  IconHourglass,
-  IconLock,
-  IconUser,
-} from '../../icons/tabler-icons.generated';
+import { IconLock } from '../../icons/tabler-icons.generated';
+import { accentClassFor, badgeClassFor, chipClassFor, iconSvgFor } from './card-style';
 
 interface RenderField {
   key: string;
@@ -22,6 +15,7 @@ interface RenderField {
   isList?: boolean;
   listValues?: string[];
   icon?: string;
+  chipClass?: string;
 }
 
 @Component({
@@ -55,28 +49,13 @@ export class CardComponent {
     return `${base} ${accent} ${blockedClass}`.trim();
   });
 
-  protected readonly accentClass = computed(() => {
-    const type = this.card().type;
-    if (type === 'feature') {
-      return 'border-l-4 border-l-purple-500';
-    } else if (type === 'story') {
-      return 'border-l-4 border-l-emerald-500';
-    } else if (type === 'task') {
-      return 'border-l-4 border-l-sky-500';
-    }
-    return 'border-l-4 border-l-base-content/25';
-  });
+  protected readonly accentClass = computed(
+    () => `border-l-4 ${accentClassFor(this.typeDef().color)}`,
+  );
 
-  protected readonly typeBadgeClass = computed(() => {
-    const type = this.card().type;
-    if (type === 'feature') {
-      return 'bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50';
-    }
-    if (type === 'story') {
-      return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50';
-    }
-    return 'bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/50';
-  });
+  protected readonly typeBadgeClass = computed(
+    () => `border ${badgeClassFor(this.typeDef().color)}`,
+  );
 
   protected readonly renderedFields = computed<RenderField[]>(() => {
     const card = this.card();
@@ -94,15 +73,7 @@ export class CardComponent {
       const fieldDef = registry[key];
       const label = fieldDef?.label || key;
       const type = fieldDef?.type || 'text';
-
-      let icon: string | undefined = undefined;
-      if (key === 'owner') icon = IconUser;
-      else if (key === 'sprint') icon = IconCalendar;
-      else if (key === 'priority') icon = IconFlag;
-      else if (key === 'estimate') icon = IconHourglass;
-      else if (key === 'dependsOn') icon = IconGitCommit;
-      else if (key === 'parent') icon = IconGitCommit;
-      else if (key === 'created' || key === 'updated') icon = IconClock;
+      const icon = iconSvgFor(fieldDef?.icon);
 
       if (type === 'datetime' || type === 'date') {
         const timeInfo = this.formatRelativeTime(rawVal);
@@ -123,6 +94,7 @@ export class CardComponent {
           value: rawVal,
           type,
           formattedValue: String(rawVal),
+          chipClass: chipClassFor(fieldDef?.valueColors?.[String(rawVal)]),
           icon,
         });
       } else if (type === 'id') {
