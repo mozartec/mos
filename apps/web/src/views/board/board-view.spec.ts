@@ -14,7 +14,9 @@ const TEST_CONFIG = JSON.stringify({
   },
   fields: {
     priority: { type: 'enum', values: ['P0', 'P1', 'P2', 'P3'], label: 'Priority' },
+    sprint: { type: 'enum', source: 'sprints', label: 'Sprint' },
   },
+  sprints: ['S1', 'S2'],
   types: {
     story: {
       label: 'Story',
@@ -42,9 +44,11 @@ function makeCard(
   type: string,
   status: string,
   priority?: string,
+  sprint?: string,
 ): string {
   const lines = ['---', `id: ${id}`, `type: ${type}`, `status: ${status}`];
   if (priority) lines.push(`priority: ${priority}`);
+  if (sprint) lines.push(`sprint: ${sprint}`);
   lines.push('---', '', `# ${id}`);
   return lines.join('\n');
 }
@@ -236,6 +240,76 @@ describe('BoardView', () => {
     });
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  // ── Acceptance F-004-S-03: sprint filter ──────────────────────────────────
+
+  it('builds sprint options from config.sprints (All + sprints + Backlog)', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo'),
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const options = Array.from(host.querySelectorAll('select option')).map(
+      (o) => o.textContent?.trim() ?? '',
+    );
+    expect(options).toEqual(['All', 'S1', 'S2', 'Backlog']);
+  });
+
+  it('selecting a sprint shows only its cards', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo', 'P0', 'S1'),
+      'board/S-002.md': makeCard('S-002', 'story', 'Todo', 'P0', 'S2'),
+      'board/S-003.md': makeCard('S-003', 'story', 'Todo', 'P0'),
+    });
+    const component = fixture.componentInstance;
+    component['sprintFilter'].set('S1');
+    fixture.detectChanges();
+    const visible = component['columns']()
+      .flatMap((c) => c.cards)
+      .map((c) => c.id);
+    expect(visible).toEqual(['S-001']);
+  });
+
+  it('"Backlog" shows only cards with no sprint', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo', 'P0', 'S1'),
+      'board/S-003.md': makeCard('S-003', 'story', 'Todo', 'P0'),
+    });
+    const component = fixture.componentInstance;
+    component['sprintFilter'].set('');
+    fixture.detectChanges();
+    const visible = component['columns']()
+      .flatMap((c) => c.cards)
+      .map((c) => c.id);
+    expect(visible).toEqual(['S-003']);
+  });
+
+  it('"All" (default) shows every visible card', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo', 'P0', 'S1'),
+      'board/S-003.md': makeCard('S-003', 'story', 'Todo', 'P0'),
+    });
+    const component = fixture.componentInstance;
+    const visible = component['columns']()
+      .flatMap((c) => c.cards)
+      .map((c) => c.id);
+    expect(visible).toEqual(['S-001', 'S-003']);
+  });
+
+  it('filtering via the select element updates the board', async () => {
+    const fixture = await createBoard({
+      'board/S-001.md': makeCard('S-001', 'story', 'Todo', 'P0', 'S1'),
+      'board/S-002.md': makeCard('S-002', 'story', 'Todo', 'P0', 'S2'),
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const select = host.querySelector('select') as HTMLSelectElement;
+    select.value = 'S2';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const visible = fixture.componentInstance['columns']()
+      .flatMap((c) => c.cards)
+      .map((c) => c.id);
+    expect(visible).toEqual(['S-002']);
   });
 
   // ── LoadState transitions ─────────────────────────────────────────────────

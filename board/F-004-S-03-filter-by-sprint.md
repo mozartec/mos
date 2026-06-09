@@ -2,10 +2,10 @@
 id: F-004-S-03
 type: story
 title: Filter by sprint
-status: Todo
+status: Done
 dependsOn: [F-004-S-01, F-004-S-02]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T22:54:00Z
 priority: P1
 owner: mozart
 sprint: S3
@@ -57,8 +57,8 @@ already-placed cards.
 
 ## Acceptance
 
-- [ ] Selecting a sprint shows only its cards; "Backlog" shows cards with no sprint.
-- [ ] Options come from `config.sprints`; adding a sprint in config adds an option with no
+- [x] Selecting a sprint shows only its cards; "Backlog" shows cards with no sprint.
+- [x] Options come from `config.sprints`; adding a sprint in config adds an option with no
       code change.
 
 ## Dependencies

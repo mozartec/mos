@@ -14,6 +14,30 @@ export interface BoardColumn {
 }
 
 /**
+ * Sprint filter value: `null` = All, `''` = Backlog (cards with no sprint),
+ * any other string = that sprint.
+ */
+export type SprintFilter = string | null;
+
+/** Read a card's sprint from its frontmatter fields ('' when absent). */
+export function cardSprint(card: Card): string {
+  const value = card.fields['sprint'];
+  return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Pure projection: narrow each column's cards to the selected sprint.
+ * `null` returns the input unchanged; `''` keeps only cards with no sprint.
+ */
+export function filterColumnsBySprint(columns: BoardColumn[], filter: SprintFilter): BoardColumn[] {
+  if (filter === null) return columns;
+  return columns.map((col) => ({
+    name: col.name,
+    cards: col.cards.filter((card) => cardSprint(card) === filter),
+  }));
+}
+
+/**
  * Board view. Loads the vault config and all board-scope files, builds the
  * VaultModel via core helpers, places each card in its config-driven column,
  * and sorts within columns by priority then id (F-004-S-01).
@@ -36,8 +60,19 @@ export class BoardView {
   /** Full vault config loaded from source. */
   protected readonly config = signal<VaultConfig | null>(null);
 
-  /** Columns in config order, each with their sorted cards. */
-  protected readonly columns = signal<BoardColumn[]>([]);
+  /** Unfiltered columns in config order, each with their sorted cards. */
+  private readonly baseColumns = signal<BoardColumn[]>([]);
+
+  /** Selected sprint filter: `null` = All, `''` = Backlog, else a sprint name. */
+  protected readonly sprintFilter = signal<SprintFilter>(null);
+
+  /** Sprint options for the selector, straight from config (ADR-003). */
+  protected readonly sprintOptions = computed(() => this.config()?.sprints ?? []);
+
+  /** Columns the template renders: the base columns narrowed by the sprint filter. */
+  protected readonly columns = computed(() =>
+    filterColumnsBySprint(this.baseColumns(), this.sprintFilter()),
+  );
 
   /** Placement diagnostics for cards that couldn't be placed (unknown type/status). */
   protected readonly placementErrors = signal<string[]>([]);
@@ -107,7 +142,7 @@ export class BoardView {
         cards: sortWithinColumn(columnMap.get(name) ?? [], config),
       }));
 
-      this.columns.set(sorted);
+      this.baseColumns.set(sorted);
       this.loadState.set('loaded');
     } catch (error: unknown) {
       this.loadError.set(error instanceof Error ? error.message : String(error));
@@ -132,6 +167,25 @@ export class BoardView {
 
   protected isCardBlocked(card: Card, config: VaultConfig): boolean {
     return placeCard(card, config).blocked;
+  }
+
+  /** Sentinel `<option>` values that can't collide with sprint names. */
+  protected readonly ALL_VALUE = '__all__';
+  protected readonly BACKLOG_VALUE = '__backlog__';
+
+  /** The `<select>` value mirroring {@link sprintFilter}. */
+  protected readonly sprintFilterValue = computed(() => {
+    const filter = this.sprintFilter();
+    if (filter === null) return this.ALL_VALUE;
+    if (filter === '') return this.BACKLOG_VALUE;
+    return filter;
+  });
+
+  protected onSprintFilterChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value === this.ALL_VALUE) this.sprintFilter.set(null);
+    else if (value === this.BACKLOG_VALUE) this.sprintFilter.set('');
+    else this.sprintFilter.set(value);
   }
 
   protected onCardSelect(card: Card): void {
