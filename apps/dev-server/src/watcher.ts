@@ -5,6 +5,8 @@ import chokidar from 'chokidar';
 export type ChangeKind = 'changed' | 'deleted';
 const MOS_CONFIG_PATH = '.mos/config.json';
 const DEFAULT_RETRY_DELAY_MS = 30;
+const WATCHER_STABILITY_THRESHOLD_MS = 50;
+const WATCHER_POLL_INTERVAL_MS = 10;
 
 export interface VaultChangeEvent {
   path: string;
@@ -53,9 +55,8 @@ export async function retryUntilReadable(
       return true;
     } catch {
       if (attempt >= retries) return false;
-      const delay =
-        delaysMs[Math.min(attempt, Math.max(delaysMs.length - 1, 0))] ??
-        DEFAULT_RETRY_DELAY_MS;
+      const delayIndex = Math.min(attempt, delaysMs.length - 1);
+      const delay = delaysMs[delayIndex] ?? DEFAULT_RETRY_DELAY_MS;
       await sleep(delay);
     }
   }
@@ -125,7 +126,11 @@ export function startVaultWatcher({
 
   const watcher = chokidar.watch(vaultDir, {
     ignoreInitial: true,
-    awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 },
+    // Keep values short for responsive updates while still smoothing atomic-save bursts.
+    awaitWriteFinish: {
+      stabilityThreshold: WATCHER_STABILITY_THRESHOLD_MS,
+      pollInterval: WATCHER_POLL_INTERVAL_MS,
+    },
   });
 
   watcher.on('all', (eventName, changedPath) => {
