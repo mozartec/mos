@@ -74,11 +74,11 @@ without a full page load. Unresolved ids render as plain (non-link) text, visibl
 
 ## Acceptance
 
-- [ ] A bare `F-001` mention navigates to F-001's file in the reader (MVP acceptance #3).
-- [ ] Clicks are handled by delegation, not per-link bindings.
-- [ ] Unresolved ids are visibly non-links and do nothing on click.
-- [ ] Decoration runs on the post-sanitize DOM (no source-offset indexing into HTML).
-- [ ] `MarkdownReader` gains `model`/`config` inputs and a `navigate` output; `WikiView`
+- [x] A bare `F-001` mention navigates to F-001's file in the reader (MVP acceptance #3).
+- [x] Clicks are handled by delegation, not per-link bindings.
+- [x] Unresolved ids are visibly non-links and do nothing on click.
+- [x] Decoration runs on the post-sanitize DOM (no source-offset indexing into HTML).
+- [x] `MarkdownReader` gains `model`/`config` inputs and a `navigate` output; `WikiView`
       builds the model and wires `navigate` to `select(path)`.
 
 ## Dependencies
