@@ -168,4 +168,33 @@ describe('MarkdownReader', () => {
     expect(anchor).toBeTruthy();
     expect(anchor?.getAttribute('href')).not.toBeNull();
   });
+
+  it('emits navigate when activating a resolved ID via keyboard (Enter / Space)', async () => {
+    for (const key of ['Enter', ' ']) {
+      const fixture = TestBed.createComponent(MarkdownReader);
+      const component = fixture.componentInstance;
+
+      fixture.componentRef.setInput('body', 'See F-001.');
+      fixture.componentRef.setInput('model', TEST_MODEL);
+      fixture.componentRef.setInput('config', TEST_CONFIG);
+
+      let emittedPath: string | null = null;
+      component.navigate.subscribe((path) => {
+        emittedPath = path;
+      });
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const host = fixture.nativeElement as HTMLElement;
+      const anchor = host.querySelector('a[data-path]') as HTMLAnchorElement;
+      expect(anchor).toBeTruthy();
+
+      anchor.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      fixture.detectChanges();
+
+      expect(emittedPath).toBe('board/F-001-story.md');
+    }
+  });
 });
