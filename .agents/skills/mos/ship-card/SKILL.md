@@ -14,7 +14,7 @@ description: >
   create/edit card contents, review a PR, report board status, or answer card questions with no
   ship intent.
 metadata:
-  version: 0.1.0
+  version: 0.1.1
 ---
 
 # mos — ship a card
@@ -51,7 +51,8 @@ Steps 1–2 are where the value is. Don't rush them to get to the git part.
 
 Run the bundled script first, so you plan from facts rather than a half-remembered board. It
 locates the card, computes the branch name from the vault's own type labels, resolves the
-card's dependencies, and flags soft spots (unmet deps, a container card, a thin body):
+card's dependencies **and prints the file path of the parent and each dependency** (open those,
+don't guess `board/<id>.md`), and flags soft spots (unmet deps, a container card, a thin body):
 
 ```bash
 # in this repo:
@@ -96,6 +97,11 @@ When you pause, be specific and brief: name the concern, show the relevant line,
 options you see. One round of good questions beats ten minutes of confident wrong work. If
 nothing trips these wires, say so in a sentence and move on — don't manufacture doubt to look
 careful.
+
+**Stating a plan is not pausing.** End your turn to wait for the human *only* when you have a
+specific, answerable question that blocks progress (a trigger above). If your plan is clear and
+nothing trips these wires, do not stop for acknowledgement — go straight to Step 3 in the same
+session. A pause with no concrete question attached is a bug.
 
 > **You do not make product or scope decisions on the user's behalf.** Resolving a genuine
 > ambiguity, choosing between real alternatives, cutting or expanding scope, and accepting a

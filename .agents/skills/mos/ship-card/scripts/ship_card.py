@@ -17,8 +17,9 @@ touching git, so you plan from data instead of guessing:
   - locates the card file and reads its frontmatter (type, title, status, parent);
   - computes the branch name from the vault's own type label + the file slug,
     e.g. story F-004-S-01-render-columns -> "Story/F-004-S-01-render-columns";
-  - resolves the card's "Depends on:" ids and reports any that aren't Done yet
-    (a card waiting on an unfinished dependency usually shouldn't be started);
+  - resolves the card's "Depends on:" ids and its parent, printing each one's file
+    path (so you open the real file, not a guessed board/<id>.md) and flagging any
+    dependency that isn't Done yet (you usually shouldn't start on an unfinished one);
   - checks the body for the readiness sections a cold agent needs (Acceptance,
     etc.) so a thin card gets flagged rather than silently half-built.
 
@@ -226,14 +227,21 @@ def main():
     has_children = any(c["parent"] == card["id"] for c in cards.values())
     branch = branch_name(card)
     missing_sections = [s for s in READINESS_SECTIONS if s not in card["sections"]]
+    parent_file = cards[card["parent"]]["rel"] if card["parent"] in cards else None
+    deps_detail = [
+        {"id": d, "file": cards[d]["rel"] if d in cards else None,
+         "status": cards[d]["status"] if d in cards else None,
+         "met": d in cards and cards[d]["column"] == last}
+        for d in deps
+    ]
 
     if as_json:
         print(json.dumps({
             "id": card["id"], "title": card["title"], "type": card["type"],
             "status": card["status"], "column": card["column"], "file": card["rel"],
-            "branch": branch, "parent": card["parent"] or None,
+            "branch": branch, "parent": card["parent"] or None, "parent_file": parent_file,
             "is_done": is_done, "is_hidden": is_hidden, "is_container": has_children,
-            "unmet_deps": unmet, "missing_deps": missing,
+            "deps": deps_detail, "unmet_deps": unmet, "missing_deps": missing,
             "has_acceptance": "Acceptance" in card["sections"],
             "missing_sections": missing_sections,
         }, indent=2))
@@ -242,9 +250,20 @@ def main():
     print(f"\n=== Pre-flight: {card['id']} — {card['title']} ===\n")
     print(f"  type:    {card['type']} ({card['label']})")
     print(f"  status:  {card['status']}  · column [{card['column']}]")
-    print(f"  parent:  {card['parent'] or '—'}")
+    parent_disp = card["parent"] or "—"
+    if parent_file:
+        parent_disp += f"  → {parent_file}"
+    print(f"  parent:  {parent_disp}")
     print(f"  file:    {card['rel']}")
     print(f"  branch:  {branch}")
+    if deps_detail:
+        print("  deps:")
+        for d in deps_detail:
+            if d["file"]:
+                mark = "✓ done" if d["met"] else f"✗ {d['status']}"
+                print(f"    - {d['id']}  ({mark})  → {d['file']}")
+            else:
+                print(f"    - {d['id']}  (not found in board)")
 
     flags = []
     if is_done:
