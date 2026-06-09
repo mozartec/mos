@@ -7,8 +7,9 @@ priority: P1
 owner: mozart
 parent: F-012
 estimate: M
+dependsOn: [F-012-S-02, F-012-S-03]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-08T12:45:00Z
+updated: 2026-06-09T20:18:00Z
 ---
 
 # F-012-S-04 — Critical path and ready-set highlighting

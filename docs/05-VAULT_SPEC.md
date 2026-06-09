@@ -74,6 +74,7 @@ owner: mozart
 sprint: S1
 parent: F-001        # only for types that allow a parent
 estimate: M
+dependsOn: [T-001, F-002-S-01]
 created: 2026-06-07T13:00:00Z
 updated: 2026-06-08T09:00:00Z
 ---
@@ -88,6 +89,9 @@ Freeform body. mos never rewrites this; only frontmatter is machine-managed.
 - `status` — must be one of the states that type allows.
 - `title` — display name; falls back to the first H1.
 - `parent` — an `id`, allowed only if the type permits it (see §5).
+- `dependsOn` — a list of `id`s this card depends on. One direction only; `blocks` is
+  derived by scanning all cards' `dependsOn` lists (never stored). Used by scripts, the
+  board, and the graph lens.
 - `created` / `updated` — optional audit timestamps (§4a).
 - other fields (`priority`, `owner`, `sprint`, `estimate`, `phase`, ...) — optional, shown
   on the card per the type's `card.fields`, and typed by the field registry (§5a). Unknown
@@ -137,12 +141,30 @@ the registry is purely additive — omit it entirely and everything still works.
 | `date` | A calendar date, ISO `YYYY-MM-DD`. | `due: 2026-07-01` |
 | `datetime` | A date+time, ISO 8601 (§4a). | `updated: 2026-06-08T09:00:00Z` |
 
+### List modifier
+
+Any field type can carry `"list": true` to indicate the frontmatter value is a YAML list of
+that type rather than a single value. In YAML, list values use the inline `[a, b]` or block
+`- a` syntax. A field without `"list"` (or with `"list": false`) expects a single value.
+
+```jsonc
+"dependsOn": { "type": "id", "list": true, "label": "Depends on" }
+```
+
+```yaml
+# in a card's frontmatter:
+dependsOn: [F-001-S-02, F-002-S-01]
+```
+
+### Registry example
+
 ```jsonc
 "fields": {
-  "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority" },
-  "sprint":   { "type": "enum", "source": "sprints" },
-  "created":  { "type": "datetime", "label": "Created" },
-  "updated":  { "type": "datetime", "label": "Updated" }
+  "priority":  { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority" },
+  "sprint":    { "type": "enum", "source": "sprints" },
+  "dependsOn": { "type": "id", "list": true, "label": "Depends on" },
+  "created":   { "type": "datetime", "label": "Created" },
+  "updated":   { "type": "datetime", "label": "Updated" }
 }
 ```
 
@@ -162,10 +184,11 @@ the display name on the card face; it falls back to the field key.
 
   // optional: types for frontmatter fields (§5a). Omit for all-string behavior.
   "fields": {
-    "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"] },
-    "sprint":   { "type": "enum", "source": "sprints" },
-    "created":  { "type": "datetime", "label": "Created" },
-    "updated":  { "type": "datetime", "label": "Updated" }
+    "priority":  { "type": "enum", "values": ["P0", "P1", "P2", "P3"] },
+    "sprint":    { "type": "enum", "source": "sprints" },
+    "dependsOn": { "type": "id", "list": true, "label": "Depends on" },
+    "created":   { "type": "datetime", "label": "Created" },
+    "updated":   { "type": "datetime", "label": "Updated" }
   },
 
   // wiki.fields: optional frontmatter a doc may carry (typed via the registry)
@@ -186,21 +209,21 @@ the display name on the card face; it falls back to the field key.
       "states": { "Draft": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done",
                   "Deferred": null, "Dropped": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
     },
     "story": {
       "label": "Story",
       "parent": "feature",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Blocked": "In Progress", "Done": "Done" },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
     },
     "task": {
       "label": "Task",
       "parent": null,
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done", "Deferred": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
     }
   },
   "sprints": ["S1", "S2", "S3"]

@@ -6,8 +6,9 @@ status: Draft
 phase: Phase 2
 priority: P1
 owner: mozart
+dependsOn: [F-001-S-02, F-001-S-03, F-002-S-01, F-003-S-02, F-004-S-04]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-08T12:45:00Z
+updated: 2026-06-09T20:18:00Z
 ---
 
 # F-012 — Dependency graph lens

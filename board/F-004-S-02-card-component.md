@@ -3,8 +3,9 @@ id: F-004-S-02
 type: story
 title: Card component showing type fields
 status: Todo
+dependsOn: [F-001-S-02, F-002-S-01]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T10:00:00Z
+updated: 2026-06-09T20:18:00Z
 priority: P0
 owner: mozart
 sprint: S2

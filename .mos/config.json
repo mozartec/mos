@@ -16,6 +16,7 @@
     "sprint": { "type": "enum", "source": "sprints", "label": "Sprint" },
     "estimate": { "type": "enum", "values": ["XS", "S", "M", "L", "XL"], "label": "Estimate" },
     "parent": { "type": "id", "label": "Parent" },
+    "dependsOn": { "type": "id", "list": true, "label": "Depends on" },
     "created": { "type": "datetime", "label": "Created" },
     "updated": { "type": "datetime", "label": "Updated" }
   },
@@ -48,7 +49,7 @@
         "Deferred": null,
         "Dropped": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
     },
     "story": {
       "label": "Story",
@@ -60,7 +61,7 @@
         "Blocked": "In Progress",
         "Done": "Done"
       },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
     },
     "task": {
       "label": "Task",
@@ -72,7 +73,7 @@
         "Done": "Done",
         "Deferred": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
     }
   },
 

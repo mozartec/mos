@@ -3,8 +3,9 @@ id: F-004-S-03
 type: story
 title: Filter by sprint
 status: Todo
+dependsOn: [F-004-S-01, F-004-S-02]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T20:18:00Z
 priority: P1
 owner: mozart
 sprint: S3
@@ -29,7 +30,13 @@ already-placed cards.
 - [`docs/06-MVP.md`](../docs/06-MVP.md) — sprint filter is in MVP scope; search beyond it is
   not.
 - [`.mos/config.json`](../.mos/config.json) — `sprints: ["S1","S2","S3"]` drives the options.
-- F-004-S-01 — the placed columns this filter narrows.
+- [`apps/web/src/views/board/board-view.ts`](../apps/web/src/views/board/board-view.ts) —
+  the board component to modify. It currently builds columns via `loadBoard()` and exposes
+  them as `columns = signal<BoardColumn[]>([])`. The filter interposes on this signal.
+- [`apps/web/src/views/board/board-view.html`](../apps/web/src/views/board/board-view.html) —
+  the template where the selector goes (above the column row).
+- F-004-S-02 — adds `fields: Record<string, unknown>` to `Card`, which is where `sprint`
+  lives at runtime. Without S-02, there is no sprint value to filter by.
 
 ## Constraints (must honor)
 
@@ -39,10 +46,14 @@ already-placed cards.
 
 ## Plan
 
-1. Selector options: `All`, each `config.sprints` entry, `Backlog`.
-2. Hold the selection in a signal; derive the filtered card set before column placement (or
-   filter the placed set) — keep it pure and testable.
-3. `Backlog` = cards with empty/absent `sprint`.
+1. Add a `sprintFilter = signal<string | null>(null)` to `BoardView` (`null` = All).
+2. Selector options: `All`, each `config.sprints` entry, `Backlog`. Render in
+   [`board-view.html`](../apps/web/src/views/board/board-view.html) as a `<select>` or
+   daisyUI tabs above the column row.
+3. Derive the filtered card set: after `loadBoard()` builds the columns, apply the filter
+   before (or after) column placement — `Backlog` = cards with empty/absent `sprint` field
+   (read from `card.fields['sprint']` per S-02). Keep the derivation pure and testable.
+4. Test: selecting a sprint narrows cards; adding a new sprint to config adds an option.
 
 ## Acceptance
 
@@ -52,7 +63,7 @@ already-placed cards.
 
 ## Dependencies
 
-- **Depends on:** F-004-S-01. **Blocks:** —
+- **Depends on:** F-004-S-01, F-004-S-02. **Blocks:** —
 
 ## Out of scope
 

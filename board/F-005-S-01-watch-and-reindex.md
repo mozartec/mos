@@ -2,9 +2,10 @@
 id: F-005-S-01
 type: story
 title: Watch the vault and re-index changed files
-status: Blocked
+status: Todo
+dependsOn: [T-004, T-002, F-001]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T20:18:00Z
 priority: P1
 owner: mozart
 sprint: S3
@@ -53,7 +54,7 @@ on teardown.
 
 ## Dependencies
 
-- **Depends on:** T-004 (currently **Blocked** on it), T-002, F-001. **Blocks:** —
+- **Depends on:** T-004, T-002, F-001. **Blocks:** —
 
 ## Out of scope
 

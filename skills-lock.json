@@ -1,6 +1,24 @@
 {
   "version": 1,
   "skills": {
+    "angular-developer": {
+      "source": "angular/skills",
+      "sourceType": "github",
+      "skillPath": "angular-developer/SKILL.md",
+      "computedHash": "c5d9759b9e39a49a382dedda3bb4b79a9d952c9d1aedbf07905272baa0e389ab"
+    },
+    "angular-new-app": {
+      "source": "angular/skills",
+      "sourceType": "github",
+      "skillPath": "angular-new-app/SKILL.md",
+      "computedHash": "49bd84ab08bd3498c52f476bed48fbb942dc6dbc0925607e84549adbed34bccf"
+    },
+    "daisyui": {
+      "source": "saadeghi/daisyui",
+      "sourceType": "github",
+      "skillPath": "skills/daisyui/SKILL.md",
+      "computedHash": "a98221a5c8f50bfb0dbaf4d0e52982598981bc5e472806814e118ee7df2a9712"
+    },
     "turborepo": {
       "source": "vercel/turborepo",
       "sourceType": "github",

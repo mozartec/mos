@@ -148,6 +148,8 @@ A checkbox list that defines done.
 
 ## Dependencies
 Depends on: … / Blocks: …
+(`dependsOn` in frontmatter is the machine-readable source; this prose section adds
+context a script can't capture, e.g. why the dependency exists.)
 
 ## Out of scope
 What NOT to touch — this is where cold agents overreach.

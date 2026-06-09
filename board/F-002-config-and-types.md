@@ -2,9 +2,10 @@
 id: F-002
 type: feature
 title: Config and card types
-status: Planned
+status: Done
+dependsOn: [T-001]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-09T20:18:00Z
 phase: MVP
 priority: P0
 owner: mozart
@@ -70,16 +71,16 @@ locate the `created`/`updated` fields by their configured names (ADR-010).
 
 ## Acceptance
 
-- [ ] A valid config parses into a typed `VaultConfig`; optional keys get documented
+- [x] A valid config parses into a typed `VaultConfig`; optional keys get documented
       defaults.
-- [ ] Every validation rule the interim `validate-vault.mjs` enforces is covered by a core
+- [x] Every validation rule the interim `validate-vault.mjs` enforces is covered by a core
       test (unknown column, nesting > 1, undefined parent type).
-- [ ] A card's `(type, status)` maps to the right column, with `Deferred`/`Dropped` hidden
+- [x] A card's `(type, status)` maps to the right column, with `Deferred`/`Dropped` hidden
       and `Blocked` → `In Progress`.
-- [ ] The `fields` registry and `meta.timestamps` load with defaults when absent; an
+- [x] The `fields` registry and `meta.timestamps` load with defaults when absent; an
       unlisted field is treated as `string`; field-value type checks are best-effort
       diagnostics, never fatal.
-- [ ] Zero framework / `fs` / network imports in the new files.
+- [x] Zero framework / `fs` / network imports in the new files.
 
 ## Stories
 
