@@ -6,7 +6,7 @@
  *
  *   GET /vault/files              → { files: string[] }   (vault-relative paths)
  *   GET /vault/file?path=<rel>    → file contents as UTF-8 text
- *   GET /vault/watch              → SSE stream of { path: string, kind: "changed" | "deleted" }
+ *   GET /vault/watch              → SSE stream of { path: string }
  *                                    change events
  *
  * Configuration:
@@ -20,18 +20,18 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { startVaultWatcher, type VaultChangeEvent } from './watcher';
+import { startVaultWatcher } from './watcher';
 
 const VAULT_DIR = resolve(process.env['VAULT_DIR'] ?? join(import.meta.dir, '../../..'));
 const PORT = Number(process.env['PORT'] ?? '3001');
 
 /** Active SSE client broadcast functions. */
-const clients = new Set<(event: VaultChangeEvent) => void>();
+const clients = new Set<(path: string) => void>();
 
 startVaultWatcher({
   vaultDir: VAULT_DIR,
   onChange(event) {
-    for (const send of clients) send(event);
+    for (const send of clients) send(event.path);
   },
 });
 
@@ -141,14 +141,12 @@ Bun.serve({
     // SSE endpoint. Keeps the connection open and broadcasts file change events.
     if (url.pathname === '/vault/watch') {
       const encoder = new TextEncoder();
-      let send: ((event: VaultChangeEvent) => void) | undefined;
+      let send: ((path: string) => void) | undefined;
 
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
-          send = (event: VaultChangeEvent) => {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
-            );
+          send = (path: string) => {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ path })}\n\n`));
           };
           clients.add(send);
           // Confirm connection to the client
