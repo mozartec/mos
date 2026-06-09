@@ -155,7 +155,16 @@ export class MarkdownReader {
   }
 
   protected onContainerClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement | null;
+    this.activateAnchor(event.target as HTMLElement | null, event);
+  }
+
+  protected onContainerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      this.activateAnchor(event.target as HTMLElement | null, event);
+    }
+  }
+
+  private activateAnchor(target: HTMLElement | null, event: Event): void {
     if (!target) return;
 
     const anchor = target.closest('a[data-path]');
