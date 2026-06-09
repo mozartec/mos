@@ -7,7 +7,7 @@
 
     <!-- File tree -->
     <nav aria-label="File tree">
-      <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm" role="tree">
+      <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm" role="tree" aria-label="File tree">
         @for (entry of visibleEntries(); track entryKey($index, entry)) {
           @if (entry.kind === 'folder') {
             <li role="treeitem" [attr.aria-expanded]="expandedFolders().has(entry.key)" aria-selected="false">
