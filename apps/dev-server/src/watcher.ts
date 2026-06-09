@@ -3,6 +3,8 @@ import { basename, relative, resolve, sep } from 'node:path';
 import chokidar from 'chokidar';
 
 export type ChangeKind = 'changed' | 'deleted';
+const MOS_CONFIG_PATH = '.mos/config.json';
+const DEFAULT_RETRY_DELAY_MS = 30;
 
 export interface VaultChangeEvent {
   path: string;
@@ -14,8 +16,7 @@ type Sleep = (ms: number) => Promise<void>;
 
 export function isWatchedRelativePath(path: string): boolean {
   const segments = path.split('/');
-  const isMosConfig =
-    segments.length === 2 && segments[0] === '.mos' && segments[1] === 'config.json';
+  const isMosConfig = path === MOS_CONFIG_PATH;
   if (isMosConfig) return true;
   if (!path.endsWith('.md')) return false;
   return !segments.some((segment) => segment.startsWith('.'));
@@ -52,7 +53,9 @@ export async function retryUntilReadable(
       return true;
     } catch {
       if (attempt >= retries) return false;
-      const delay = delaysMs[Math.min(attempt, delaysMs.length - 1)] ?? 30;
+      const delay =
+        delaysMs[Math.min(attempt, Math.max(delaysMs.length - 1, 0))] ??
+        DEFAULT_RETRY_DELAY_MS;
       await sleep(delay);
     }
   }
