@@ -32,6 +32,10 @@
     "sortWithinColumn": ["priority", "id"]
   },
 
+  "references": {
+    "idPattern": "[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*"
+  },
+
   "types": {
     "feature": {
       "label": "Feature",

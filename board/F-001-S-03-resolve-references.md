@@ -2,9 +2,9 @@
 id: F-001-S-03
 type: story
 title: Resolve references by id
-status: Todo
+status: Done
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-08T22:41:58Z
 priority: P0
 owner: mozart
 sprint: S2
@@ -51,9 +51,9 @@ purely by `id`, so links survive file renames.
 
 ## Acceptance
 
-- [ ] "see F-002" resolves to F-002 regardless of a markdown link existing.
-- [ ] Resolution is by id, surviving file renames. Id shape comes from config regex.
-- [ ] An id with no target is returned as `unresolved` (not dropped, not thrown).
+- [x] "see F-002" resolves to F-002 regardless of a markdown link existing.
+- [x] Resolution is by id, surviving file renames. Id shape comes from config regex.
+- [x] An id with no target is returned as `unresolved` (not dropped, not thrown).
 
 ## Dependencies
 

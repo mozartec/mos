@@ -56,6 +56,12 @@ export interface BoardConfig {
   sortWithinColumn: string[];
 }
 
+/** Reference parsing options (VAULT_SPEC §7). */
+export interface ReferenceConfig {
+  /** Regex source for matching card/doc ids in text. */
+  idPattern: string;
+}
+
 /** Names of the two timestamp roles in frontmatter (VAULT_SPEC §4a). */
 export interface TimestampConfig {
   createdField: string;
@@ -70,6 +76,7 @@ export interface VaultConfig {
   fields: Record<string, FieldDef>;
   wiki: WikiConfig;
   board: BoardConfig;
+  references: ReferenceConfig;
   types: Record<string, TypeDef>;
   sprints: string[];
 }
@@ -79,6 +86,8 @@ export interface LoadConfigResult {
   config: VaultConfig;
   errors: string[];
 }
+
+const DEFAULT_ID_PATTERN = '[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*';
 
 /**
  * Parse, default, and validate a vault config. Never throws.
@@ -120,6 +129,7 @@ function defaultConfig(): VaultConfig {
     fields: {},
     wiki: { include: [], exclude: [], fields: [] },
     board: { include: [], columns: [], sortWithinColumn: ['priority', 'id'] },
+    references: { idPattern: DEFAULT_ID_PATTERN },
     types: {},
     sprints: [],
   };
@@ -132,6 +142,7 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
   const timestamps = isObject(meta['timestamps']) ? meta['timestamps'] : {};
   const wiki = isObject(obj['wiki']) ? obj['wiki'] : {};
   const board = isObject(obj['board']) ? obj['board'] : {};
+  const references = isObject(obj['references']) ? obj['references'] : {};
 
   return {
     specVersion: typeof obj['specVersion'] === 'string' ? obj['specVersion'] : '',
@@ -156,6 +167,9 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
           ? ['priority', 'id']
           : asStringArray(board['sortWithinColumn']),
     },
+    references: {
+      idPattern: asString(references['idPattern'], DEFAULT_ID_PATTERN),
+    },
     types: isObject(obj['types']) ? (obj['types'] as Record<string, TypeDef>) : {},
     sprints: asStringArray(obj['sprints']),
   };
@@ -167,6 +181,15 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
  * every registered field has a known type with a usable `enum` source.
  */
 function validate(config: VaultConfig, errors: string[]): void {
+  try {
+    // Validate user-provided regex source once up-front.
+    new RegExp(config.references.idPattern, 'g');
+  } catch (e) {
+    errors.push(
+      `references.idPattern: invalid regex — ${e instanceof Error ? e.message : 'parse error'}`,
+    );
+  }
+
   const columns = config.board.columns;
   const types = config.types as Record<string, unknown>;
 
