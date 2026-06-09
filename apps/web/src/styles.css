@@ -92,3 +92,20 @@ body {
   --depth: 0;
   --noise: 0;
 }
+
+/* Clickable wiki reference links inside markdown reader */
+a[data-path] {
+  color: var(--color-info);
+  text-decoration: underline;
+  cursor: pointer;
+}
+a[data-path]:hover {
+  text-decoration: none;
+}
+
+/* Unresolved reference styling */
+.reference-inert {
+  color: var(--color-base-content);
+  opacity: 0.5;
+  cursor: default;
+}

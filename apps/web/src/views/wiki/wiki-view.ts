@@ -8,7 +8,16 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { globToRegExp, loadConfig, parseFile, toPosixPath } from '@mos/core';
+import {
+  globToRegExp,
+  loadConfig,
+  parseFile,
+  toPosixPath,
+  createEmptyVaultModel,
+  buildModel,
+  type VaultModel,
+  type VaultConfig,
+} from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
 import { MarkdownReader } from '../../components/markdown-reader/markdown-reader';
 import { buildFileTree, flattenTree } from './file-tree';
@@ -33,6 +42,9 @@ export class WikiView {
   protected readonly files = signal<string[]>([]);
   protected readonly selectedPath = signal<string | null>(null);
   protected readonly selectedBody = signal<string>('');
+
+  protected readonly config = signal<VaultConfig>(loadConfig('{}').config);
+  protected readonly model = signal<VaultModel>(createEmptyVaultModel());
 
   /** Nested tree built from `files`. */
   protected readonly tree = computed(() => buildFileTree(this.files()));
@@ -64,6 +76,18 @@ export class WikiView {
       // Apply wiki.include / wiki.exclude filtering from the vault config.
       // Falls back to showing all .md files when the config is absent or empty.
       const { config } = loadConfig(configText);
+      this.config.set(config);
+
+      // Read and parse all files to build the VaultModel
+      const allParsedFiles = await Promise.all(
+        allPaths.map(async (path) => {
+          const text = await this.source.readFile(path);
+          return parseFile(path, text);
+        })
+      );
+      const { model } = buildModel(allParsedFiles, config);
+      this.model.set(model);
+
       const includeGlobs = config.wiki.include.length > 0 ? config.wiki.include : ['**/*.md'];
       const excludeGlobs = config.wiki.exclude;
       const includeMatchers = includeGlobs.map(globToRegExp);
