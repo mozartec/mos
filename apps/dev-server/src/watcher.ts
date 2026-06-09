@@ -64,10 +64,6 @@ export async function retryUntilReadable(
   return false;
 }
 
-function mergeKinds(_current: ChangeKind, incoming: ChangeKind): ChangeKind {
-  return incoming;
-}
-
 export function createDebouncedEmitter(
   onEmit: (event: VaultChangeEvent) => Promise<void> | void,
   debounceMs: number,
@@ -81,7 +77,7 @@ export function createDebouncedEmitter(
     const existing = pending.get(event.path);
     if (existing) {
       clearTimeout(existing.timer);
-      existing.kind = mergeKinds(existing.kind, event.kind);
+      existing.kind = event.kind;
       existing.timer = setTimeout(() => {
         pending.delete(event.path);
         void onEmit({ path: event.path, kind: existing.kind });

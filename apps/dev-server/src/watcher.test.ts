@@ -66,7 +66,7 @@ describe('createDebouncedEmitter', () => {
     ]);
   });
 
-  it('keeps the latest kind when events are merged', async () => {
+  it('emits deleted when change is followed by delete within debounce window', async () => {
     const events: VaultChangeEvent[] = [];
     const emit = createDebouncedEmitter((event) => {
       events.push(event);
@@ -79,7 +79,7 @@ describe('createDebouncedEmitter', () => {
     expect(events).toEqual([{ path: 'board/T-004.md', kind: 'deleted' }]);
   });
 
-  it('emits changed when a delete is followed by recreate', async () => {
+  it('emits changed when delete is followed by changed within debounce window', async () => {
     const events: VaultChangeEvent[] = [];
     const emit = createDebouncedEmitter((event) => {
       events.push(event);
