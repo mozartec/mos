@@ -31,7 +31,10 @@ export class HttpVaultSource implements VaultSource {
   watch(onChange: (path: string) => void): () => void {
     const es = new EventSource('/vault/watch');
     es.onmessage = (event: MessageEvent<string>) => {
-      const data = JSON.parse(event.data) as { path: string; kind: string };
+      const data = JSON.parse(event.data) as {
+        path: string;
+        kind: 'changed' | 'deleted';
+      };
       onChange(data.path);
     };
     return () => es.close();
