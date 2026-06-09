@@ -76,8 +76,14 @@ function findIds(
     if (match === null) break;
     const id = match[0];
     const start = match.index;
+    if (id.length === 0) {
+      // A user-supplied idPattern can match the empty string (e.g. `[A-Z]*`).
+      // Advance past the zero-width match without emitting an empty-id
+      // reference — otherwise we'd stream zero-width refs one char at a time.
+      matcher.lastIndex += 1;
+      continue;
+    }
     ids.push({ id, start, end: start + id.length });
-    if (id.length === 0) matcher.lastIndex += 1;
   }
   return ids;
 }
@@ -120,6 +126,11 @@ function resolveById(id: string, model: VaultModel): ReferenceTarget | undefined
     return { kind: 'card', path: card.path };
   }
 
+  // Match a doc whose filename is exactly `<id>.md`, or whose name begins with
+  // `<id>-` (a slug-suffixed doc, e.g. `F-001-overview.md`). `.find` returns the
+  // first file in listing order, so when several docs share a prefix the
+  // lowest-sorted one wins — acceptable for the current id scheme where an
+  // exact-id doc is the intended target.
   const docPath = model.files.find((path) => {
     const slash = path.lastIndexOf('/');
     const file = slash >= 0 ? path.slice(slash + 1) : path;
