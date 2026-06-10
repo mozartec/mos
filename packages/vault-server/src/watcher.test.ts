@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   createDebouncedEmitter,
+  isIgnoredWatchPath,
   isWatchedRelativePath,
   retryUntilReadable,
   toVaultRelativePath,
@@ -25,6 +26,25 @@ describe('toVaultRelativePath', () => {
     const vaultDir = '/vault';
     expect(toVaultRelativePath('/vault/board/T-004.md', vaultDir)).toBe('board/T-004.md');
     expect(toVaultRelativePath('/outside/file.md', vaultDir)).toBeNull();
+  });
+});
+
+describe('isIgnoredWatchPath', () => {
+  const vaultDir = '/Users/x/.claude/worktrees/repo'; // hidden segment ABOVE the vault
+
+  it('keeps the vault root, vault content, and .mos watched', () => {
+    expect(isIgnoredWatchPath(vaultDir, vaultDir)).toBe(false);
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/board/T-004.md`)).toBe(false);
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/.mos/config.json`)).toBe(false);
+  });
+
+  it('prunes build outputs, caches, hidden dirs, and anything outside the vault', () => {
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/node_modules`)).toBe(true);
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/apps/web/.angular/cache`)).toBe(true);
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/apps/web/dist/index.html`)).toBe(true);
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/.turbo/daemon`)).toBe(true);
+    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/.vscode/settings.json`)).toBe(true);
+    expect(isIgnoredWatchPath(vaultDir, '/Users/x/elsewhere/file.md')).toBe(true);
   });
 });
 
