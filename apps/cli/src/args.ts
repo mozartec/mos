@@ -5,6 +5,9 @@ export const HELP = `mos — serve a markdown vault as a board and wiki (read-on
 Usage:
   mos serve [dir] [--port <n>]   Serve the vault at <dir> (default: the nearest
                                  vault at or above the current directory).
+  mos init [dir]                 Turn <dir> (default: the current directory) into
+                                 a vault: starter config, example card, agent guide.
+                                 Refuses if the folder already is a vault.
   mos --version                  Print the version.
   mos --help                     Show this help.
 
@@ -16,8 +19,14 @@ export interface ServeArgs {
   port: number;
 }
 
+export interface InitArgs {
+  command: 'init';
+  dir?: string;
+}
+
 export type CliArgs =
   | ServeArgs
+  | InitArgs
   | { command: 'help' }
   | { command: 'version' }
   | { error: string };
@@ -50,6 +59,12 @@ export function parseArgs(argv: string[]): CliArgs {
       }
     }
     return { command: 'serve', dir, port };
+  }
+  if (argv[0] === 'init') {
+    if (argv.length > 2 || (argv[1] !== undefined && argv[1].startsWith('-'))) {
+      return { error: 'init takes at most one argument: the target directory' };
+    }
+    return { command: 'init', dir: argv[1] };
   }
   return { error: `Unknown command '${argv[0]}'` };
 }

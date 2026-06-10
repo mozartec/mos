@@ -1,7 +1,7 @@
 {
   "name": "@mos/cli",
   "version": "0.0.0",
-  "description": "The mos CLI: serve any vault's board and wiki locally (`mos serve`). Read-only (ADR-002); ships the built web app bundled with the vault endpoints in one Node process (ADR-012).",
+  "description": "The mos CLI: serve any vault's board and wiki locally (`mos serve`, ADR-012) and scaffold a new vault (`mos init`, ADR-013). Read-only over existing vaults (ADR-002); ships the built web app bundled with the vault endpoints in one Node process.",
   "license": "MIT",
   "type": "module",
   "bin": {

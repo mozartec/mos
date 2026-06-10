@@ -21,6 +21,8 @@ release will be `v0.1.0`.
 - `@mos/cli` — the published `mos` command: `mos serve [dir]` renders any vault's board
   and wiki without cloning this repo (F-015, ADR-012), backed by the shared
   `@mos/vault-server` endpoints.
+- `mos init [dir]` — scaffold a new vault (starter config, example card, agent guide);
+  one-time bootstrap that never touches an existing vault (F-016, ADR-013).
 - Installable agent skills at `skills/` (`ship-card`, `next-card`) — vault-agnostic,
   config-driven, installable into any project with the skills CLI (F-014).
 - Project documentation set (`docs/`): vision, concepts, architecture, tech stack, vault

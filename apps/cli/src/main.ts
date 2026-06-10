@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HELP, parseArgs } from './args';
 import { findVault } from './find-vault';
+import { initVault, InitRefusedError } from './init';
 import { startServer } from './serve';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,22 @@ if (args.command === 'help') {
     version: string;
   };
   console.log(pkg.version);
+} else if (args.command === 'init') {
+  try {
+    const { vaultDir, created, skipped } = initVault(args.dir ?? process.cwd());
+    console.log(`[mos] vault scaffolded at ${vaultDir}`);
+    for (const path of created) console.log(`  created  ${path}`);
+    for (const path of skipped) console.log(`  skipped  ${path} (already exists, left untouched)`);
+    console.log(
+      '\nNext: edit .mos/config.json to your own types and columns, then run `mos serve`.',
+    );
+  } catch (err) {
+    if (err instanceof InitRefusedError) {
+      console.error(err.message);
+      process.exit(1);
+    }
+    throw err;
+  }
 } else if (args.command === 'serve') {
   const start = resolve(args.dir ?? process.cwd());
   const vaultDir = findVault(start);

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-06-10T11:20:00Z
+updated: 2026-06-10T11:45:00Z
 ---
 
 # Using mos in your project
@@ -12,11 +12,18 @@ it, and the **agent skills** that operate it.
 
 ## 1. Make your folder a vault
 
-Create `.mos/config.json` with your own card types, states, and columns
-([`05-VAULT_SPEC.md`](05-VAULT_SPEC.md)), a `board/` folder for cards, and an agent guide
-(`AGENTS.md`) carrying the write rules — [`examples/recipe-box`](../examples/recipe-box/)
-is a complete, copyable reference. `mos init` (F-016) will scaffold all of this with one
-command once it ships.
+```bash
+npx @mos/cli init        # or: mos init [dir]
+```
+
+scaffolds the three pieces a vault needs: a starter `.mos/config.json` (feature/task
+types, three columns — edit it to your project's vocabulary), `board/` with one example
+card showing the frontmatter and readiness shape, and an `AGENTS.md` stub carrying the
+write rules. It is a one-time bootstrap: it refuses to run on an existing vault and never
+overwrites a file (ADR-013).
+
+Prefer hand-rolling? [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) is the contract, and
+[`examples/recipe-box`](../examples/recipe-box/) is a complete, copyable reference.
 
 Everything downstream is config-driven (ADR-003): the app and the skills learn your types
 from the config, so nothing here assumes this repo's `F-`/`T-` vocabulary.

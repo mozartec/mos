@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T11:20:00Z
+updated: 2026-06-10T11:45:00Z
 ---
 
 # Decisions (ADRs)
@@ -276,3 +276,31 @@ global install giving plain `mos serve`) — the desktop app (F-007) stops being
 "real app" path, and F-016 gets a natural home for `mos init`. Publishing requires the
 repo's Bun toolchain, and the package carries the web build inside it, so its size tracks
 the app bundle. The dev server keeps its dev-only role (ADR-006) with less code of its own.
+
+## ADR-013 — Scaffolding is not a runtime write
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** ADR-002 draws mos's brightest line: the app reads the vault and never writes
+it — writes belong to the agent layer. F-016 adds `mos init`, a CLI command that *creates
+files*. Without a recorded boundary, "the CLI may write during init" erodes into "the CLI
+may write", and the read-only guarantee dies by a thousand conveniences.
+
+**Decision.** Scaffolding — creating a vault where none exists — is a **one-time bootstrap**
+and is allowed in the CLI; operating on an existing vault is not. The boundary, precisely:
+
+- `mos init` runs only where no `.mos/config.json` resolves; if one exists it **refuses
+  and changes nothing** — no overwrite, no merge, no "update my config" mode.
+- Even while scaffolding it never replaces an existing file (an existing `AGENTS.md` or
+  card is skipped and reported, not merged).
+- The serving path (`mos serve`, the dev server, the web app) keeps zero write endpoints,
+  exactly as ADR-002 states.
+- Anything that *mutates* an existing vault — moving cards, editing frontmatter, fixing
+  timestamps — stays with the agent layer and the future MCP write server (F-009), never
+  the CLI.
+
+**Consequences.** Adoption gets a first mile (`mos init` → `mos serve`) without weakening
+the read-only contract: after init completes, the CLI is as read-only as it ever was. The
+cost is that config evolution stays manual (you edit JSON, guided by the agent stub and
+the spec) — acceptable, because a config is small and owning it is the point. A future
+"migrate my config" need would have to come back through a new ADR, not creep in here.
