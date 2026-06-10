@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-10T11:20:00Z
 ---
 
 # Decisions (ADRs)
@@ -236,3 +236,43 @@ is a third surface to keep consistent with the lens rules above; the mitigation 
 new lens consumes core output rather than computing its own, so consistency is enforced by
 the architecture. Adding further lenses (e.g. a timeline) should follow this same pattern and
 supersede or extend this ADR.
+
+## ADR-012 — The CLI: a published, Node-runnable package bundling the web app
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** Until now the only way to see a vault rendered was to clone this repo and run
+the dev stack (ADR-006's dev server plus the Angular dev build) with `VAULT_DIR` pointed at
+the folder. F-015 wants the validated web app usable in *any* project — an ERP repo, a
+notes folder — with one command and no clone. That raises three choices: the runtime the
+command runs on, how the UI and the file endpoints are served together, and how the
+endpoint logic relates to the dev server we already trust.
+
+**Decision.** Ship a CLI as an npm package, **`@mos/cli`**, exposing the **`mos`** bin
+(`mos serve [dir] [--port]`). Three sub-decisions:
+
+- **Authored in TypeScript, bundled for Node.** The source lives in `apps/cli` and is
+  bundled at build time with `bun build --target=node`, so the published artifact is plain
+  ESM JavaScript that runs on Node ≥ 20 — `npx`-able anywhere, no Bun required at runtime
+  (Bun remains a build-time tool, which the repo already requires). `chokidar` is the only
+  runtime dependency; workspace code is bundled in.
+- **One process, one origin.** The build copies the production web build into the package
+  (`dist/web`), and the server serves the SPA (with fallback for deep links) *and* the
+  `/vault/*` endpoints on the same origin — exactly the relative URLs `HttpVaultSource`
+  already uses, so the web app is byte-for-byte the same as in development.
+- **The endpoints are shared, not duplicated.** The list/read/watch endpoints and the
+  debounced watcher moved from the dev server into **`packages/vault-server`**, a
+  runtime-agnostic fetch-style handler (web `Request`/`Response`). The Bun dev server
+  (ADR-006) and the Node CLI are now two thin hosts of the same handler, so the contract
+  can't drift between dev and production. It is **not** part of `packages/core` — it does
+  I/O, and core stays pure (ADR-001).
+
+The workspace root already holds the npm name `mos` for the monorepo, so the package is
+scoped; whether to also publish under an unscoped alias is decided at first release.
+ADR-002 holds throughout: the server rejects non-GET requests and has no write endpoint.
+
+**Consequences.** Any project gets the board and wiki with `npx @mos/cli serve` (or a
+global install giving plain `mos serve`) — the desktop app (F-007) stops being the only
+"real app" path, and F-016 gets a natural home for `mos init`. Publishing requires the
+repo's Bun toolchain, and the package carries the web build inside it, so its size tracks
+the app bundle. The dev server keeps its dev-only role (ADR-006) with less code of its own.

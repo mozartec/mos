@@ -18,6 +18,11 @@ release will be `v0.1.0`.
 
 ### Added
 
+- `@mos/cli` — the published `mos` command: `mos serve [dir]` renders any vault's board
+  and wiki without cloning this repo (F-015, ADR-012), backed by the shared
+  `@mos/vault-server` endpoints.
+- Installable agent skills at `skills/` (`ship-card`, `next-card`) — vault-agnostic,
+  config-driven, installable into any project with the skills CLI (F-014).
 - Project documentation set (`docs/`): vision, concepts, architecture, tech stack, vault
   spec, MVP scope, roadmap, ADRs, conventions, glossary.
 - Vault format **spec version 0.1** (`docs/05-VAULT_SPEC.md`), with the repository itself

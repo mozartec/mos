@@ -2,13 +2,13 @@
 id: F-015
 type: feature
 title: Standalone CLI — serve any vault
-status: Planned
+status: Done
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [T-002]
 created: 2026-06-10T10:33:00Z
-updated: 2026-06-10T10:33:00Z
+updated: 2026-06-10T11:10:40Z
 ---
 
 # F-015 — Standalone CLI — serve any vault
@@ -67,13 +67,13 @@ Feature-level; stories to be cut when this is picked up. The expected shape:
 
 ## Acceptance
 
-- [ ] In a repo that is not mos, with a valid vault, one `npx`-style command renders the
+- [x] In a repo that is not mos, with a valid vault, one `npx`-style command renders the
       board and wiki over that folder — no cloning, no `bun run dev`.
-- [ ] File changes in the vault appear in the UI without restart (watch works).
-- [ ] Running it where no `.mos/config.json` resolves fails fast with a message naming the
+- [x] File changes in the vault appear in the UI without restart (watch works).
+- [x] Running it where no `.mos/config.json` resolves fails fast with a message naming the
       expected file.
-- [ ] The served process exposes no write endpoint (ADR-002 holds).
-- [ ] Packaging/runtime choice is recorded as an ADR; releasing docs cover publishing.
+- [x] The served process exposes no write endpoint (ADR-002 holds).
+- [x] Packaging/runtime choice is recorded as an ADR; releasing docs cover publishing.
 
 ## Dependencies
 

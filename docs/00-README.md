@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-10T11:20:00Z
 ---
 
 # Documentation index
@@ -22,6 +22,7 @@ understand the design before changing it.
 9. [`09-CONVENTIONS.md`](09-CONVENTIONS.md) — how to write specs, cards, ADRs
 10. [`10-GLOSSARY.md`](10-GLOSSARY.md) — terminology
 11. [`11-RELEASING.md`](11-RELEASING.md) — branching, commits, versioning, pipelines
+12. [`12-ADOPTING.md`](12-ADOPTING.md) — using mos in your own project (CLI + skills)
 
 See also the project [`CHANGELOG.md`](../CHANGELOG.md) at the repo root.
 
