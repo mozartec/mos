@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import type { VaultSource } from '@mos/core';
-import { BoardView } from './board-view';
+import { BoardView, paramToSprintFilter, sprintFilterToParam } from './board-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
 
 /** Minimal config with three columns and two card types. */
@@ -310,6 +310,17 @@ describe('BoardView', () => {
       .flatMap((c) => c.cards)
       .map((c) => c.id);
     expect(visible).toEqual(['S-003']);
+  });
+
+  it('URL-encodes the sprint filter without reserved words (empty = no sprint)', () => {
+    // absent = All, `?sprint=` = no-sprint (Backlog), name = that sprint — so
+    // even a sprint literally named "backlog" round-trips unambiguously.
+    expect(sprintFilterToParam(null)).toBeUndefined();
+    expect(sprintFilterToParam('')).toBe('');
+    expect(sprintFilterToParam('backlog')).toBe('backlog');
+    expect(paramToSprintFilter(null)).toBeNull();
+    expect(paramToSprintFilter('')).toBe('');
+    expect(paramToSprintFilter('backlog')).toBe('backlog');
   });
 
   it('"All" (default) shows every visible card', async () => {

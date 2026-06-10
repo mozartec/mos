@@ -49,20 +49,17 @@ export function filterColumnsBySprint(columns: BoardColumn[], filter: SprintFilt
 }
 
 /**
- * URL form of the sprint filter (`?sprint=…`): absent = All, `backlog` = cards
- * with no sprint, anything else = that sprint name. A sprint literally named
- * "backlog" would collide; config sprints are expected to avoid that word.
+ * URL form of the sprint filter: absent = All, present-but-empty (`?sprint=`)
+ * = cards with no sprint (the Backlog option), anything else = that sprint
+ * name. The empty string can never be a real sprint name, so no config-defined
+ * sprint (not even one literally named "backlog") can collide with the sentinel.
  */
-const BACKLOG_PARAM = 'backlog';
-
 export function sprintFilterToParam(filter: SprintFilter): string | undefined {
-  if (filter === null) return undefined;
-  return filter === '' ? BACKLOG_PARAM : filter;
+  return filter === null ? undefined : filter;
 }
 
 export function paramToSprintFilter(param: string | null): SprintFilter {
-  if (param === null || param === '') return null;
-  return param === BACKLOG_PARAM ? '' : param;
+  return param;
 }
 
 /**

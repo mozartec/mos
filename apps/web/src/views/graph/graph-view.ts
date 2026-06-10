@@ -1,6 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
+  applyFileChange,
   buildDependencyGraph,
   buildModel,
   createEmptyVaultModel,
@@ -11,7 +19,7 @@ import {
   placeCard,
   readySet,
   toPosixPath,
-  type Card,
+  type ParsedFile,
   type VaultConfig,
   type VaultModel,
 } from '@mos/core';
@@ -80,6 +88,34 @@ export class GraphView {
 
   constructor() {
     void this.loadGraph();
+
+    // Live re-index: the graph follows card changes like every other lens (F-005-S-01).
+    const unwatch = this.source.watch((path) => void this.onFileChange(path));
+    inject(DestroyRef).onDestroy(unwatch);
+  }
+
+  /** Re-parse just the changed file and patch the model; computeds react via signals. */
+  private async onFileChange(path: string): Promise<void> {
+    const config = this.config();
+    if (config === null || this.loadState() !== 'loaded') return;
+
+    const posix = toPosixPath(path);
+    if (posix === '.mos/config.json') {
+      // Config changes redefine columns/types — a full reload is the only safe move.
+      void this.loadGraph();
+      return;
+    }
+
+    const inBoardScope = config.board.include.map(globToRegExp).some((re) => re.test(posix));
+    if (!inBoardScope) return;
+
+    let parsed: ParsedFile | null;
+    try {
+      parsed = parseFile(posix, await this.source.readFile(posix));
+    } catch {
+      parsed = null; // unreadable = treat as deleted
+    }
+    this.model.set(applyFileChange(this.model(), config, posix, parsed).model);
   }
 
   private async loadGraph(): Promise<void> {
@@ -162,7 +198,7 @@ export class GraphView {
         id: node.id,
         title: node.title,
         status: node.status,
-        tone: this.toneFor(card, config),
+        tone: this.toneFor(placement, config),
         x: PADDING + node.rank * CELL_W,
         y: PADDING + node.order * CELL_H,
         path: card.path,
@@ -210,15 +246,14 @@ export class GraphView {
   protected readonly NODE_H = NODE_H;
 
   /**
-   * Semantic tone from the card's state→column mapping — config-driven, no
-   * hardcoded status names beyond the spec-defined `Blocked` badge rule.
+   * Semantic tone from the card's already-computed placement — config-driven,
+   * no hardcoded status names beyond the spec-defined `Blocked` badge rule.
    */
-  private toneFor(card: Card, config: VaultConfig): NodeTone {
-    if (placeCard(card, config).blocked) return 'blocked';
+  private toneFor(placement: ReturnType<typeof placeCard>, config: VaultConfig): NodeTone {
+    if (placement.blocked) return 'blocked';
     const columns = config.board.columns;
-    const column = config.types[card.type]?.states[card.status];
-    if (column === columns[columns.length - 1]) return 'done';
-    if (column === columns[0]) return 'todo';
+    if (placement.column === columns[columns.length - 1]) return 'done';
+    if (placement.column === columns[0]) return 'todo';
     return 'active';
   }
 

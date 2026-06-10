@@ -90,6 +90,9 @@ export class ReaderView {
   /** Body load is deferred until config + model are in place. */
   private modelReady = false;
 
+  /** Monotonic token: a newer init() invalidates the writes of an older one. */
+  private initSeq = 0;
+
   constructor() {
     void this.init();
 
@@ -134,11 +137,13 @@ export class ReaderView {
   }
 
   private async init(): Promise<void> {
+    const seq = ++this.initSeq;
     try {
       const [configText, allPaths] = await Promise.all([
         this.source.readFile('.mos/config.json').catch(() => '{}'),
         this.source.listFiles(),
       ]);
+      if (seq !== this.initSeq) return; // superseded by a newer init
 
       const { config } = loadConfig(configText);
       this.config.set(config);
@@ -155,6 +160,7 @@ export class ReaderView {
           }
         }),
       );
+      if (seq !== this.initSeq) return; // superseded by a newer init
       const { model } = buildModel(
         parsedFiles.filter((f) => f !== null),
         config,

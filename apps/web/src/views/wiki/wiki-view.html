@@ -3,6 +3,9 @@
   <p class="mt-1 text-base-content/70">
     {{ files().length }} markdown files in the vault.
   </p>
+  @if (loadError()) {
+    <p role="alert" class="mt-2 text-error">Failed to load the wiki: {{ loadError() }}</p>
+  }
   <div class="mt-3 grid gap-3 lg:grid-cols-[22rem_1fr]">
 
     <!-- File tree -->

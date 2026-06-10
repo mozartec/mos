@@ -3,8 +3,10 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   QueryList,
   ViewChildren,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -40,9 +42,13 @@ import type { FlatEntry } from './file-tree';
 })
 export class WikiView {
   private readonly source = inject(VAULT_SOURCE);
+  private readonly injector = inject(Injector);
 
   /** Wiki-scope file paths (POSIX-normalised), filtered by vault config. */
   protected readonly files = signal<string[]>([]);
+
+  /** Message describing why the wiki failed to load, shown in the error state. */
+  protected readonly loadError = signal<string>('');
   protected readonly selectedPath = signal<string | null>(null);
   protected readonly selectedBody = signal<string>('');
 
@@ -124,14 +130,22 @@ export class WikiView {
       const { config } = loadConfig(configText);
       this.config.set(config);
 
-      // Read and parse all files to build the VaultModel
+      // Read and parse all files to build the VaultModel. Guard per file so a
+      // single unreadable/unparseable file degrades to a missing entry instead
+      // of blanking the whole wiki (T-007).
       const allParsedFiles = await Promise.all(
         allPaths.map(async (path) => {
-          const text = await this.source.readFile(path);
-          return parseFile(path, text);
-        })
+          try {
+            return parseFile(path, await this.source.readFile(path));
+          } catch {
+            return null;
+          }
+        }),
       );
-      const { model } = buildModel(allParsedFiles, config);
+      const { model } = buildModel(
+        allParsedFiles.filter((f) => f !== null),
+        config,
+      );
       this.model.set(model);
 
       const includeGlobs = config.wiki.include.length > 0 ? config.wiki.include : ['**/*.md'];
@@ -161,7 +175,8 @@ export class WikiView {
         void this.select(firstFile);
       }
     } catch (error: unknown) {
-      console.error('Failed to load vault files', error);
+      // Surface the miss visibly instead of rendering an empty tree (T-007).
+      this.loadError.set(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -262,8 +277,10 @@ export class WikiView {
   private moveFocus(index: number): void {
     const clamped = Math.max(0, Math.min(index, this.visibleEntries().length - 1));
     this.focusedIndex.set(clamped);
-    setTimeout(() => {
-      this.treeItems.toArray()[clamped]?.nativeElement.focus();
+    // Lifecycle-bound (unlike a bare setTimeout): skipped if the view is
+    // destroyed before the next render.
+    afterNextRender(() => this.treeItems.toArray()[clamped]?.nativeElement.focus(), {
+      injector: this.injector,
     });
   }
 
