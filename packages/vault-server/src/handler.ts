@@ -12,7 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { listVaultFiles, safeVaultPath, vaultRelative } from './files';
+import { isServedVaultPath, listVaultFiles, safeVaultPath, vaultRelative } from './files';
 import { startVaultWatcher, watchPathsFromConfig } from './watcher';
 
 export interface VaultServer {
@@ -33,9 +33,29 @@ function readWatchPaths(vaultDir: string): string[] {
   return watchPathsFromConfig(config);
 }
 
+/** SSE comment sent periodically so idle connections aren't reaped by hosts
+ * or proxies with idle timeouts (e.g. Bun.serve defaults to 10s). */
+const HEARTBEAT_CHUNK = ': ping\n\n';
+const HEARTBEAT_INTERVAL_MS = 25_000;
+
 export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServer {
-  /** Active SSE client broadcast functions. */
-  const clients = new Set<(path: string) => void>();
+  /** Active SSE clients; each writes one raw chunk to its own stream. */
+  const clients = new Set<(chunk: string) => void>();
+
+  // A client whose connection died can throw on write; drop it instead of
+  // letting the throw abort delivery to the remaining live clients.
+  const broadcast = (chunk: string) => {
+    for (const send of [...clients]) {
+      try {
+        send(chunk);
+      } catch {
+        clients.delete(send);
+      }
+    }
+  };
+
+  const heartbeat = setInterval(() => broadcast(HEARTBEAT_CHUNK), HEARTBEAT_INTERVAL_MS);
+  heartbeat.unref?.();
 
   const stopWatcher = startVaultWatcher({
     vaultDir,
@@ -43,7 +63,7 @@ export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServ
     // key takes effect on server restart.
     watchPaths: readWatchPaths(vaultDir),
     onChange(event) {
-      for (const send of clients) send(event.path);
+      broadcast(`data: ${JSON.stringify({ path: event.path })}\n\n`);
     },
   });
 
@@ -73,8 +93,7 @@ export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServ
         }
 
         // Only serve files in the same allowlist as /vault/files
-        const relNorm = vaultRelative(vaultDir, full);
-        if (!relNorm.endsWith('.md') && relNorm !== '.mos/config.json') {
+        if (!isServedVaultPath(vaultRelative(vaultDir, full))) {
           return new Response('Not found', { status: 404 });
         }
 
@@ -92,12 +111,12 @@ export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServ
       // SSE endpoint. Keeps the connection open and broadcasts change events.
       if (url.pathname === '/vault/watch') {
         const encoder = new TextEncoder();
-        let send: ((path: string) => void) | undefined;
+        let send: ((chunk: string) => void) | undefined;
 
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
-            send = (path: string) => {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ path })}\n\n`));
+            send = (chunk: string) => {
+              controller.enqueue(encoder.encode(chunk));
             };
             clients.add(send);
             // Confirm connection to the client
@@ -121,6 +140,7 @@ export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServ
     },
 
     async close(): Promise<void> {
+      clearInterval(heartbeat);
       clients.clear();
       await stopWatcher();
     },

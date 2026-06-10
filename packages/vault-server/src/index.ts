@@ -1,5 +1,11 @@
 export { createVaultServer, type VaultServer } from './handler';
-export { listVaultFiles, safeVaultPath, vaultRelative, isWatchedRelativePath } from './files';
+export {
+  isServedVaultPath,
+  isWatchedRelativePath,
+  listVaultFiles,
+  safeVaultPath,
+  vaultRelative,
+} from './files';
 export {
   createDebouncedEmitter,
   DEFAULT_WATCH_PATHS,

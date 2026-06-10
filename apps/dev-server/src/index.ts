@@ -26,6 +26,10 @@ const vaultServer = createVaultServer({ vaultDir: VAULT_DIR });
 Bun.serve({
   port: PORT,
   hostname: '127.0.0.1',
+  // Bun reaps idle connections after 10s by default, which kills the SSE
+  // watch stream between (sparse) change events. 0 disables the timeout;
+  // the handler's heartbeat covers any other intermediary.
+  idleTimeout: 0,
   fetch: (req) => vaultServer.fetch(req),
 });
 

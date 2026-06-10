@@ -16,6 +16,10 @@ beforeAll(async () => {
   await writeFile(join(vaultDir, '.mos', 'config.json'), '{ "specVersion": "0.3" }');
   await writeFile(join(vaultDir, 'board', 'X-001-card.md'), '---\nid: X-001\n---\nbody');
   await writeFile(join(vaultDir, 'secret.txt'), 'not served');
+  await mkdir(join(vaultDir, '.hidden'), { recursive: true });
+  await mkdir(join(vaultDir, 'node_modules', 'pkg'), { recursive: true });
+  await writeFile(join(vaultDir, '.hidden', 'note.md'), 'hidden md');
+  await writeFile(join(vaultDir, 'node_modules', 'pkg', 'README.md'), 'dependency md');
   server = createVaultServer({ vaultDir });
 });
 
@@ -50,6 +54,13 @@ describe('GET /vault/file', () => {
 
   it('does not serve files outside the allowlist', async () => {
     expect((await get('/vault/file?path=secret.txt')).status).toBe(404);
+  });
+
+  it('serves exactly what /vault/files lists — no hidden-dir or node_modules markdown', async () => {
+    const { files } = (await (await get('/vault/files')).json()) as { files: string[] };
+    expect(files).toEqual(['.mos/config.json', 'board/X-001-card.md']);
+    expect((await get('/vault/file?path=.hidden/note.md')).status).toBe(404);
+    expect((await get('/vault/file?path=node_modules/pkg/README.md')).status).toBe(404);
   });
 });
 
@@ -93,5 +104,19 @@ describe('GET /vault/watch', () => {
     expect(events).toContain('board/X-001-card.md');
     expect(events).not.toContain('unwatched-note.md');
     await reader.cancel();
+  });
+
+  it('keeps broadcasting to live clients after another client disconnects', async () => {
+    const first = (await get('/vault/watch')).body!.getReader();
+    const second = (await get('/vault/watch')).body!.getReader();
+    await first.read(); // ': connected'
+    await second.read();
+
+    await first.cancel();
+    await writeFile(join(vaultDir, 'board', 'X-001-card.md'), '---\nid: X-001\n---\nedited twice');
+
+    const { value } = await second.read();
+    expect(new TextDecoder().decode(value)).toContain('board/X-001-card.md');
+    await second.cancel();
   });
 });

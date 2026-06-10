@@ -2,7 +2,18 @@ import { readdir } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { isWatchedRelativePath } from './watcher';
 
-/** Recursively collect vault-relative paths of .md files and .mos/config.json. */
+/**
+ * The served-content allowlist, shared by /vault/files and /vault/file so
+ * what's readable is exactly what's listed: the vault config, and markdown
+ * outside hidden directories and node_modules.
+ */
+export function isServedVaultPath(rel: string): boolean {
+  if (rel === '.mos/config.json') return true;
+  if (!rel.endsWith('.md')) return false;
+  return !rel.split('/').some((segment) => segment.startsWith('.') || segment === 'node_modules');
+}
+
+/** Recursively collect the vault-relative paths of all served files. */
 export async function listVaultFiles(vaultDir: string): Promise<string[]> {
   const files: string[] = [];
   await walk(vaultDir, vaultDir, files);
@@ -33,7 +44,7 @@ async function walk(dir: string, base: string, out: string[]): Promise<void> {
       await walk(full, base, out);
     } else if (entry.isFile()) {
       const rel = relative(base, full).replaceAll(sep, '/');
-      if (entry.name.endsWith('.md') || rel === '.mos/config.json') {
+      if (isServedVaultPath(rel)) {
         out.push(rel);
       }
     }
