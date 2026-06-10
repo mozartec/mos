@@ -8,7 +8,7 @@ phase: Phase 2
 owner: mozart
 dependsOn: [F-015, F-016]
 created: 2026-06-10T19:00:00Z
-updated: 2026-06-10T19:00:00Z
+updated: 2026-06-10T19:55:00Z
 ---
 
 # T-008 — CLI packaging hardening and first publish
@@ -38,11 +38,11 @@ the first version is published.
 
 ## Constraints (must honor)
 
-- **Registry reality check before choosing.** GitHub Packages' npm registry requires the
-  scope to match the repo owner (so not `@mos/cli` there) and requires an auth token to
-  install **even public** packages — which breaks frictionless `npx`. npmjs has neither
-  problem, but `@mos` scope availability there is unverified. Verify both facts against
-  current docs, decide, and record the decision (and any rename) as a new ADR.
+- **The name is decided: `@mozartec/mos-cli` on npmjs** (bin stays `mos`). Checked
+  2026-06-10: `mos` and `mos-cli` are taken as package names and the `mos` scope is not
+  available; `mozartec` is the owned scope. Record the decision and rationale as a new
+  ADR — don't re-litigate it — and note GitHub Packages was rejected because it requires
+  auth to install even public packages and forces owner-matched scopes.
 - **The smoke test must use the packed tarball** (`npm pack` → install in a clean temp
   dir → `mos init` → `mos serve` → probe endpoints), not the workspace — that is the
   point of this task.
@@ -55,9 +55,10 @@ the first version is published.
 1. Pack-and-install smoke test: script it (temp dir, install tarball, run `mos init`,
    start `mos serve` on a free port, assert `/`, `/vault/files`, SSE event, non-GET 405),
    then wire it into CI so packaging regressions can't land silently.
-2. Decide registry + final package name (see Constraints); record as ADR; apply any
-   rename across `apps/cli/package.json`, README, `docs/11-RELEASING.md`,
-   `docs/12-ADOPTING.md`.
+2. Record the decided name (`@mozartec/mos-cli`, npmjs — see Constraints) as an ADR and
+   apply the rename across `apps/cli/package.json`, README, `docs/11-RELEASING.md`,
+   `docs/12-ADOPTING.md` (the `bin` stays `mos`, so all `mos serve`/`mos init` usage is
+   unchanged).
 3. Polish: friendly `EADDRINUSE` message (no stack trace), set the web app's
    `<title>` to the vault name or "mos" (it currently reads `@mos/web`), include the
    web build's `3rdpartylicenses.txt` in the package.
@@ -68,8 +69,8 @@ the first version is published.
 
 - [ ] A scripted smoke test installs the packed tarball in a clean directory and proves
       `init` + `serve` work (endpoints probed, SSE event observed); it runs in CI.
-- [ ] The registry/name decision is recorded as an ADR, and the package, README, and
-      docs all use the final name consistently.
+- [ ] The name decision (`@mozartec/mos-cli` on npmjs, bin `mos`) is recorded as an ADR,
+      and the package, README, and docs all use it consistently.
 - [ ] `EADDRINUSE` produces a one-line human error; the served page title no longer
       reads `@mos/web`; third-party license file ships in the package.
 - [ ] Version `0.1.0` is published and a cold `install`/`npx` from the chosen registry
