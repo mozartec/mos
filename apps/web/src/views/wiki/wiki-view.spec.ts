@@ -1,4 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { Location } from '@angular/common';
+import { provideLocationMocks } from '@angular/common/testing';
+import { Router, provideRouter } from '@angular/router';
 import type { VaultSource } from '@mos/core';
 import { WikiView } from './wiki-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
@@ -61,7 +64,11 @@ describe('WikiView', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [WikiView],
-      providers: [{ provide: VAULT_SOURCE, useClass: TestVaultSource }],
+      providers: [
+        provideRouter([]),
+        provideLocationMocks(),
+        { provide: VAULT_SOURCE, useClass: TestVaultSource },
+      ],
     }).compileComponents();
   });
 
@@ -286,5 +293,60 @@ describe('WikiView', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('An updated body line.');
     expect(text).not.toContain('A body line.');
+  });
+
+  // ── Acceptance F-017: link clicks push history; back returns to the source ─
+
+  async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges(): void }) {
+    for (let i = 0; i < 5; i++) {
+      await fixture.whenStable();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    fixture.detectChanges();
+  }
+
+  it('opens a reader link via the path query param (history entry)', async () => {
+    const router = TestBed.inject(Router);
+    router.initialNavigation();
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+
+    // Initial auto-selection seeds the URL without growing history.
+    expect(fixture.componentInstance['selectedPath']()).toBe('board/T-001-sample.md');
+
+    fixture.componentInstance['openFromLink']('docs/intro.md');
+    await settle(fixture);
+
+    expect(fixture.componentInstance['selectedPath']()).toBe('docs/intro.md');
+    expect(fixture.nativeElement.textContent).toContain('Introduction.');
+    expect(TestBed.inject(Location).path()).toContain('path=docs%2Fintro.md');
+  });
+
+  it('browser back returns to the source page after a link click', async () => {
+    const router = TestBed.inject(Router);
+    router.initialNavigation();
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+
+    fixture.componentInstance['openFromLink']('docs/intro.md');
+    await settle(fixture);
+    expect(fixture.componentInstance['selectedPath']()).toBe('docs/intro.md');
+
+    TestBed.inject(Location).back();
+    await settle(fixture);
+
+    expect(fixture.componentInstance['selectedPath']()).toBe('board/T-001-sample.md');
+    expect(fixture.nativeElement.textContent).toContain('A body line.');
+  });
+
+  it('deep-links a file from the path query param on load', async () => {
+    const router = TestBed.inject(Router);
+    router.initialNavigation();
+    await router.navigate([], { queryParams: { path: 'docs/intro.md' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+
+    expect(fixture.componentInstance['selectedPath']()).toBe('docs/intro.md');
+    expect(fixture.nativeElement.textContent).toContain('Introduction.');
   });
 });

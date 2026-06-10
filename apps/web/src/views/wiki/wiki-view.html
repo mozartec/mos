@@ -48,7 +48,7 @@
               [attr.aria-setsize]="entry.siblingCount"
               [attr.aria-posinset]="entry.siblingIndex + 1"
               [attr.tabindex]="focusedIndex() === $index ? 0 : -1"
-              (click)="select(entry.path)"
+              (click)="openFromTree(entry.path)"
               (focus)="focusedIndex.set($index)"
               (keydown)="onKeydown($event, $index)"
             >
@@ -70,7 +70,8 @@
           [body]="selectedBody()"
           [model]="model()"
           [config]="config()"
-          (navigate)="select($event)"
+          [path]="selectedPath() ?? ''"
+          (navigate)="openFromLink($event)"
         />
       } @else {
         <p class="text-base-content/50">Select a markdown file to preview it.</p>

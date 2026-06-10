@@ -2,12 +2,12 @@
 id: F-017
 type: feature
 title: Relative markdown links navigate in-app
-status: Planned
+status: Done
 priority: P1
 phase: Phase 2
 owner: mozart
 created: 2026-06-10T20:40:00Z
-updated: 2026-06-10T20:40:00Z
+updated: 2026-06-10T20:41:35Z
 ---
 
 # F-017 — Relative markdown links navigate in-app
@@ -81,15 +81,15 @@ correctly — so the same file navigates on GitHub and in mos with zero special 
 
 ## Acceptance
 
-- [ ] Clicking a same-folder link (`05-VAULT_SPEC.md` from a docs page) and a
+- [x] Clicking a same-folder link (`05-VAULT_SPEC.md` from a docs page) and a
       cross-folder link (`../docs/03-ARCHITECTURE.md` from a board card) opens the
       target in-app; browser back returns to the source page.
-- [ ] The same files render with working links on GitHub — no mos-specific link syntax
+- [x] The same files render with working links on GitHub — no mos-specific link syntax
       anywhere in the repo's markdown.
-- [ ] A link to a missing file renders inert and visibly dimmed — never a 404.
-- [ ] External links open in a new tab with `rel="noopener noreferrer"`.
-- [ ] Id references behave exactly as before (existing specs stay green).
-- [ ] The core resolver is pure, unit-tested (traversal, `./`, fragments, encoded
+- [x] A link to a missing file renders inert and visibly dimmed — never a 404.
+- [x] External links open in a new tab with `rel="noopener noreferrer"`.
+- [x] Id references behave exactly as before (existing specs stay green).
+- [x] The core resolver is pure, unit-tested (traversal, `./`, fragments, encoded
       spaces), and `05-VAULT_SPEC.md` §7 + `09-CONVENTIONS.md` document the rules.
 
 ## Dependencies

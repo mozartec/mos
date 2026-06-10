@@ -199,4 +199,89 @@ describe('MarkdownReader', () => {
       expect(emittedPath).toBe('board/F-001-story.md');
     }
   });
+
+  // ── F-017: relative markdown links navigate in-app ─────────────────────────
+
+  async function renderBody(body: string, path = ''): Promise<HTMLElement> {
+    const fixture = TestBed.createComponent(MarkdownReader);
+    fixture.componentRef.setInput('body', body);
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+    fixture.componentRef.setInput('path', path);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('turns a same-folder relative link into an in-app navigation', async () => {
+    const host = await renderBody('[the intro](intro.md)', 'docs/00-README.md');
+
+    const anchor = host.querySelector('a[data-path]');
+    expect(anchor).toBeTruthy();
+    expect(anchor?.getAttribute('data-path')).toBe('docs/intro.md');
+    expect(anchor?.getAttribute('href')).toBe('#');
+    expect(anchor?.textContent).toBe('the intro');
+  });
+
+  it('resolves a cross-folder ../ link against the current file', async () => {
+    const host = await renderBody('[intro](../docs/intro.md)', 'board/F-001-story.md');
+
+    expect(host.querySelector('a[data-path]')?.getAttribute('data-path')).toBe('docs/intro.md');
+  });
+
+  it('emits navigate when clicking a relative path link', async () => {
+    const fixture = TestBed.createComponent(MarkdownReader);
+    fixture.componentRef.setInput('body', '[the intro](intro.md)');
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+    fixture.componentRef.setInput('path', 'docs/00-README.md');
+
+    let emittedPath: string | null = null;
+    fixture.componentInstance.navigate.subscribe((path) => {
+      emittedPath = path;
+    });
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    (host.querySelector('a[data-path]') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(emittedPath).toBe('docs/intro.md');
+  });
+
+  it('renders a link to a missing file as an inert dimmed span', async () => {
+    const host = await renderBody('[gone](missing.md)', 'docs/00-README.md');
+
+    const span = host.querySelector('span.reference-inert');
+    expect(span).toBeTruthy();
+    expect(span?.textContent).toBe('gone');
+    expect(host.querySelector('a')).toBeNull();
+  });
+
+  it('renders a link escaping the vault root as inert', async () => {
+    const host = await renderBody('[escape](../../etc/passwd)', 'docs/00-README.md');
+
+    expect(host.querySelector('span.reference-inert')).toBeTruthy();
+    expect(host.querySelector('a')).toBeNull();
+  });
+
+  it('opens external links in a new tab with rel="noopener noreferrer"', async () => {
+    const host = await renderBody('[site](https://example.com)', 'docs/00-README.md');
+
+    const anchor = host.querySelector('a');
+    expect(anchor?.getAttribute('href')).toBe('https://example.com');
+    expect(anchor?.getAttribute('target')).toBe('_blank');
+    expect(anchor?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(anchor?.getAttribute('data-path')).toBeNull();
+  });
+
+  it('strips fragments and decodes %20 when resolving a relative link', async () => {
+    const host = await renderBody('[spec](intro.md#section)', 'docs/00-README.md');
+
+    expect(host.querySelector('a[data-path]')?.getAttribute('data-path')).toBe('docs/intro.md');
+  });
 });
