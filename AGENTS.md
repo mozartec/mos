@@ -117,6 +117,8 @@ own `## Acceptance` boxes, ADR-002 — and allowed types/states) are in
 [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). When you **create** a card or doc set its
 `created` and `updated` timestamps; when you **edit** frontmatter, bump `updated` (the app
 never writes these — see [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md) §Timestamps and
-ADR-010). After changing cards, run `bun run validate` (or `node scripts/validate-vault.mjs`)
+ADR-010). Emit frontmatter properties in the vault's canonical order — `fieldOrder` in
+`.mos/config.json`, or the documented default (`docs/05-VAULT_SPEC.md` §6) when absent; the
+validator warns when a card deviates. After changing cards, run `bun run validate` (or `node scripts/validate-vault.mjs`)
 to confirm every card still maps to a column and parents resolve — it's the cheap check that
 the board renders as intended.

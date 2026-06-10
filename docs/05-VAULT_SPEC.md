@@ -250,6 +250,16 @@ All three are optional; a vault that sets none renders with neutral defaults.
     "updated":   { "type": "datetime", "label": "Updated", "icon": "clock" }
   },
 
+  // optional: canonical frontmatter property order for the write path (F-013).
+  // The app reads frontmatter as a map — order never affects rendering — but
+  // agents/scripts emit properties in this order, and the validator warns
+  // (non-fatally) when a card deviates. When omitted, this default applies:
+  //   id, type, title, status, priority, phase, owner, sprint, parent,
+  //   estimate, dependsOn, created, updated
+  // Properties not in the list go after the listed ones, in their own order.
+  "fieldOrder": ["id", "type", "title", "status", "priority", "phase", "owner",
+                 "sprint", "parent", "estimate", "dependsOn", "created", "updated"],
+
   // wiki.fields: optional frontmatter a doc may carry (typed via the registry)
   "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"],
              "fields": ["created", "updated"] },

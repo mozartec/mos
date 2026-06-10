@@ -130,7 +130,32 @@ export interface VaultConfig {
   references: ReferenceConfig;
   types: Record<string, TypeDef>;
   sprints: string[];
+  /**
+   * Canonical frontmatter property order for the write path (F-013). The app
+   * reads frontmatter as a map, so order never affects rendering — agents and
+   * scripts that create or update cards emit properties in this order.
+   * Defaults to {@link DEFAULT_FIELD_ORDER}; unlisted properties go after the
+   * listed ones, in the order they already appear.
+   */
+  fieldOrder: string[];
 }
+
+/** The shipped default frontmatter order, applied when `fieldOrder` is absent. */
+export const DEFAULT_FIELD_ORDER: readonly string[] = [
+  'id',
+  'type',
+  'title',
+  'status',
+  'priority',
+  'phase',
+  'owner',
+  'sprint',
+  'parent',
+  'estimate',
+  'dependsOn',
+  'created',
+  'updated',
+];
 
 /** Result of {@link loadConfig}: the resolved config plus any diagnostics. */
 export interface LoadConfigResult {
@@ -223,7 +248,28 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
     },
     types: isObject(obj['types']) ? (obj['types'] as Record<string, TypeDef>) : {},
     sprints: asStringArray(obj['sprints']),
+    fieldOrder:
+      obj['fieldOrder'] === undefined ? [...DEFAULT_FIELD_ORDER] : asStringArray(obj['fieldOrder']),
   };
+}
+
+/**
+ * Return a new frontmatter map with keys in the configured canonical order
+ * (F-013). Keys not in `order` follow the listed ones, keeping their relative
+ * order. A write-path utility: the read path never depends on key order.
+ */
+export function orderFrontmatter(
+  data: Record<string, unknown>,
+  order: readonly string[],
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of order) {
+    if (key in data) result[key] = data[key];
+  }
+  for (const key of Object.keys(data)) {
+    if (!(key in result)) result[key] = data[key];
+  }
+  return result;
 }
 
 /**

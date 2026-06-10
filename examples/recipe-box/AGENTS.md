@@ -23,6 +23,9 @@ Files without a recognized `type`, and anything in `docs/`, are wiki pages, not 
 6. Optional fields shown on the card: `priority` (P0–P3), `owner`.
 7. Set `created` and `updated` to the current time, ISO 8601 UTC (e.g.
    `2026-06-08T09:00:00Z`).
+8. Write the frontmatter properties in this order (the mos default; a vault can override
+   it with `fieldOrder` in `.mos/config.json`): `id`, `type`, `title`, `status`,
+   `priority`, `owner`, `created`, `updated` — any other property goes after these.
 
 Example:
 
