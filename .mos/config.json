@@ -23,7 +23,7 @@
 
   "wiki": {
     "include": ["**/*.md"],
-    "exclude": [".mos/**", "AGENTS.md", "CLAUDE.md", "node_modules/**", "examples/**", "apps/**", "packages/**", "dist/**", ".turbo/**", ".git/**"],
+    "exclude": [".mos/**", "AGENTS.md", "CLAUDE.md", "node_modules/**", "examples/**", "apps/**", "packages/**", "skills/**", "dist/**", ".turbo/**", ".git/**"],
     "fields": ["created", "updated"]
   },
 
