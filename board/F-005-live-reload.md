@@ -2,14 +2,14 @@
 id: F-005
 type: feature
 title: Live reload on file change
-status: Draft
-dependsOn: [T-004, T-002, F-001, F-003, F-004]
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
-phase: MVP
+status: Done
 priority: P1
+phase: MVP
 owner: mozart
 sprint: S3
+dependsOn: [T-004, T-002, F-001, F-003, F-004]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-005 — Live reload on file change
@@ -48,9 +48,9 @@ the model, let the signal views re-render. Depends on T-004 landing first.
 
 ## Acceptance
 
-- [ ] Changing a card's `status` on disk moves it on the board with no manual refresh.
-- [ ] A wiki file edit re-renders in the reader without a refresh.
-- [ ] Only the changed file is re-parsed (not a full reload).
+- [x] Changing a card's `status` on disk moves it on the board with no manual refresh.
+- [x] A wiki file edit re-renders in the reader without a refresh.
+- [x] Only the changed file is re-parsed (not a full reload).
 
 ## Stories
 

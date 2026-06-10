@@ -2,13 +2,13 @@
 id: F-012
 type: feature
 title: Dependency graph lens
-status: Draft
-phase: Phase 2
+status: Done
 priority: P1
+phase: Phase 2
 owner: mozart
 dependsOn: [F-001-S-02, F-001-S-03, F-002-S-01, F-003-S-02, F-004-S-04]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-012 — Dependency graph lens
@@ -62,12 +62,12 @@ stays a thin projection.
 
 ## Acceptance
 
-- [ ] A `dependsOn` frontmatter field exists, is typed, and existing cards' prose
+- [x] A `dependsOn` frontmatter field exists, is typed, and existing cards' prose
       dependencies are backfilled into it without losing the prose.
-- [ ] Core exposes a dependency-graph model (nodes, edges, ranks) with cycle detection.
-- [ ] The web app has a Graph lens: nodes coloured by status, edges directional, click opens
+- [x] Core exposes a dependency-graph model (nodes, edges, ranks) with cycle detection.
+- [x] The web app has a Graph lens: nodes coloured by status, edges directional, click opens
       the card in the F-003 reader.
-- [ ] The lens highlights the critical path and the ready set; both are also available as
+- [x] The lens highlights the critical path and the ready set; both are also available as
       core data (so MCP/agents can consume them later).
 
 ## Stories

@@ -4,6 +4,7 @@ import {
   isWatchedRelativePath,
   retryUntilReadable,
   toVaultRelativePath,
+  watchPathsFromConfig,
   type VaultChangeEvent,
 } from './watcher';
 
@@ -25,6 +26,35 @@ describe('toVaultRelativePath', () => {
     const vaultDir = '/vault';
     expect(toVaultRelativePath('/vault/board/T-004.md', vaultDir)).toBe('board/T-004.md');
     expect(toVaultRelativePath('/outside/file.md', vaultDir)).toBeNull();
+  });
+});
+
+describe('watchPathsFromConfig', () => {
+  it('defaults to board + docs (plus the config file) when the key is absent or invalid', () => {
+    expect(watchPathsFromConfig({})).toEqual(['board', 'docs', '.mos/config.json']);
+    expect(watchPathsFromConfig(null)).toEqual(['board', 'docs', '.mos/config.json']);
+    expect(watchPathsFromConfig({ watch: 'board' })).toEqual([
+      'board',
+      'docs',
+      '.mos/config.json',
+    ]);
+    expect(watchPathsFromConfig({ watch: ['board', 42] })).toEqual([
+      'board',
+      'docs',
+      '.mos/config.json',
+    ]);
+  });
+
+  it('uses the configured folder names and always adds the config file once', () => {
+    expect(watchPathsFromConfig({ watch: ['backlog', 'wiki'] })).toEqual([
+      'backlog',
+      'wiki',
+      '.mos/config.json',
+    ]);
+    expect(watchPathsFromConfig({ watch: ['board', '.mos/config.json'] })).toEqual([
+      'board',
+      '.mos/config.json',
+    ]);
   });
 });
 

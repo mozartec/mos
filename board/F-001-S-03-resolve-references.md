@@ -3,13 +3,14 @@ id: F-001-S-03
 type: story
 title: Resolve references by id
 status: Done
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-08T22:41:58Z
 priority: P0
 owner: mozart
 sprint: S2
 parent: F-001
 estimate: M
+dependsOn: [F-001-S-02, F-002-S-01]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-001-S-03 — Resolve references by id

@@ -2,12 +2,13 @@
 id: F-013
 type: feature
 title: Frontmatter field order
-status: Draft
-created: 2026-06-09T20:18:00Z
-updated: 2026-06-09T20:18:00Z
-phase: Phase 2
+status: Done
 priority: P2
+phase: Phase 2
 owner: mozart
+dependsOn: [T-001]
+created: 2026-06-09T20:18:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-013 — Frontmatter field order
@@ -60,10 +61,10 @@ Properties not in the list go after the listed ones, in the order they appear.
 
 ## Acceptance
 
-- [ ] `fieldOrder` is an optional config key with a documented default.
-- [ ] A core utility reorders a frontmatter map by the configured order.
-- [ ] Agent conventions reference the order.
-- [ ] `bun run validate` warns on out-of-order frontmatter (non-fatal).
+- [x] `fieldOrder` is an optional config key with a documented default.
+- [x] A core utility reorders a frontmatter map by the configured order.
+- [x] Agent conventions reference the order.
+- [x] `bun run validate` warns on out-of-order frontmatter (non-fatal).
 
 ## Dependencies
 

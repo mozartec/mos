@@ -23,6 +23,9 @@ Files without a recognized `type`, and anything in `docs/`, are wiki pages, not 
 6. Optional fields shown on the card: `priority` (P0–P3), `owner`.
 7. Set `created` and `updated` to the current time, ISO 8601 UTC (e.g.
    `2026-06-08T09:00:00Z`).
+8. Write the frontmatter properties in this order (the mos default; a vault can override
+   it with `fieldOrder` in `.mos/config.json`): `id`, `type`, `title`, `status`,
+   `priority`, `owner`, `created`, `updated` — any other property goes after these.
 
 Example:
 
@@ -50,6 +53,37 @@ One paragraph describing the work.
 - **Bump `updated`** to the current time on every frontmatter edit; leave `created` as-is.
   The app never writes these — keeping them current is your job.
 - Parse the frontmatter, change the field, write it back — never blind find-and-replace.
+
+Example — starting work on RB-006 (only `status` and `updated` change; everything else,
+including the prose below the frontmatter, stays byte-for-byte identical):
+
+```diff
+ ---
+ id: RB-006
+ type: feature
+ title: Share a recipe by link
+-status: Idea
++status: Building
+ priority: P2
+ owner: chef
+ created: 2026-06-08T09:00:00Z
+-updated: 2026-06-08T09:00:00Z
++updated: 2026-06-09T14:30:00Z
+ ---
+```
+
+## Check your work
+
+After creating or editing cards, run the mos vault validator from the directory that
+contains this vault and confirm it reports the vault as valid (every card maps to a
+column, ids are unique, parents resolve, timestamps are well-formed):
+
+```bash
+node scripts/validate-vault.mjs examples/recipe-box   # from the mos repo root
+```
+
+(In a standalone vault, run the validator that ships with your mos install the same way.)
+If it reports errors, fix the frontmatter until it passes — don't leave the board broken.
 
 ## Do not
 

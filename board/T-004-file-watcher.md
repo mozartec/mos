@@ -3,12 +3,13 @@ id: T-004
 type: task
 title: File watcher (debounced, atomic-save safe)
 status: Done
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T14:27:00Z
-phase: MVP
 priority: P1
+phase: MVP
 owner: mozart
 sprint: S3
+dependsOn: [T-002]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # T-004 — File watcher

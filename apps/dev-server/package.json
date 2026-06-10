@@ -1,7 +1,7 @@
 {
   "name": "@mos/dev-server",
   "version": "0.0.0",
-  "description": "Dev filesystem server backing HttpVaultSource. Lists and reads vault files over HTTP; exposes a change-event stream (SSE). Used only during local development (ADR-006).",
+  "description": "Dev filesystem server backing HttpVaultSource: a thin Bun wrapper around the shared @mos/vault-server endpoints. Used only during local development (ADR-006).",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,10 +9,10 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "check-types": "tsc --noEmit",
-    "test": "bun test"
+    "test": "echo 'no tests here — endpoint and watcher logic is tested in @mos/vault-server'"
   },
   "dependencies": {
-    "chokidar": "^5.0.0"
+    "@mos/vault-server": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

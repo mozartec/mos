@@ -72,40 +72,100 @@ export function buildModel(
       !wikiExcludeMatchers.some((re) => re.test(relPath));
     if (inWikiScope) model.files.push(file.path);
 
-    const inBoardScope = boardMatchers.some((re) => re.test(relPath));
-    const type = asScalarString(file.data['type']);
-    const isRecognizedType = type !== '' && config.types[type] !== undefined;
-
-    if (!inBoardScope) continue;
-
-    if (!isRecognizedType) {
-      diagnostics.push(`${file.path}: not a card (unrecognized or missing type)`);
-      continue;
-    }
-
-    const id = asScalarString(file.data['id']);
-    if (id === '') {
-      diagnostics.push(`${file.path}: card has no id`);
-      continue;
-    }
-
-    if (model.cards[id] !== undefined) {
-      diagnostics.push(`duplicate id '${id}' (${file.path})`);
-      continue;
-    }
-
-    model.cards[id] = {
-      id,
-      type,
-      title: asScalarString(file.data['title']),
-      status: asScalarString(file.data['status']),
-      path: file.path,
-      priority: asScalarString(file.data['priority']) || undefined,
-      fields: file.data,
-    };
+    indexCard(model, diagnostics, file, relPath, boardMatchers, config);
   }
 
   return { model, diagnostics };
+}
+
+/**
+ * Index one parsed file into `model.cards` if it is a board-scope card.
+ * Mutates `model`/`diagnostics`; shared by {@link buildModel} (over a fresh
+ * model) and {@link applyFileChange} (over a cloned one).
+ */
+function indexCard(
+  model: VaultModel,
+  diagnostics: string[],
+  file: ParsedFile,
+  relPath: string,
+  boardMatchers: RegExp[],
+  config: VaultConfig,
+): void {
+  const inBoardScope = boardMatchers.some((re) => re.test(relPath));
+  if (!inBoardScope) return;
+
+  const type = asScalarString(file.data['type']);
+  if (type === '' || config.types[type] === undefined) {
+    diagnostics.push(`${file.path}: not a card (unrecognized or missing type)`);
+    return;
+  }
+
+  const id = asScalarString(file.data['id']);
+  if (id === '') {
+    diagnostics.push(`${file.path}: card has no id`);
+    return;
+  }
+
+  if (model.cards[id] !== undefined) {
+    diagnostics.push(`duplicate id '${id}' (${file.path})`);
+    return;
+  }
+
+  model.cards[id] = {
+    id,
+    type,
+    title: asScalarString(file.data['title']),
+    status: asScalarString(file.data['status']),
+    path: file.path,
+    priority: asScalarString(file.data['priority']) || undefined,
+    fields: file.data,
+  };
+}
+
+/**
+ * Incrementally patch a model for one changed file (F-005-S-01).
+ *
+ * Removes every trace of `path` from the model, then — unless `file` is
+ * `null`, meaning the file was deleted — re-indexes the freshly parsed file
+ * the same way {@link buildModel} would. Only the changed file is examined;
+ * everything else is carried over untouched. Returns a **new** model so
+ * signal-based views detect the change; the input model is never mutated.
+ *
+ * A duplicate-id collision with a *different* file is reported in
+ * `diagnostics` and the change is skipped, mirroring {@link buildModel}.
+ */
+export function applyFileChange(
+  model: VaultModel,
+  config: VaultConfig,
+  path: string,
+  file: ParsedFile | null,
+): BuildModelResult {
+  const diagnostics: string[] = [];
+  const relPath = toPosixPath(path);
+
+  // Clone without any entry owned by `path`, remembering the wiki-list slot
+  // so an updated file keeps its position in listing order.
+  const cards: Record<string, Card> = {};
+  for (const [id, card] of Object.entries(model.cards)) {
+    if (toPosixPath(card.path) !== relPath) cards[id] = card;
+  }
+  const previousIndex = model.files.findIndex((f) => toPosixPath(f) === relPath);
+  const files = model.files.filter((f) => toPosixPath(f) !== relPath);
+  const next: VaultModel = { cards, files };
+
+  if (file !== null) {
+    const inWikiScope =
+      config.wiki.include.map(globToRegExp).some((re) => re.test(relPath)) &&
+      !config.wiki.exclude.map(globToRegExp).some((re) => re.test(relPath));
+    if (inWikiScope) {
+      if (previousIndex >= 0) next.files.splice(previousIndex, 0, file.path);
+      else next.files.push(file.path);
+    }
+
+    indexCard(next, diagnostics, file, relPath, config.board.include.map(globToRegExp), config);
+  }
+
+  return { model: next, diagnostics };
 }
 
 function asScalarString(value: unknown): string {

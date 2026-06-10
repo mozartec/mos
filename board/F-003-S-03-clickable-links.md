@@ -3,13 +3,14 @@ id: F-003-S-03
 type: story
 title: Clickable internal links
 status: Done
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T14:58:51Z
 priority: P0
 owner: mozart
 sprint: S2
 parent: F-003
 estimate: M
+dependsOn: [F-001-S-03, F-003-S-02]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-003-S-03 — Clickable internal links

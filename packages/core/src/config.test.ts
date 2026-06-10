@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from './config.js';
+import { loadConfig, orderFrontmatter } from './config.js';
 
 /** A well-formed config mirroring this repo's `.mos/config.json` (the happy path). */
 function validConfig() {
@@ -227,5 +227,53 @@ describe('loadConfig', () => {
       });
       expect(errors.length).toBeGreaterThanOrEqual(2);
     });
+  });
+});
+
+describe('fieldOrder (F-013)', () => {
+  it('defaults to the shipped canonical order when absent', () => {
+    const { config } = loadConfig('{}');
+    expect(config.fieldOrder).toEqual([
+      'id',
+      'type',
+      'title',
+      'status',
+      'priority',
+      'phase',
+      'owner',
+      'sprint',
+      'parent',
+      'estimate',
+      'dependsOn',
+      'created',
+      'updated',
+    ]);
+  });
+
+  it('honors an explicit fieldOrder from config', () => {
+    const { config, errors } = loadConfig({ fieldOrder: ['id', 'title', 'status'] });
+    expect(errors).toEqual([]);
+    expect(config.fieldOrder).toEqual(['id', 'title', 'status']);
+  });
+});
+
+describe('orderFrontmatter (F-013)', () => {
+  it('reorders keys to the given order, unlisted keys after in original order', () => {
+    const ordered = orderFrontmatter(
+      { custom: 1, status: 'Todo', id: 'T-001', extra: 2, title: 'x' },
+      ['id', 'title', 'status'],
+    );
+    expect(Object.keys(ordered)).toEqual(['id', 'title', 'status', 'custom', 'extra']);
+  });
+
+  it('returns a new object and keeps all values', () => {
+    const data = { id: 'T-001', status: 'Todo' };
+    const ordered = orderFrontmatter(data, ['status', 'id']);
+    expect(ordered).not.toBe(data);
+    expect(ordered).toEqual({ status: 'Todo', id: 'T-001' });
+  });
+
+  it('ignores order entries missing from the data', () => {
+    expect(Object.keys(orderFrontmatter({ id: 'T-001' }, ['title', 'id']))).toEqual(['id']);
   });
 });

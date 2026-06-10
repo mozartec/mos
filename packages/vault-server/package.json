@@ -1,0 +1,27 @@
+{
+  "name": "@mos/vault-server",
+  "version": "0.0.0",
+  "description": "Shared read-only vault file server: the /vault list/read/watch endpoints as a fetch-style handler plus the debounced file watcher. Consumed by the dev server (Bun, ADR-006) and the CLI (Node, ADR-012). No write endpoints (ADR-002).",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.2.17",
+    "eslint": "^10.3.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "8.60.1"
+  }
+}

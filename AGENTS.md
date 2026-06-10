@@ -68,6 +68,7 @@ board/       the backlog as cards (features F-, stories F-..-S-, tasks T-)
 examples/    demo vaults (e.g. recipe-box) — also where the per-vault AGENTS.md lives
 apps/        the apps: web/ (Angular), later dev-server/, desktop/, mcp/, vscode/
 packages/    shared packages: core/ (pure TS) — added as needed
+skills/      the installable mos agent skills — authored here, installed into projects
 scripts/     repo scripts (e.g. validate-vault.mjs)
 ```
 
@@ -92,8 +93,13 @@ package's `exports`). Angular and daisyUI skills live in [`apps/web`](apps/web/A
 First-party **mos** skills live under [`.agents/skills/mos/`](.agents/skills/mos/SKILL.md) —
 skills for operating this (or any) mos vault. Use
 [`mos/next-task`](.agents/skills/mos/next-task/SKILL.md) when asked what to work on next or to
-start the next task/story/card; it ranks the board and recommends a pick. New mos skills are
-added as sibling folders there.
+start the next task/story/card; it ranks the board and recommends a pick.
+
+The **distributable source** of the mos skills is [`skills/`](skills/README.md) at the repo
+root (`ship-card`, `next-card`) — authored there in the standard installable layout so other
+projects can `npx skills add` them (F-014). New mos skills are added as sibling folders in
+`skills/`; the `.agents/skills/mos/` copies are the currently installed versions and get
+refreshed from `skills/` in a later pass.
 
 ## Nested guidance (scoped instructions)
 
@@ -117,6 +123,8 @@ own `## Acceptance` boxes, ADR-002 — and allowed types/states) are in
 [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). When you **create** a card or doc set its
 `created` and `updated` timestamps; when you **edit** frontmatter, bump `updated` (the app
 never writes these — see [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md) §Timestamps and
-ADR-010). After changing cards, run `bun run validate` (or `node scripts/validate-vault.mjs`)
+ADR-010). Emit frontmatter properties in the vault's canonical order — `fieldOrder` in
+`.mos/config.json`, or the documented default (`docs/05-VAULT_SPEC.md` §6) when absent; the
+validator warns when a card deviates. After changing cards, run `bun run validate` (or `node scripts/validate-vault.mjs`)
 to confirm every card still maps to a column and parents resolve — it's the cheap check that
 the board renders as intended.

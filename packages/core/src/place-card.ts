@@ -12,13 +12,17 @@ import type { Card, VaultConfig } from './index.js';
 
 /**
  * Result of placing a card on the board: the column it belongs in (or `null`
- * to hide it) and whether it's blocked.
+ * to hide it) and whether it's blocked. When the card can't be placed (unknown
+ * type or status), `error` carries the diagnostic and `column` is `null` —
+ * never thrown, per the core error contract (`loadConfig`/`buildModel` pattern).
  */
 export interface CardPlacement {
   /** Column name from `config.board.columns`, or `null` if the card is hidden. */
   column: string | null;
   /** True if the card's status is `Blocked`. */
   blocked: boolean;
+  /** Diagnostic when the card can't be placed (unknown type/status). */
+  error?: string;
 }
 
 /**
@@ -26,24 +30,31 @@ export interface CardPlacement {
  *
  * Looks up the card's type in the config and resolves `states[card.status]` to
  * determine the column. Returns `null` for a column if the status maps to `null`
- * (e.g., Deferred or Dropped cards are hidden).
+ * (e.g., Deferred or Dropped cards are hidden). Never throws: an unknown type
+ * or status yields `{ column: null, blocked: false, error }`.
  *
  * @param card The card to place.
  * @param config The vault config, which defines type→state→column mappings.
- * @returns Placement info: `column` (string or `null`) and `blocked` flag.
- * @throws Error if the card's type or status is unknown and unrecoverable.
+ * @returns Placement info: `column` (string or `null`), `blocked` flag, and
+ *   `error` when the card couldn't be placed.
  */
 export function placeCard(card: Card, config: VaultConfig): CardPlacement {
   const typeDef = config.types[card.type];
   if (!typeDef) {
-    throw new Error(`Unknown card type '${card.type}' (card ${card.id})`);
+    return {
+      column: null,
+      blocked: false,
+      error: `Unknown card type '${card.type}' (card ${card.id})`,
+    };
   }
 
   const column = typeDef.states[card.status];
   if (column === undefined) {
-    throw new Error(
-      `Unknown status '${card.status}' for type '${card.type}' (card ${card.id})`,
-    );
+    return {
+      column: null,
+      blocked: false,
+      error: `Unknown status '${card.status}' for type '${card.type}' (card ${card.id})`,
+    };
   }
 
   return {
@@ -65,7 +76,7 @@ const DEFAULT_PRIORITY_RANK: readonly string[] = ['P0', 'P1', 'P2', 'P3'];
  * `config.fields.priority?.values` if declared (enum field type).
  * Falls back to DEFAULT_PRIORITY_RANK when absent or not an enum.
  */
-function getPriorityRank(config: VaultConfig): readonly string[] {
+export function getPriorityRank(config: VaultConfig): readonly string[] {
   const priorityField = config.fields['priority'];
   if (priorityField?.type === 'enum' && priorityField?.values?.length) {
     return priorityField.values;

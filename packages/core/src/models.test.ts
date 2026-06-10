@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig, type VaultConfig } from './config.js';
 import type { ParsedFile } from './parse-file.js';
 import { parseFile } from './parse-file.js';
-import { buildModel, createEmptyVaultModel } from './models.js';
+import { applyFileChange, buildModel, createEmptyVaultModel } from './models.js';
 
 describe('createEmptyVaultModel', () => {
   it('returns a model with no cards and no files', () => {
@@ -37,6 +37,7 @@ describe('buildModel', () => {
       task: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
     },
     sprints: [],
+    fieldOrder: [],
   };
 
   it('keys cards by id, reports duplicate ids, and tracks only wiki-scope file paths', () => {
@@ -265,3 +266,119 @@ function walkInto(dir: string, files: string[]): void {
     if (absPath.endsWith('.md')) files.push(absPath);
   }
 }
+
+describe('applyFileChange', () => {
+  const config: VaultConfig = {
+    specVersion: '0.2',
+    vault: { name: 'Test Vault' },
+    meta: { timestamps: { createdField: 'created', updatedField: 'updated' } },
+    fields: {},
+    wiki: { include: ['**/*.md'], exclude: ['secret/**'], fields: [] },
+    board: { include: ['board/**/*.md'], columns: ['Backlog', 'Done'], sortWithinColumn: [] },
+    references: { idPattern: '[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*' },
+    types: {
+      story: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
+    },
+    sprints: [],
+    fieldOrder: [],
+  };
+
+  function card(path: string, id: string, status: string): ParsedFile {
+    return { path, data: { id, type: 'story', title: id, status }, body: '', errors: [] };
+  }
+
+  function baseModel() {
+    return buildModel(
+      [card('board/S-001.md', 'S-001', 'Todo'), card('board/S-002.md', 'S-002', 'Todo')],
+      config,
+    ).model;
+  }
+
+  it('updates a changed card in place (status flip) without touching others', () => {
+    const before = baseModel();
+    const { model, diagnostics } = applyFileChange(
+      before,
+      config,
+      'board/S-001.md',
+      card('board/S-001.md', 'S-001', 'Done'),
+    );
+    expect(diagnostics).toEqual([]);
+    expect(model.cards['S-001']?.status).toBe('Done');
+    // untouched card carried over by reference — nothing else was re-parsed
+    expect(model.cards['S-002']).toBe(before.cards['S-002']);
+  });
+
+  it('does not mutate the input model (signals need a new object)', () => {
+    const before = baseModel();
+    const { model } = applyFileChange(
+      before,
+      config,
+      'board/S-001.md',
+      card('board/S-001.md', 'S-001', 'Done'),
+    );
+    expect(model).not.toBe(before);
+    expect(before.cards['S-001']?.status).toBe('Todo');
+  });
+
+  it('adds a newly created file as card and wiki entry', () => {
+    const { model } = applyFileChange(
+      baseModel(),
+      config,
+      'board/S-003.md',
+      card('board/S-003.md', 'S-003', 'Todo'),
+    );
+    expect(model.cards['S-003']?.id).toBe('S-003');
+    expect(model.files).toContain('board/S-003.md');
+  });
+
+  it('removes a deleted file from cards and files', () => {
+    const { model } = applyFileChange(baseModel(), config, 'board/S-002.md', null);
+    expect(model.cards['S-002']).toBeUndefined();
+    expect(model.files).not.toContain('board/S-002.md');
+  });
+
+  it('keeps an updated wiki file in its original listing position', () => {
+    const before = baseModel();
+    expect(before.files).toEqual(['board/S-001.md', 'board/S-002.md']);
+    const { model } = applyFileChange(
+      before,
+      config,
+      'board/S-001.md',
+      card('board/S-001.md', 'S-001', 'Done'),
+    );
+    expect(model.files).toEqual(['board/S-001.md', 'board/S-002.md']);
+  });
+
+  it('handles a card id moving to a different file (rename) when old file is deleted', () => {
+    const afterDelete = applyFileChange(baseModel(), config, 'board/S-001.md', null).model;
+    const { model, diagnostics } = applyFileChange(
+      afterDelete,
+      config,
+      'board/S-001-renamed.md',
+      card('board/S-001-renamed.md', 'S-001', 'Todo'),
+    );
+    expect(diagnostics).toEqual([]);
+    expect(model.cards['S-001']?.path).toBe('board/S-001-renamed.md');
+  });
+
+  it('reports a duplicate id owned by a different file and skips the card', () => {
+    const { model, diagnostics } = applyFileChange(
+      baseModel(),
+      config,
+      'board/S-001-copy.md',
+      card('board/S-001-copy.md', 'S-001', 'Done'),
+    );
+    expect(diagnostics.some((d) => d.includes("duplicate id 'S-001'"))).toBe(true);
+    expect(model.cards['S-001']?.path).toBe('board/S-001.md');
+  });
+
+  it('excluded wiki paths are not added to files', () => {
+    const { model } = applyFileChange(baseModel(), config, 'secret/notes.md', {
+      path: 'secret/notes.md',
+      data: {},
+      body: 'hi',
+      errors: [],
+    });
+    expect(model.files).not.toContain('secret/notes.md');
+  });
+});

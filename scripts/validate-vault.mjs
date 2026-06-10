@@ -50,8 +50,15 @@ function parseFrontmatter(text) {
   return obj;
 }
 
+// The shipped default frontmatter order (F-013); config `fieldOrder` overrides it.
+const DEFAULT_FIELD_ORDER = [
+  'id', 'type', 'title', 'status', 'priority', 'phase', 'owner', 'sprint',
+  'parent', 'estimate', 'dependsOn', 'created', 'updated',
+];
+
 function validateVault(root) {
   const errors = [];
+  const warnings = [];
   const cfg = JSON.parse(readFileSync(join(root, '.mos', 'config.json'), 'utf8'));
   const types = cfg.types;
   const columns = cfg.board.columns;
@@ -108,6 +115,23 @@ function validateVault(root) {
       if (!UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
         errors.push(`${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`);
     }
+    // Every id in a list-of-id field (e.g. dependsOn, F-012-S-01) must resolve to a card.
+    for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
+      if (def?.type !== 'id' || def?.list !== true) continue;
+      const raw = c[fieldName];
+      if (raw == null || raw === '' || raw === '[]') continue;
+      const inline = /^\[(.*)\]$/.exec(raw);
+      const ids = inline ? inline[1].split(',').map((s) => s.trim()).filter(Boolean) : [raw];
+      for (const id of ids) {
+        if (!cards[id]) errors.push(`${c.id}: ${fieldName} '${id}' does not resolve to a card`);
+      }
+    }
+    // Frontmatter property order (F-013): a warning, never an error.
+    const fieldOrder = Array.isArray(cfg.fieldOrder) ? cfg.fieldOrder : DEFAULT_FIELD_ORDER;
+    const present = Object.keys(c).filter((k) => k !== '_rel' && fieldOrder.includes(k));
+    const expected = fieldOrder.filter((k) => present.includes(k));
+    if (present.join(' ') !== expected.join(' '))
+      warnings.push(`${c.id}: frontmatter keys out of order (expected ${expected.join(', ')})`);
   }
 
   const rank = { P0: 0, P1: 1, P2: 2, P3: 3 };
@@ -138,6 +162,10 @@ function validateVault(root) {
     console.log(`\n  [hidden/off-board] (${hidden.length})`);
     for (const c of hidden)
       console.log(`    ${c.id.padEnd(12)} ${(c.status ?? '').padEnd(9)} ${c.title ?? ''}`);
+  }
+  if (warnings.length) {
+    console.log(`\n  WARNINGS (${warnings.length}, non-fatal):`);
+    for (const w of warnings) console.log(`    ! ${w}`);
   }
   console.log(errors.length ? `\n  ERRORS (${errors.length}):` : `\n  OK — valid`);
   for (const e of errors) console.log(`    x ${e}`);

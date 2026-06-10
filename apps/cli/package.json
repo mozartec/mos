@@ -1,0 +1,39 @@
+{
+  "name": "@mos/cli",
+  "version": "0.0.0",
+  "description": "The mos CLI: serve any vault's board and wiki locally (`mos serve`, ADR-012) and scaffold a new vault (`mos init`, ADR-013). Read-only over existing vaults (ADR-002); ships the built web app bundled with the vault endpoints in one Node process.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "mos": "bin/mos.mjs"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun build src/main.ts --outdir dist --target node --external chokidar && node scripts/copy-web-dist.mjs",
+    "lint": "eslint src scripts bin",
+    "lint:fix": "eslint src scripts bin --fix",
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@mos/vault-server": "workspace:*",
+    "@mos/web": "workspace:*",
+    "@types/bun": "^1.2.17",
+    "eslint": "^10.3.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "8.60.1"
+  }
+}

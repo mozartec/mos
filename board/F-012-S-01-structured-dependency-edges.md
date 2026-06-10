@@ -2,14 +2,14 @@
 id: F-012-S-01
 type: story
 title: Structured dependency edges (dependsOn field + core edges)
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-012
 estimate: M
 dependsOn: [F-001-S-02, F-001-S-03, F-002-S-01]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:22:00Z
 ---
 
 # F-012-S-01 — Structured dependency edges
@@ -66,10 +66,10 @@ remains:
 
 ## Acceptance
 
-- [ ] `dependsOn` is a typed field in config and on every card type's face.
-- [ ] Core returns an edge set; unresolved ids and cycles surface in `errors`, not thrown.
-- [ ] All existing `board/` cards carry `dependsOn` matching their prose; prose unchanged.
-- [ ] `bun run validate` passes.
+- [x] `dependsOn` is a typed field in config and on every card type's face.
+- [x] Core returns an edge set; unresolved ids and cycles surface in `errors`, not thrown.
+- [x] All existing `board/` cards carry `dependsOn` matching their prose; prose unchanged.
+- [x] `bun run validate` passes.
 
 ## Dependencies
 

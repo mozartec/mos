@@ -1,5 +1,5 @@
 export type { Card, VaultModel, BuildModelResult } from './models.js';
-export { createEmptyVaultModel, buildModel } from './models.js';
+export { createEmptyVaultModel, buildModel, applyFileChange } from './models.js';
 export type { VaultSource } from './vault-source.js';
 export type { ParsedFile } from './parse-file.js';
 export { parseFile } from './parse-file.js';
@@ -16,9 +16,13 @@ export type {
   VaultConfig,
   LoadConfigResult,
 } from './config.js';
-export { loadConfig, CARD_COLORS, CARD_ICONS } from './config.js';
+export { loadConfig, orderFrontmatter, CARD_COLORS, CARD_ICONS, DEFAULT_FIELD_ORDER } from './config.js';
 export type { Reference, ReferenceTarget } from './references.js';
 export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';
 export type { CardPlacement } from './place-card.js';
 export { placeCard, sortWithinColumn } from './place-card.js';
+export type { DependencyEdge, BuildEdgesResult } from './edges.js';
+export { buildEdges, deriveBlocks, DEPENDS_ON_FIELD } from './edges.js';
+export type { GraphNode, GraphEdge, DependencyGraph } from './graph.js';
+export { buildDependencyGraph, criticalPath, readySet } from './graph.js';

@@ -15,9 +15,10 @@ in 2026 — by asking an AI assistant, which edits the markdown for you (guided 
 `AGENTS.md` convention). mos just renders the result. The folder is the source of
 truth; there is no database.
 
-> **Status: early / planning.** There is no runnable app yet. This repository
-> currently contains the design, the format spec, and the live backlog. Building in
-> public — follow along in [`board/`](board/).
+> **Status: early, but runnable.** The MVP is built — board, wiki, and dependency-graph
+> lenses over any vault, served by the `mos` CLI — and not yet published to npm; the
+> first tagged release will be `v0.1.0`. Building in public — follow along in
+> [`board/`](board/).
 
 ## Why
 
@@ -40,6 +41,28 @@ recognized `type` in its frontmatter. Everything else is wiki-only. The card typ
 their states, and the board columns are all defined in `.mos/config.json` — nothing is
 hardcoded, so mos fits any solo dev's conventions, not one fixed schema. See
 [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md) for the full format.
+
+## Run it on your project
+
+The CLI bundles the built web app and a read-only file server in one Node ≥ 20 process
+(see [`docs/12-ADOPTING.md`](docs/12-ADOPTING.md)):
+
+```bash
+mos init           # turn the current folder into a vault: starter config,
+                   # example card, AGENTS.md write rules (refuses on an existing vault)
+mos serve          # board + wiki at http://127.0.0.1:4400, live-reloading on file changes
+```
+
+Once the package is on npm this is `npx @mos/cli init` / `npx @mos/cli serve`. Until
+then, run it from a clone:
+
+```bash
+bun install && bunx turbo run build --filter=@mos/cli
+node apps/cli/bin/mos.mjs serve <your-vault-dir>
+```
+
+mos never writes your files — `init` is a one-time scaffold, and serving is strictly
+read-only. Your editor and your AI assistant do the writing.
 
 ## This repo eats its own dog food
 
@@ -70,6 +93,8 @@ app, a future VS Code extension, and a future MCP server. See
 | [08-DECISIONS](docs/08-DECISIONS.md) | Architecture decision records |
 | [09-CONVENTIONS](docs/09-CONVENTIONS.md) | How we write docs, cards, and ADRs |
 | [10-GLOSSARY](docs/10-GLOSSARY.md) | Terminology |
+| [11-RELEASING](docs/11-RELEASING.md) | Branching, versioning, publishing |
+| [12-ADOPTING](docs/12-ADOPTING.md) | Using mos in your own project (CLI + skills) |
 
 ## Try the format
 
@@ -78,22 +103,27 @@ a non-mos project, to show the format isn't tied to this codebase.
 
 ## Agent skills
 
-This repo ships first-party agent skills for working a mos board, under
-[`.agents/skills/mos/`](.agents/skills/mos/SKILL.md). The first is **`mos-next-task`**: ask
-your agent what to work on next and it ranks the board (priority, sprint, dependencies,
-in-progress first), recommends a card, and starts it. It's config-driven, so it works on any
-mos vault.
+This repo ships first-party agent skills for working a mos board, authored in
+[`skills/`](skills/README.md) in the standard installable layout:
 
-Adopt it in another project with the [`skills`](https://github.com/vercel-labs/skills) CLI —
-no separate repo needed, it installs straight from the path in this repo:
+- **`next-card`** — ask your agent what to work on next; it ranks the board (priority,
+  sprint, dependencies, in-progress first) and recommends one card with reasoning.
+- **`ship-card`** — point it at a card id (any type your config defines — feature, story,
+  task, …) and it takes that card to an open PR: plan, raise doubts, branch, build, commit,
+  push.
+
+Both are vault-agnostic: they read your types, states, columns, and sprints from
+`.mos/config.json` at run time and refuse to start without it — nothing about this repo's
+vocabulary is hardcoded. Install them into any project with the
+[`skills`](https://github.com/vercel-labs/skills) CLI:
 
 ```bash
-npx skills add https://github.com/mozartec/mos/tree/main/.agents/skills/mos/next-task
+npx skills add mozartec/mos
 ```
 
-That drops the skill into the target project's `.agents/skills/` and links it into the
-agent-native locations (e.g. `.claude/skills/` for Claude Code), so the agent can trigger it
-by description or you can invoke it explicitly.
+That drops the skills into the target project's `.agents/skills/` and links them into the
+agent-native locations (e.g. `.claude/skills/` for Claude Code), so the agent can trigger
+them by description or you can invoke them explicitly.
 
 ## Contributing
 

@@ -2,14 +2,14 @@
 id: F-012-S-02
 type: story
 title: Layered DAG layout in core
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-012
 estimate: M
 dependsOn: [F-012-S-01]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:27:00Z
 ---
 
 # F-012-S-02 — Layered DAG layout in core
@@ -50,10 +50,10 @@ of dependents; `order` is a stable within-rank position. Cyclic input degrades g
 
 ## Acceptance
 
-- [ ] `buildDependencyGraph` returns ranked, ordered nodes plus edges, deterministically.
-- [ ] Roots are rank 0; a dependent is always a higher rank than each of its prerequisites.
-- [ ] Cyclic input returns a flagged result instead of looping/throwing.
-- [ ] Unit tests cover chain, diamond, disconnected, and cyclic graphs.
+- [x] `buildDependencyGraph` returns ranked, ordered nodes plus edges, deterministically.
+- [x] Roots are rank 0; a dependent is always a higher rank than each of its prerequisites.
+- [x] Cyclic input returns a flagged result instead of looping/throwing.
+- [x] Unit tests cover chain, diamond, disconnected, and cyclic graphs.
 
 ## Dependencies
 

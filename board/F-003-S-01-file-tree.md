@@ -3,13 +3,14 @@ id: F-003-S-01
 type: story
 title: File tree browser
 status: Done
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T00:28:42Z
 priority: P0
 owner: mozart
 sprint: S2
 parent: F-003
 estimate: S
+dependsOn: [F-001-S-02, T-002]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-003-S-01 — File tree browser

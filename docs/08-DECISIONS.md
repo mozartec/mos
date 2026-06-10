@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-10T11:45:00Z
 ---
 
 # Decisions (ADRs)
@@ -207,3 +207,100 @@ timestamps, since the read-only app won't, and an un-maintained vault will have 
 validation is best-effort and non-fatal, so bad data degrades gracefully rather than
 crashing a render. If automatic maintenance becomes important, the later MCP write server
 (F-009) is the natural place to enforce it.
+
+## ADR-011 — Three lenses: wiki, board, and dependency graph
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** ADR-004 established two independent, read-only lenses over the same vault — the
+wiki (files as documents) and the board (cards as workflow state). Both look at one card at a
+time. What neither shows is the *structure between* cards: which work blocks which, where the
+critical path runs, and what could start in parallel right now. With `dependsOn` now a typed,
+machine-readable field (F-012-S-01) and a pure layered layout in core (F-012-S-02), that
+structure is data the app already has, with no view that renders it.
+
+**Decision.** Add a third lens: the **dependency graph** (`GraphView`, routed like wiki and
+board). It follows exactly the rules the first two lenses set. It is read-only (ADR-002) — it
+renders and navigates, never edits an edge or a status. It is a thin projection (ADR-001) —
+ranks, ordering, cycle handling, and (later) critical-path/ready-set math live in
+`packages/core`; the component only positions and paints what core computed. It is
+config-driven (ADR-003) — the relation comes from the field registry, node colors derive from
+each type's state→column mapping, and nothing about this vault's type names is hardcoded. And
+it reuses the shared reader (ADR-004) — clicking a node opens the card the same way a board
+card opens, with a way back. Lenses stay independent: removing the graph lens (like removing
+the board) breaks nothing else.
+
+**Consequences.** "What should I kick off next, and what's in the way?" becomes answerable by
+looking, for humans and (through the same core data) for future agents/MCP (F-009). The cost
+is a third surface to keep consistent with the lens rules above; the mitigation is that each
+new lens consumes core output rather than computing its own, so consistency is enforced by
+the architecture. Adding further lenses (e.g. a timeline) should follow this same pattern and
+supersede or extend this ADR.
+
+## ADR-012 — The CLI: a published, Node-runnable package bundling the web app
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** Until now the only way to see a vault rendered was to clone this repo and run
+the dev stack (ADR-006's dev server plus the Angular dev build) with `VAULT_DIR` pointed at
+the folder. F-015 wants the validated web app usable in *any* project — an ERP repo, a
+notes folder — with one command and no clone. That raises three choices: the runtime the
+command runs on, how the UI and the file endpoints are served together, and how the
+endpoint logic relates to the dev server we already trust.
+
+**Decision.** Ship a CLI as an npm package, **`@mos/cli`**, exposing the **`mos`** bin
+(`mos serve [dir] [--port]`). Three sub-decisions:
+
+- **Authored in TypeScript, bundled for Node.** The source lives in `apps/cli` and is
+  bundled at build time with `bun build --target=node`, so the published artifact is plain
+  ESM JavaScript that runs on Node ≥ 20 — `npx`-able anywhere, no Bun required at runtime
+  (Bun remains a build-time tool, which the repo already requires). `chokidar` is the only
+  runtime dependency; workspace code is bundled in.
+- **One process, one origin.** The build copies the production web build into the package
+  (`dist/web`), and the server serves the SPA (with fallback for deep links) *and* the
+  `/vault/*` endpoints on the same origin — exactly the relative URLs `HttpVaultSource`
+  already uses, so the web app is byte-for-byte the same as in development.
+- **The endpoints are shared, not duplicated.** The list/read/watch endpoints and the
+  debounced watcher moved from the dev server into **`packages/vault-server`**, a
+  runtime-agnostic fetch-style handler (web `Request`/`Response`). The Bun dev server
+  (ADR-006) and the Node CLI are now two thin hosts of the same handler, so the contract
+  can't drift between dev and production. It is **not** part of `packages/core` — it does
+  I/O, and core stays pure (ADR-001).
+
+The workspace root already holds the npm name `mos` for the monorepo, so the package is
+scoped; whether to also publish under an unscoped alias is decided at first release.
+ADR-002 holds throughout: the server rejects non-GET requests and has no write endpoint.
+
+**Consequences.** Any project gets the board and wiki with `npx @mos/cli serve` (or a
+global install giving plain `mos serve`) — the desktop app (F-007) stops being the only
+"real app" path, and F-016 gets a natural home for `mos init`. Publishing requires the
+repo's Bun toolchain, and the package carries the web build inside it, so its size tracks
+the app bundle. The dev server keeps its dev-only role (ADR-006) with less code of its own.
+
+## ADR-013 — Scaffolding is not a runtime write
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** ADR-002 draws mos's brightest line: the app reads the vault and never writes
+it — writes belong to the agent layer. F-016 adds `mos init`, a CLI command that *creates
+files*. Without a recorded boundary, "the CLI may write during init" erodes into "the CLI
+may write", and the read-only guarantee dies by a thousand conveniences.
+
+**Decision.** Scaffolding — creating a vault where none exists — is a **one-time bootstrap**
+and is allowed in the CLI; operating on an existing vault is not. The boundary, precisely:
+
+- `mos init` runs only where no `.mos/config.json` resolves; if one exists it **refuses
+  and changes nothing** — no overwrite, no merge, no "update my config" mode.
+- Even while scaffolding it never replaces an existing file (an existing `AGENTS.md` or
+  card is skipped and reported, not merged).
+- The serving path (`mos serve`, the dev server, the web app) keeps zero write endpoints,
+  exactly as ADR-002 states.
+- Anything that *mutates* an existing vault — moving cards, editing frontmatter, fixing
+  timestamps — stays with the agent layer and the future MCP write server (F-009), never
+  the CLI.
+
+**Consequences.** Adoption gets a first mile (`mos init` → `mos serve`) without weakening
+the read-only contract: after init completes, the CLI is as read-only as it ever was. The
+cost is that config evolution stays manual (you edit JSON, guided by the agent stub and
+the spec) — acceptable, because a config is small and owning it is the point. A future
+"migrate my config" need would have to come back through a new ADR, not creep in here.

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-10T11:20:00Z
 ---
 
 # Architecture
@@ -46,9 +46,10 @@ interface VaultSource {
 
 There will be two implementations:
 
-- **`HttpVaultSource`** (development) — talks to a tiny Node dev server that reads the
-  configured folder and streams change events. Lets us run the whole UI with `bun run dev`
-  and no packaging.
+- **`HttpVaultSource`** — talks to the shared `/vault/*` endpoints
+  (`packages/vault-server`): in development they're hosted by the tiny Bun dev server
+  (`bun run dev`, no packaging); in production by the published CLI, which serves the
+  built app and the endpoints from one process (ADR-012).
 - **`TauriVaultSource`** (desktop) — calls Tauri commands backed by Rust filesystem access
   and a native file watcher.
 
@@ -65,13 +66,15 @@ an app under `apps/`. Packages and apps are added as they're needed, not pre-cre
 mos/                      # monorepo root = also a mos vault (see below)
 ├── apps/
 │   ├── web/              # Angular 22 app (the UI): core consumed, sources/ for adapters
-│   ├── dev-server/       # Node fs server backing HttpVaultSource (added by T-002)
+│   ├── dev-server/       # Bun host of the vault-server endpoints, dev only (T-002)
+│   ├── cli/              # published `mos` CLI: serves the built web app + endpoints (F-015)
 │   ├── desktop/          # Tauri shell (later, T-005)
 │   ├── mcp/              # MCP write server (later, F-009)
 │   └── vscode/           # VS Code extension (later, F-010)
 ├── packages/
-│   └── core/             # pure TS: parseVault(files) → model, resolveLinks, buildBoard;
-│                         #          also defines the VaultSource interface (a pure type)
+│   ├── core/             # pure TS: parseVault(files) → model, resolveLinks, buildBoard;
+│   │                     #          also defines the VaultSource interface (a pure type)
+│   └── vault-server/     # shared read-only /vault endpoints + file watcher (I/O, not core)
 ├── turbo.json            # task pipeline + caching
 ├── package.json          # Bun workspaces: ["apps/*", "packages/*"]
 └── .mos/  docs/  board/  examples/   # the repo is still a mos vault, at the root

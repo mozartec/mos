@@ -3,13 +3,13 @@ id: F-001
 type: feature
 title: Vault loader and parser
 status: Done
-dependsOn: [T-001, F-002]
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
-phase: MVP
 priority: P0
+phase: MVP
 owner: mozart
 sprint: S1
+dependsOn: [T-001, F-002]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-001 — Vault loader and parser
