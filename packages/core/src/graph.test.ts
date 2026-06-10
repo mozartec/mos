@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig, type VaultConfig } from './config.js';
 import { parseFile } from './parse-file.js';
 import { buildModel, type Card, type VaultModel } from './models.js';
-import { buildDependencyGraph } from './graph.js';
+import { buildDependencyGraph, criticalPath, readySet } from './graph.js';
 
 const config: VaultConfig = {
   specVersion: '0.3',
@@ -191,5 +191,70 @@ describe('buildDependencyGraph on this repository vault', () => {
     for (const edge of graph.edges) {
       expect(ranks[edge.from]).toBeGreaterThan(ranks[edge.to]);
     }
+  });
+});
+
+describe('readySet', () => {
+  it('returns exactly the cards whose dependencies are all done and are not done', () => {
+    const graph = buildDependencyGraph(
+      model([
+        { id: 'T-001', status: 'Done' },
+        { id: 'T-002', dependsOn: ['T-001'] }, // ready: dep done
+        { id: 'T-003', dependsOn: ['T-002'] }, // waiting on T-002
+        { id: 'T-004' }, // ready: no deps
+        { id: 'T-005', status: 'Done' }, // done already, never "ready"
+      ]),
+      config,
+    );
+    expect(readySet(graph)).toEqual(['T-002', 'T-004']);
+  });
+
+  it('updates when a node flips to done', () => {
+    const before = buildDependencyGraph(
+      model([{ id: 'T-001' }, { id: 'T-002', dependsOn: ['T-001'] }]),
+      config,
+    );
+    expect(readySet(before)).toEqual(['T-001']);
+    const after = buildDependencyGraph(
+      model([{ id: 'T-001', status: 'Done' }, { id: 'T-002', dependsOn: ['T-001'] }]),
+      config,
+    );
+    expect(readySet(after)).toEqual(['T-002']);
+  });
+});
+
+describe('criticalPath', () => {
+  it('returns the longest prerequisite chain in a diamond', () => {
+    const graph = buildDependencyGraph(
+      model([
+        { id: 'T-001' },
+        { id: 'T-002', dependsOn: ['T-001'] },
+        { id: 'T-003', dependsOn: ['T-001', 'T-002'] },
+        { id: 'T-004', dependsOn: ['T-002', 'T-003'] },
+      ]),
+      config,
+    );
+    expect(criticalPath(graph)).toEqual(['T-001', 'T-002', 'T-003', 'T-004']);
+  });
+
+  it('returns a single node for an edgeless graph and [] for an empty one', () => {
+    expect(criticalPath(buildDependencyGraph(model([{ id: 'T-001' }]), config))).toEqual([
+      'T-001',
+    ]);
+    expect(criticalPath(buildDependencyGraph(model([]), config))).toEqual([]);
+  });
+
+  it('ignores cycle-broken edges instead of looping', () => {
+    const graph = buildDependencyGraph(
+      model([
+        { id: 'T-001', dependsOn: ['T-002'] },
+        { id: 'T-002', dependsOn: ['T-001'] },
+        { id: 'T-003', dependsOn: ['T-002'] },
+      ]),
+      config,
+    );
+    // T-002 → T-001 was broken; both surviving chains have length 2 and the
+    // tie breaks deterministically toward the smallest end id.
+    expect(criticalPath(graph)).toEqual(['T-002', 'T-001']);
   });
 });

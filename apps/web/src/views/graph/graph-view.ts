@@ -4,13 +4,14 @@ import {
   buildDependencyGraph,
   buildModel,
   createEmptyVaultModel,
+  criticalPath,
   globToRegExp,
   loadConfig,
   parseFile,
   placeCard,
+  readySet,
   toPosixPath,
   type Card,
-  type GraphEdge,
   type VaultConfig,
   type VaultModel,
 } from '@mos/core';
@@ -31,6 +32,10 @@ export interface PositionedNode {
   x: number;
   y: number;
   path: string;
+  /** On the critical path (F-012-S-04): emphasised outline. */
+  critical: boolean;
+  /** In the ready set (F-012-S-04): badge — every dependency is done. */
+  ready: boolean;
 }
 
 /** A core graph edge with endpoint coordinates for the SVG template. */
@@ -40,6 +45,8 @@ export interface PositionedEdge {
   x2: number;
   y2: number;
   broken: boolean;
+  /** Connects two consecutive critical-path nodes: emphasised stroke. */
+  critical: boolean;
   key: string;
 }
 
@@ -123,6 +130,22 @@ export class GraphView {
   /** Diagnostics from edge resolution / cycle breaking, surfaced visibly (T-007). */
   protected readonly graphErrors = computed(() => this.graph().errors);
 
+  /** Critical-path node ids, from core (F-012-S-04). */
+  private readonly criticalIds = computed(() => new Set(criticalPath(this.graph())));
+
+  /** Edge keys (`from->to`) joining consecutive critical-path nodes. */
+  private readonly criticalEdgeKeys = computed(() => {
+    const path = criticalPath(this.graph());
+    const keys = new Set<string>();
+    for (let i = 1; i < path.length; i++) {
+      keys.add(`${path[i]}->${path[i - 1]}`); // path[i] depends on path[i-1]
+    }
+    return keys;
+  });
+
+  /** Ready-set ids, from core (F-012-S-04). */
+  private readonly readyIds = computed(() => new Set(readySet(this.graph())));
+
   /**
    * Visible nodes with pixel positions. Hidden-state cards (state → null,
    * e.g. Deferred) stay off the lens, consistent with the board.
@@ -143,6 +166,8 @@ export class GraphView {
         x: PADDING + node.rank * CELL_W,
         y: PADDING + node.order * CELL_H,
         path: card.path,
+        critical: this.criticalIds().has(node.id),
+        ready: this.readyIds().has(node.id),
       });
     }
     return result;
@@ -156,13 +181,15 @@ export class GraphView {
       const dependent = byId.get(edge.from);
       const prerequisite = byId.get(edge.to);
       if (dependent === undefined || prerequisite === undefined) continue;
+      const key = `${edge.from}->${edge.to}`;
       result.push({
         x1: prerequisite.x + NODE_W,
         y1: prerequisite.y + NODE_H / 2,
         x2: dependent.x,
         y2: dependent.y + NODE_H / 2,
         broken: edge.broken === true,
-        key: `${edge.from}->${edge.to}`,
+        critical: this.criticalEdgeKeys().has(key),
+        key,
       });
     }
     return result;

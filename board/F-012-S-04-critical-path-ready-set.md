@@ -2,14 +2,14 @@
 id: F-012-S-04
 type: story
 title: Critical path and ready-set highlighting
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-012
 estimate: M
 dependsOn: [F-012-S-02, F-012-S-03]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-09T20:18:00Z
+updated: 2026-06-09T23:55:00Z
 ---
 
 # F-012-S-04 — Critical path and ready-set highlighting
@@ -54,12 +54,12 @@ plain core data, so a later MCP/agent (F-009) can consume them without the UI.
 
 ## Acceptance
 
-- [ ] `readySet` returns exactly the cards whose dependencies are all `Done` and are not
+- [x] `readySet` returns exactly the cards whose dependencies are all `Done` and are not
       themselves `Done`.
-- [ ] `criticalPath` returns the longest prerequisite chain.
-- [ ] The Graph lens visibly highlights the critical path and badges the ready set, with a
+- [x] `criticalPath` returns the longest prerequisite chain.
+- [x] The Graph lens visibly highlights the critical path and badges the ready set, with a
       legend.
-- [ ] Both computations are available as core data independent of the UI.
+- [x] Both computations are available as core data independent of the UI.
 
 ## Dependencies
 

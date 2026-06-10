@@ -152,6 +152,47 @@ describe('GraphView', () => {
     });
   });
 
+  // ── Acceptance F-012-S-04: critical path + ready set ──────────────────────
+
+  it('emphasises the critical path nodes and edges', async () => {
+    const fixture = await createGraph({
+      'board/T-001.md': makeCard('T-001', 'Done'),
+      'board/T-002.md': makeCard('T-002', 'Todo', ['T-001']),
+      'board/T-003.md': makeCard('T-003', 'Todo', ['T-002']),
+      'board/T-009.md': makeCard('T-009', 'Todo'), // off the path
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const criticalRects = host.querySelectorAll('svg rect[data-critical]');
+    expect(criticalRects).toHaveLength(3); // T-001 → T-002 → T-003
+    const thickEdges = Array.from(host.querySelectorAll('svg line')).filter(
+      (l) => l.getAttribute('stroke-width') === '3',
+    );
+    expect(thickEdges).toHaveLength(2);
+  });
+
+  it('badges exactly the ready-set nodes', async () => {
+    const fixture = await createGraph({
+      'board/T-001.md': makeCard('T-001', 'Done'),
+      'board/T-002.md': makeCard('T-002', 'Todo', ['T-001']), // ready
+      'board/T-003.md': makeCard('T-003', 'Todo', ['T-002']), // waiting
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(1);
+    const ready = fixture.componentInstance['nodes']().filter((n) => n.ready);
+    expect(ready.map((n) => n.id)).toEqual(['T-002']);
+  });
+
+  it('shows a legend explaining tones, critical path, and ready badge', async () => {
+    const fixture = await createGraph({
+      'board/T-001.md': makeCard('T-001', 'Todo'),
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const legend = host.querySelector('[aria-label="Graph legend"]');
+    expect(legend).not.toBeNull();
+    expect(legend?.textContent).toContain('Critical path');
+    expect(legend?.textContent).toContain('Ready to start');
+  });
+
   it('clicking a node opens the card in the shared reader with a way back', async () => {
     const fixture = await createGraph({
       'board/T-001.md': makeCard('T-001', 'Todo'),

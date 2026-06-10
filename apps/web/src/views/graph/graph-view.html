@@ -59,8 +59,9 @@
                 marker-end="url(#arrow)"
                 class="stroke-base-content/40"
                 [class.stroke-error]="edge.broken"
+                [class.stroke-secondary]="edge.critical && !edge.broken"
                 [attr.stroke-dasharray]="edge.broken ? '6 4' : null"
-                stroke-width="1.5"
+                [attr.stroke-width]="edge.critical ? 3 : 1.5"
               >
                 @if (edge.broken) {
                   <title>Cycle-broken dependency</title>
@@ -84,7 +85,7 @@
                   [attr.width]="NODE_W"
                   [attr.height]="NODE_H"
                   rx="8"
-                  stroke-width="1.5"
+                  [attr.stroke-width]="node.critical ? 3 : 1.5"
                   [class]="
                     'transition-opacity hover:opacity-80 ' +
                     (node.tone === 'done'
@@ -95,7 +96,19 @@
                           ? 'fill-info/15 stroke-info'
                           : 'fill-base-200 stroke-base-content/30')
                   "
+                  [attr.data-critical]="node.critical ? '' : null"
                 />
+                @if (node.ready) {
+                  <circle
+                    [attr.cx]="node.x + NODE_W - 8"
+                    [attr.cy]="node.y + 8"
+                    r="5"
+                    class="fill-secondary"
+                    data-ready=""
+                  >
+                    <title>Ready to start: every dependency is done</title>
+                  </circle>
+                }
                 <text
                   [attr.x]="node.x + 10"
                   [attr.y]="node.y + 20"
@@ -110,6 +123,38 @@
             }
           </svg>
         </div>
+
+        <!-- Legend (F-012-S-04) -->
+        <ul aria-label="Graph legend" class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-base-content/70">
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-base-content/30 bg-base-200"></span>
+            To do
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-info bg-info/15"></span>
+            In progress
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-error bg-error/15"></span>
+            Blocked
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-success bg-success/15"></span>
+            Done
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border-2 border-secondary"></span>
+            Critical path
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block h-2.5 w-2.5 rounded-full bg-secondary"></span>
+            Ready to start
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span aria-hidden="true" class="inline-block w-5 border-t-2 border-dashed border-error"></span>
+            Cycle (broken)
+          </li>
+        </ul>
       }
     }
   }
