@@ -9,7 +9,16 @@ import {
   viewChild,
 } from '@angular/core';
 import { renderMarkdown } from './render-markdown';
-import { resolveReferences, type VaultConfig, type VaultModel } from '@mos/core';
+import {
+  resolveReferences,
+  resolveRelativeLink,
+  toPosixPath,
+  type VaultConfig,
+  type VaultModel,
+} from '@mos/core';
+
+/** Schemes that open in a new tab; anything else with a scheme renders inert (F-017). */
+const EXTERNAL_SCHEMES = /^(?:https?|mailto):/i;
 
 @Component({
   selector: 'app-markdown-reader',
@@ -20,6 +29,13 @@ export class MarkdownReader {
   readonly body = input.required<string>();
   readonly model = input.required<VaultModel>();
   readonly config = input.required<VaultConfig>();
+
+  /**
+   * Vault-relative path of the file being rendered; relative links resolve
+   * against its folder (F-017). Defaults to '' (the vault root) so existing
+   * hosts that only render id references keep working unchanged.
+   */
+  readonly path = input<string>('');
 
   readonly navigate = output<string>();
 
@@ -151,7 +167,51 @@ export class MarkdownReader {
           parent.removeChild(node);
         }
       }
+
+      this.classifyAnchors(containerEl, modelVal);
     });
+  }
+
+  /**
+   * Classify every markdown-authored anchor (F-017): external links open in a
+   * new tab, relative links that resolve to a vault file become in-app
+   * navigations, and everything else — missing targets, root escapes,
+   * unsupported schemes, in-page anchors — degrades to the same inert dimmed
+   * treatment as unresolved id references, never a 404. Runs after the id
+   * pass, which tags its own anchors with `data-path` (skipped here).
+   */
+  private classifyAnchors(containerEl: HTMLElement, model: VaultModel): void {
+    // The vault's file listing: wiki-scope files plus card files. Membership
+    // is checked case-exactly — resolution never guesses at folder names
+    // (ADR-003); a target outside the listing is simply not navigable.
+    const knownFiles = new Set<string>(model.files.map(toPosixPath));
+    for (const card of Object.values(model.cards)) {
+      knownFiles.add(toPosixPath(card.path));
+    }
+
+    const currentPath = this.path();
+    for (const anchor of Array.from(containerEl.querySelectorAll('a[href]'))) {
+      if (anchor.hasAttribute('data-path')) continue;
+
+      const href = anchor.getAttribute('href') ?? '';
+      if (EXTERNAL_SCHEMES.test(href)) {
+        anchor.setAttribute('target', '_blank');
+        anchor.setAttribute('rel', 'noopener noreferrer');
+        continue;
+      }
+
+      const resolved = resolveRelativeLink(currentPath, href);
+      if (resolved !== null && knownFiles.has(resolved)) {
+        anchor.setAttribute('href', '#');
+        anchor.setAttribute('data-path', resolved);
+        continue;
+      }
+
+      const span = document.createElement('span');
+      span.className = 'reference-inert';
+      while (anchor.firstChild) span.appendChild(anchor.firstChild);
+      anchor.replaceWith(span);
+    }
   }
 
   protected onContainerClick(event: MouseEvent): void {

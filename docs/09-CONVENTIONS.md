@@ -100,6 +100,15 @@ Field names are configurable per vault via `meta.timestamps`; the types come fro
 Top-level docs are `NN-NAME.md`; the number is sort order, not a stable id. Write in prose;
 use tables for genuinely tabular content. Keep intent here and truth in code.
 
+## Links
+
+Write internal links as **plain relative markdown paths** — `[spec](05-VAULT_SPEC.md)`
+from a sibling, `[architecture](../docs/03-ARCHITECTURE.md)` across folders — exactly what
+GitHub renders. The same file then navigates on GitHub *and* in mos
+([`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §7); no mos-specific syntax exists, so never
+invent one. Bare id mentions (`F-001`) also resolve and survive renames — prefer them
+when referring to a card rather than a specific file.
+
 ## ADRs
 
 Append-only, in `08-DECISIONS.md`, using the Context / Decision / Consequences shape. To

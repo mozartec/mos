@@ -8,9 +8,12 @@ import {
   ViewChildren,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   applyFileChange,
   globToRegExp,
@@ -43,6 +46,12 @@ import type { FlatEntry } from './file-tree';
 export class WikiView {
   private readonly source = inject(VAULT_SOURCE);
   private readonly injector = inject(Injector);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
 
   /** Wiki-scope file paths (POSIX-normalised), filtered by vault config. */
   protected readonly files = signal<string[]>([]);
@@ -74,9 +83,39 @@ export class WikiView {
   constructor() {
     void this.loadFiles();
 
+    // The `path` query param is the navigable selection (F-017): link clicks
+    // push it, the browser's back/forward pops it, and this effect follows it.
+    effect(() => {
+      const routed = this.queryParams().get('path');
+      if (routed !== null && routed !== this.selectedPath()) void this.select(routed);
+    });
+
     // Live re-index: re-parse only the changed file and patch the model (F-005-S-01).
     const unwatch = this.source.watch((path) => void this.onFileChange(path));
     inject(DestroyRef).onDestroy(unwatch);
+  }
+
+  /** Tree click: swap the file without growing history (as before F-017). */
+  protected openFromTree(path: string): void {
+    void this.select(path);
+    this.syncPathParam(path, { push: false });
+  }
+
+  /**
+   * Internal link click from the reader: push a history entry so the
+   * browser's back button returns to the source page (F-017).
+   */
+  protected openFromLink(path: string): void {
+    this.syncPathParam(path, { push: true });
+  }
+
+  private syncPathParam(path: string, opts: { push: boolean }): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { path },
+      queryParamsHandling: 'merge',
+      replaceUrl: !opts.push,
+    });
   }
 
   /** Patch the model and tree for one changed file; refresh the open reader. */
@@ -165,14 +204,18 @@ export class WikiView {
 
       this.files.set(wikiFiles);
 
-      const firstFile = wikiFiles[0];
-      if (firstFile) {
-        // Seed expanded folders so the first file's row is visible and highlighted on load.
-        const ancestors = getAncestorKeys(firstFile);
+      // A `path` query param deep-links a file (F-017); otherwise open the
+      // first wiki file. Seeding the URL (replace, not push) gives the first
+      // in-reader link click a history entry to come back to.
+      const initialFile = this.queryParams().get('path') ?? wikiFiles[0];
+      if (initialFile) {
+        // Seed expanded folders so the initial file's row is visible and highlighted on load.
+        const ancestors = getAncestorKeys(initialFile);
         if (ancestors.length > 0) {
           this.expandedFolders.set(new Set(ancestors));
         }
-        void this.select(firstFile);
+        void this.select(initialFile);
+        this.syncPathParam(initialFile, { push: false });
       }
     } catch (error: unknown) {
       // Surface the miss visibly instead of rendering an empty tree (T-007).

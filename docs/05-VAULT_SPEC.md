@@ -319,6 +319,30 @@ The wiki resolves these to the right file, whether or not a real link exists:
 Resolution is by `id`, so links survive renames. The id shape comes from
 `references.idPattern` in config, so it isn't locked to the `F-`/`T-` style this repo uses.
 
+### Relative-path links
+
+Ordinary markdown links to vault files navigate in-app (F-017). The contract is **GitHub
+compatibility**: a relative link written the way GitHub renders it works in mos with no
+special syntax, and a form mos can't navigate degrades to an inert, visibly dimmed token —
+never a 404. The rules:
+
+- The href resolves against the **current file's folder**, honoring `./` and `../`
+  (`05-VAULT_SPEC.md` from a sibling doc, `../docs/03-ARCHITECTURE.md` from a board card).
+  A leading `/` resolves from the vault root.
+- `#fragment` and `?query` suffixes are stripped before resolving; percent-escapes are
+  decoded (`my%20notes.md`). In-page `#heading`-only anchors are not navigations and
+  render inert.
+- The resolved path must match a file in the vault's **listing** (wiki-scope files and
+  cards), case-exactly. Resolution never assumes folder names — any `wiki`/`board` layout
+  the config defines works the same way.
+- A path that escapes the vault root (`../../…`), points at a missing file, or uses an
+  unsupported scheme renders inert, like an unresolved id reference.
+- External links (`http://`, `https://`, `mailto:`) open in a new tab with
+  `rel="noopener noreferrer"`.
+
+Path resolution is pure core (`resolveRelativeLink`, ADR-001); the app only applies it to
+the rendered DOM.
+
 ## 8. Writes happen via the agent
 
 mos is read-only. Cards are created and updated by an AI assistant guided by the vault's

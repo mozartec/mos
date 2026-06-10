@@ -20,6 +20,7 @@ export { loadConfig, orderFrontmatter, CARD_COLORS, CARD_ICONS, DEFAULT_FIELD_OR
 export type { Reference, ReferenceTarget } from './references.js';
 export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';
+export { resolveRelativeLink } from './resolve-link.js';
 export type { CardPlacement } from './place-card.js';
 export { placeCard, sortWithinColumn } from './place-card.js';
 export type { DependencyEdge, BuildEdgesResult } from './edges.js';
