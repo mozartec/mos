@@ -3,13 +3,13 @@ id: F-006
 type: feature
 title: AI write convention (AGENTS.md)
 status: Done
-dependsOn: []
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:01:00Z
-phase: MVP
 priority: P1
+phase: MVP
 owner: mozart
 sprint: S3
+dependsOn: []
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-006 — AI write convention (AGENTS.md)

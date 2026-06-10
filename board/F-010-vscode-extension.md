@@ -3,12 +3,12 @@ id: F-010
 type: feature
 title: VS Code extension
 status: Deferred
+priority: P3
+phase: Future
+owner: mozart
 dependsOn: []
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T23:20:00Z
-phase: Future
-priority: P3
-owner: mozart
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-010 — VS Code extension

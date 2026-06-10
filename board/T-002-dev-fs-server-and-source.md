@@ -3,13 +3,13 @@ id: T-002
 type: task
 title: Dev filesystem server + HttpVaultSource
 status: Done
-dependsOn: [T-001]
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T23:20:00Z
-phase: MVP
 priority: P0
+phase: MVP
 owner: mozart
 sprint: S1
+dependsOn: [T-001]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # T-002 — Dev filesystem server + HttpVaultSource

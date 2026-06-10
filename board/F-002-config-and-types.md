@@ -3,13 +3,13 @@ id: F-002
 type: feature
 title: Config and card types
 status: Done
-dependsOn: [T-001]
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T20:18:00Z
-phase: MVP
 priority: P0
+phase: MVP
 owner: mozart
 sprint: S1
+dependsOn: [T-001]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-002 — Config and card types

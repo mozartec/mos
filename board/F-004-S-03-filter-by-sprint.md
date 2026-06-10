@@ -3,14 +3,14 @@ id: F-004-S-03
 type: story
 title: Filter by sprint
 status: Done
-dependsOn: [F-004-S-01, F-004-S-02]
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T22:54:00Z
 priority: P1
 owner: mozart
 sprint: S3
 parent: F-004
 estimate: S
+dependsOn: [F-004-S-01, F-004-S-02]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-004-S-03 — Filter by sprint

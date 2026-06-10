@@ -3,13 +3,13 @@ id: T-007
 type: task
 title: Consistent error handling across core
 status: Done
-dependsOn: [T-001]
-created: 2026-06-09T20:18:00Z
-updated: 2026-06-09T22:49:00Z
-phase: MVP
 priority: P1
+phase: MVP
 owner: mozart
 sprint: S2
+dependsOn: [T-001]
+created: 2026-06-09T20:18:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # T-007 — Consistent error handling across core

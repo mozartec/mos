@@ -3,13 +3,13 @@ id: F-004
 type: feature
 title: Board lens
 status: Done
-dependsOn: [F-001, F-002, T-002]
-created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T23:03:00Z
-phase: MVP
 priority: P0
+phase: MVP
 owner: mozart
 sprint: S2
+dependsOn: [F-001, F-002, T-002]
+created: 2026-06-07T13:00:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-004 — Board lens

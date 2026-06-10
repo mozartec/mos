@@ -3,12 +3,12 @@ id: F-013
 type: feature
 title: Frontmatter field order
 status: Done
+priority: P2
+phase: Phase 2
+owner: mozart
 dependsOn: [T-001]
 created: 2026-06-09T20:18:00Z
-updated: 2026-06-10T00:15:00Z
-phase: Phase 2
-priority: P2
-owner: mozart
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-013 — Frontmatter field order

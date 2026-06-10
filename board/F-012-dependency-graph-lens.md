@@ -3,12 +3,12 @@ id: F-012
 type: feature
 title: Dependency graph lens
 status: Done
-phase: Phase 2
 priority: P1
+phase: Phase 2
 owner: mozart
 dependsOn: [F-001-S-02, F-001-S-03, F-002-S-01, F-003-S-02, F-004-S-04]
 created: 2026-06-08T12:45:00Z
-updated: 2026-06-09T23:55:00Z
+updated: 2026-06-10T00:18:00Z
 ---
 
 # F-012 — Dependency graph lens
