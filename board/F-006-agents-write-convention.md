@@ -2,10 +2,10 @@
 id: F-006
 type: feature
 title: AI write convention (AGENTS.md)
-status: Draft
+status: Done
 dependsOn: []
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-09T23:20:00Z
+updated: 2026-06-10T00:01:00Z
 phase: MVP
 priority: P1
 owner: mozart
@@ -64,13 +64,13 @@ are the reference implementations; this feature hardens and documents them.
 
 ## Acceptance
 
-- [ ] A vault's `AGENTS.md` lets an assistant create a valid new card and change a card's
+- [x] A vault's `AGENTS.md` lets an assistant create a valid new card and change a card's
       status, frontmatter-only.
-- [ ] The guide names allowed types/states and the validation step; it links the spec rather
+- [x] The guide names allowed types/states and the validation step; it links the spec rather
       than restating it.
-- [ ] The guide instructs agents to set `created`/`updated` on create and bump `updated` on
+- [x] The guide instructs agents to set `created`/`updated` on create and bump `updated` on
       edit.
-- [ ] `bun run validate` passes after agent-made changes.
+- [x] `bun run validate` passes after agent-made changes.
 
 ## Dependencies
 
