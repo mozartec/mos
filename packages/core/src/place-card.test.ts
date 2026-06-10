@@ -40,6 +40,7 @@ const testConfig: VaultConfig = {
     },
   },
   sprints: ['S1', 'S2'],
+  fieldOrder: [],
 };
 
 describe('placeCard', () => {

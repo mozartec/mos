@@ -15,7 +15,7 @@ const TEST_CONFIG = JSON.stringify({
 });
 
 class TestVaultSource implements VaultSource {
-  private readonly watchers: Array<(path: string) => void> = [];
+  private readonly watchers: ((path: string) => void)[] = [];
 
   readonly files: Record<string, string> = {
     '.mos/config.json': TEST_CONFIG,

@@ -59,7 +59,7 @@ class TestVaultSource implements VaultSource {
   readonly readPaths: string[] = [];
   /** How many watch subscriptions have been disposed. */
   unwatchedCount = 0;
-  private readonly watchers: Array<(path: string) => void> = [];
+  private readonly watchers: ((path: string) => void)[] = [];
 
   constructor(readonly files: Record<string, string>) {}
 

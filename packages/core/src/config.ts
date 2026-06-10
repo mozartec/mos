@@ -208,6 +208,7 @@ function defaultConfig(): VaultConfig {
     references: { idPattern: DEFAULT_ID_PATTERN },
     types: {},
     sprints: [],
+    fieldOrder: [...DEFAULT_FIELD_ORDER],
   };
 }
 

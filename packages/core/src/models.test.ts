@@ -37,6 +37,7 @@ describe('buildModel', () => {
       task: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
     },
     sprints: [],
+    fieldOrder: [],
   };
 
   it('keys cards by id, reports duplicate ids, and tracks only wiki-scope file paths', () => {
@@ -279,6 +280,7 @@ describe('applyFileChange', () => {
       story: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
     },
     sprints: [],
+    fieldOrder: [],
   };
 
   function card(path: string, id: string, status: string): ParsedFile {
