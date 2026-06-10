@@ -7,14 +7,8 @@ const MOS_CONFIG_PATH = '.mos/config.json';
 const DEFAULT_RETRY_DELAY_MS = 30;
 const WATCHER_STABILITY_THRESHOLD_MS = 50;
 const WATCHER_POLL_INTERVAL_MS = 10;
-const IGNORED_DIR_NAMES = new Set([
-  'node_modules',
-  '.git',
-  '.angular',
-  '.turbo',
-  'dist',
-  '.cache',
-]);
+/** Watched when the vault config has no `watch` key (plus the config itself). */
+export const DEFAULT_WATCH_PATHS = ['board', 'docs'];
 
 export interface VaultChangeEvent {
   path: string;
@@ -33,23 +27,19 @@ export function isWatchedRelativePath(path: string): boolean {
 }
 
 /**
- * Whether the watcher should skip a path entirely. This prunes chokidar's
- * initial scan, which otherwise crawls build outputs and caches — on a
- * monorepo-sized vault that delays the first change event by tens of seconds.
- * Judged on the vault-RELATIVE path: the vault's own absolute location may
- * contain hidden segments (e.g. a git worktree under `.claude/`) that must not
- * match. `.mos` stays watched — the vault config lives there.
+ * The vault-relative paths (folders or files) the watcher should cover, from
+ * the parsed vault config's optional top-level `watch` key. Watching is an
+ * allowlist — the configured folders plus the config file itself — never a
+ * crawl-everything-and-ignore-some heuristic: on a monorepo-sized vault that
+ * crawl delays the first change event by tens of seconds.
  */
-export function isIgnoredWatchPath(vaultDir: string, fullPath: string): boolean {
-  const rel = relative(vaultDir, resolve(fullPath));
-  if (rel === '') return false; // the vault root itself
-  if (rel === '..' || rel.startsWith(`..${sep}`)) return true; // outside the vault
-  return rel
-    .split(sep)
-    .some(
-      (segment) =>
-        IGNORED_DIR_NAMES.has(segment) || (segment.startsWith('.') && segment !== '.mos'),
-    );
+export function watchPathsFromConfig(config: unknown): string[] {
+  const watch = (config as { watch?: unknown } | null)?.watch;
+  const paths =
+    Array.isArray(watch) && watch.every((p) => typeof p === 'string' && p.length > 0)
+      ? (watch as string[])
+      : DEFAULT_WATCH_PATHS;
+  return [...new Set([...paths, MOS_CONFIG_PATH])];
 }
 
 export function toVaultRelativePath(
@@ -122,6 +112,7 @@ export function createDebouncedEmitter(
 
 export function startVaultWatcher({
   vaultDir,
+  watchPaths = [...DEFAULT_WATCH_PATHS, MOS_CONFIG_PATH],
   onChange,
   debounceMs = 100,
   retries = 2,
@@ -129,6 +120,8 @@ export function startVaultWatcher({
   readText,
 }: {
   vaultDir: string;
+  /** Vault-relative folders/files to watch (see {@link watchPathsFromConfig}). */
+  watchPaths?: string[];
   onChange: (event: VaultChangeEvent) => Promise<void> | void;
   debounceMs?: number;
   retries?: number;
@@ -148,15 +141,19 @@ export function startVaultWatcher({
     await onChange(event);
   }, debounceMs);
 
-  const watcher = chokidar.watch(vaultDir, {
-    ignoreInitial: true,
-    ignored: (path) => isIgnoredWatchPath(vaultDir, path),
-    // Keep values short for responsive updates while still smoothing atomic-save bursts.
-    awaitWriteFinish: {
-      stabilityThreshold: WATCHER_STABILITY_THRESHOLD_MS,
-      pollInterval: WATCHER_POLL_INTERVAL_MS,
+  // Watch only the configured subtrees — chokidar tolerates paths that don't
+  // exist yet (e.g. a docs/ created later) and picks them up on creation.
+  const watcher = chokidar.watch(
+    watchPaths.map((p) => resolve(vaultDir, p)),
+    {
+      ignoreInitial: true,
+      // Keep values short for responsive updates while still smoothing atomic-save bursts.
+      awaitWriteFinish: {
+        stabilityThreshold: WATCHER_STABILITY_THRESHOLD_MS,
+        pollInterval: WATCHER_POLL_INTERVAL_MS,
+      },
     },
-  });
+  );
 
   watcher.on('all', (eventName, changedPath) => {
     const rel = toVaultRelativePath(changedPath, vaultDir);

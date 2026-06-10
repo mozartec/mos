@@ -35,6 +35,7 @@ function starterConfig(vaultName: string): string {
       created: { type: 'datetime', label: 'Created', icon: 'clock' },
       updated: { type: 'datetime', label: 'Updated', icon: 'clock' },
     },
+    watch: ['board', 'docs'],
     wiki: {
       include: ['**/*.md'],
       exclude: ['.mos/**', 'AGENTS.md', 'node_modules/**'],

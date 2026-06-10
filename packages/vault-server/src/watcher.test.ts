@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import {
   createDebouncedEmitter,
-  isIgnoredWatchPath,
   isWatchedRelativePath,
   retryUntilReadable,
   toVaultRelativePath,
+  watchPathsFromConfig,
   type VaultChangeEvent,
 } from './watcher';
 
@@ -29,22 +29,32 @@ describe('toVaultRelativePath', () => {
   });
 });
 
-describe('isIgnoredWatchPath', () => {
-  const vaultDir = '/Users/x/.claude/worktrees/repo'; // hidden segment ABOVE the vault
-
-  it('keeps the vault root, vault content, and .mos watched', () => {
-    expect(isIgnoredWatchPath(vaultDir, vaultDir)).toBe(false);
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/board/T-004.md`)).toBe(false);
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/.mos/config.json`)).toBe(false);
+describe('watchPathsFromConfig', () => {
+  it('defaults to board + docs (plus the config file) when the key is absent or invalid', () => {
+    expect(watchPathsFromConfig({})).toEqual(['board', 'docs', '.mos/config.json']);
+    expect(watchPathsFromConfig(null)).toEqual(['board', 'docs', '.mos/config.json']);
+    expect(watchPathsFromConfig({ watch: 'board' })).toEqual([
+      'board',
+      'docs',
+      '.mos/config.json',
+    ]);
+    expect(watchPathsFromConfig({ watch: ['board', 42] })).toEqual([
+      'board',
+      'docs',
+      '.mos/config.json',
+    ]);
   });
 
-  it('prunes build outputs, caches, hidden dirs, and anything outside the vault', () => {
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/node_modules`)).toBe(true);
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/apps/web/.angular/cache`)).toBe(true);
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/apps/web/dist/index.html`)).toBe(true);
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/.turbo/daemon`)).toBe(true);
-    expect(isIgnoredWatchPath(vaultDir, `${vaultDir}/.vscode/settings.json`)).toBe(true);
-    expect(isIgnoredWatchPath(vaultDir, '/Users/x/elsewhere/file.md')).toBe(true);
+  it('uses the configured folder names and always adds the config file once', () => {
+    expect(watchPathsFromConfig({ watch: ['backlog', 'wiki'] })).toEqual([
+      'backlog',
+      'wiki',
+      '.mos/config.json',
+    ]);
+    expect(watchPathsFromConfig({ watch: ['board', '.mos/config.json'] })).toEqual([
+      'board',
+      '.mos/config.json',
+    ]);
   });
 });
 

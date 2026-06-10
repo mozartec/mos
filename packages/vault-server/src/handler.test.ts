@@ -76,4 +76,22 @@ describe('GET /vault/watch', () => {
     expect(new TextDecoder().decode(value)).toContain(': connected');
     await reader.cancel();
   });
+
+  it('reports changes inside the watch scope and stays silent outside it', async () => {
+    const res = await get('/vault/watch');
+    const reader = res.body!.getReader();
+    await reader.read(); // ': connected'
+
+    // Outside the watch scope (vault root is not in the board/docs allowlist),
+    // then inside it. Only the board edit must produce an event.
+    await writeFile(join(vaultDir, 'unwatched-note.md'), '# outside the watch scope');
+    await new Promise((r) => setTimeout(r, 50));
+    await writeFile(join(vaultDir, 'board', 'X-001-card.md'), '---\nid: X-001\n---\nedited');
+
+    const { value } = await reader.read();
+    const events = new TextDecoder().decode(value);
+    expect(events).toContain('board/X-001-card.md');
+    expect(events).not.toContain('unwatched-note.md');
+    await reader.cancel();
+  });
 });

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-10T12:20:00Z
 ---
 
 # Vault spec
@@ -259,6 +259,12 @@ All three are optional; a vault that sets none renders with neutral defaults.
   // Properties not in the list go after the listed ones, in their own order.
   "fieldOrder": ["id", "type", "title", "status", "priority", "phase", "owner",
                  "sprint", "parent", "estimate", "dependsOn", "created", "updated"],
+
+  // optional: the folders (or files) the server watches for live reload,
+  // vault-relative. An allowlist, not an ignore list — on big repos watching
+  // everything delays change events by tens of seconds. `.mos/config.json` is
+  // always watched in addition. When omitted, this default applies:
+  "watch": ["board", "docs"],
 
   // wiki.fields: optional frontmatter a doc may carry (typed via the registry)
   "wiki":  { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"],

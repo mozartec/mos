@@ -9,9 +9,11 @@
  * directly (apps/dev-server) and a Node http server can adapt it (apps/cli).
  * ADR-002: read-only — no write endpoints, non-GET methods are rejected.
  */
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { listVaultFiles, safeVaultPath, vaultRelative } from './files';
-import { startVaultWatcher } from './watcher';
+import { startVaultWatcher, watchPathsFromConfig } from './watcher';
 
 export interface VaultServer {
   /** Handle one request against the /vault/* endpoints. */
@@ -20,12 +22,26 @@ export interface VaultServer {
   close(): Promise<void>;
 }
 
+/** Parse the vault config for the watch allowlist; unreadable → defaults. */
+function readWatchPaths(vaultDir: string): string[] {
+  let config: unknown = null;
+  try {
+    config = JSON.parse(readFileSync(join(vaultDir, '.mos', 'config.json'), 'utf-8'));
+  } catch {
+    // No/invalid config: fall back to the default watch paths.
+  }
+  return watchPathsFromConfig(config);
+}
+
 export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServer {
   /** Active SSE client broadcast functions. */
   const clients = new Set<(path: string) => void>();
 
   const stopWatcher = startVaultWatcher({
     vaultDir,
+    // The watch scope is config-driven (vault spec §6 `watch`); changing the
+    // key takes effect on server restart.
+    watchPaths: readWatchPaths(vaultDir),
     onChange(event) {
       for (const send of clients) send(event.path);
     },
