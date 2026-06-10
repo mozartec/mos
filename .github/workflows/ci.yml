@@ -49,5 +49,8 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Smoke test packed CLI
+        run: bunx turbo run smoke --filter=@mozartec/mos-cli
+
       - name: Validate vault
         run: bun run validate

@@ -304,3 +304,26 @@ the read-only contract: after init completes, the CLI is as read-only as it ever
 cost is that config evolution stays manual (you edit JSON, guided by the agent stub and
 the spec) — acceptable, because a config is small and owning it is the point. A future
 "migrate my config" need would have to come back through a new ADR, not creep in here.
+
+## ADR-014 — The CLI publishes as `@mozartec/mos-cli` on npmjs
+
+**Status:** Accepted · **Date:** 2026-06-10
+
+**Context.** ADR-012 shipped the CLI as workspace package `@mos/cli` and deferred the
+published name to first release. On npmjs (checked 2026-06-10): `mos` and `mos-cli` are
+taken as package names, and the `mos` scope is not available — so neither the obvious
+unscoped name nor a `@mos/*` scope can be published. GitHub Packages was considered as an
+alternative registry.
+
+**Decision.** Publish to **npmjs** as **`@mozartec/mos-cli`** — `mozartec` is the scope the
+project owns. The **bin stays `mos`**, so every documented invocation (`mos serve`,
+`mos init`) is unchanged; only `npx`/install commands name the package
+(`npx @mozartec/mos-cli serve`). GitHub Packages was rejected because installing from it
+requires authentication even for public packages and forces owner-matched scopes — both
+friction for the "render a vault with one command, no setup" goal. The workspace package is
+renamed to match, so the published artifact and the repo agree on one name.
+
+**Consequences.** Adoption is `npm i -g @mozartec/mos-cli` or `npx @mozartec/mos-cli` with
+zero registry configuration. The name is less discoverable than a hypothetical unscoped
+`mos`; if an unscoped alias ever becomes available, publishing one is a new decision. The
+scope ties publishing rights to the `mozartec` npm account.

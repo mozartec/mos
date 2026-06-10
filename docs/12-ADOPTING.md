@@ -13,7 +13,7 @@ it, and the **agent skills** that operate it.
 ## 1. Make your folder a vault
 
 ```bash
-npx @mos/cli init        # or: mos init [dir]
+npx @mozartec/mos-cli init        # or: mos init [dir]
 ```
 
 scaffolds the three pieces a vault needs: a starter `.mos/config.json` (feature/task
@@ -30,13 +30,13 @@ from the config, so nothing here assumes this repo's `F-`/`T-` vocabulary.
 
 ## 2. Serve the board and wiki
 
-The CLI (`@mos/cli`, ADR-012) bundles the built web app and the read-only vault endpoints
+The CLI (`@mozartec/mos-cli`, ADR-012) bundles the built web app and the read-only vault endpoints
 in one Node ≥ 20 process:
 
 ```bash
-npx @mos/cli serve            # nearest vault at or above the current directory
-npx @mos/cli serve ./docs --port 5000
-# or: npm i -g @mos/cli  →  mos serve
+npx @mozartec/mos-cli serve            # nearest vault at or above the current directory
+npx @mozartec/mos-cli serve ./docs --port 5000
+# or: npm i -g @mozartec/mos-cli  →  mos serve
 ```
 
 It renders the same board, wiki, and graph lenses as this repo's dev setup, live-reloads
@@ -47,7 +47,7 @@ never the app.
 Until the package is on npm, the in-repo equivalent is:
 
 ```bash
-bunx turbo run build --filter=@mos/cli   # in this repo, once
+bunx turbo run build --filter=@mozartec/mos-cli   # in this repo, once
 node apps/cli/bin/mos.mjs serve <your-vault-dir>
 ```
 

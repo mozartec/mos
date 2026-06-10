@@ -53,11 +53,11 @@ mos init           # turn the current folder into a vault: starter config,
 mos serve          # board + wiki at http://127.0.0.1:4400, live-reloading on file changes
 ```
 
-Once the package is on npm this is `npx @mos/cli init` / `npx @mos/cli serve`. Until
+Once the package is on npm this is `npx @mozartec/mos-cli init` / `npx @mozartec/mos-cli serve`. Until
 then, run it from a clone:
 
 ```bash
-bun install && bunx turbo run build --filter=@mos/cli
+bun install && bunx turbo run build --filter=@mozartec/mos-cli
 node apps/cli/bin/mos.mjs serve <your-vault-dir>
 ```
 

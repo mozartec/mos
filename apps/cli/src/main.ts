@@ -55,7 +55,17 @@ if (args.command === 'help') {
     process.exit(1);
   }
   const webRoot = join(here, 'web');
-  const { port } = await startServer({ vaultDir, webRoot, port: args.port });
-  console.log(`[mos] vault: ${vaultDir}`);
-  console.log(`[mos] board + wiki at http://127.0.0.1:${port}`);
+  try {
+    const { port } = await startServer({ vaultDir, webRoot, port: args.port });
+    console.log(`[mos] vault: ${vaultDir}`);
+    console.log(`[mos] board + wiki at http://127.0.0.1:${port}`);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+      console.error(
+        `mos: port ${args.port} is already in use — pass a free one with --port <n>.`,
+      );
+      process.exit(1);
+    }
+    throw err;
+  }
 }

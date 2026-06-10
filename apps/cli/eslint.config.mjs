@@ -13,10 +13,17 @@ export default tseslint.config(
     },
   },
   {
-    // Plain Node ESM helpers (bin shim, build script) — give them Node globals.
+    // Plain Node ESM helpers (bin shim, build/smoke scripts) — Node globals.
     files: ['scripts/**/*.mjs', 'bin/**/*.mjs'],
     languageOptions: {
-      globals: { console: 'readonly', process: 'readonly' },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        TextDecoder: 'readonly',
+      },
     },
   },
 );

@@ -80,18 +80,20 @@ that we append to as work merges, with `Added / Changed / Deprecated / Removed /
 Security` subsections. On release, the Unreleased items move under a new dated version
 heading. Hand-maintained for now; automated later (see below).
 
-## Publishing the CLI (`@mos/cli`)
+## Publishing the CLI (`@mozartec/mos-cli`)
 
-The CLI (ADR-012) is the first published artifact. Publishing is manual until release
-automation lands:
+The CLI (ADR-012) is the first published artifact, as `@mozartec/mos-cli` on npmjs with
+the `mos` bin (ADR-014). Publishing is manual until release automation lands:
 
 ```bash
-bunx turbo run build --filter=@mos/cli   # bundles main.js + the web app into dist/
-cd apps/cli && npm publish               # publishes bin/ + dist/ (see "files")
+bunx turbo run build --filter=@mozartec/mos-cli   # bundles main.js + the web app into dist/
+bunx turbo run smoke --filter=@mozartec/mos-cli   # packs the tarball, installs it cold, probes init/serve
+cd apps/cli && npm publish                        # publishes bin/ + dist/ (see "files"; access is public)
 ```
 
-The package version follows the app's SemVer above. Build with Bun (it's the bundler);
-the published output runs on Node ≥ 20. When release automation (below) is adopted, this
+The smoke step is the same one CI runs on every PR — never publish without it. The
+package version follows the app's SemVer above. Build with Bun (it's the bundler); the
+published output runs on Node ≥ 20. When release automation (below) is adopted, this
 step moves into the release pipeline.
 
 ## Pipelines (GitHub Actions)

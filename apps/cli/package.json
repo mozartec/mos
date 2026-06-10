@@ -1,6 +1,6 @@
 {
-  "name": "@mos/cli",
-  "version": "0.0.0",
+  "name": "@mozartec/mos-cli",
+  "version": "0.1.0",
   "description": "The mos CLI: serve any vault's board and wiki locally (`mos serve`, ADR-012) and scaffold a new vault (`mos init`, ADR-013). Read-only over existing vaults (ADR-002); ships the built web app bundled with the vault endpoints in one Node process.",
   "license": "MIT",
   "type": "module",
@@ -22,7 +22,8 @@
     "lint": "eslint src scripts bin",
     "lint:fix": "eslint src scripts bin --fix",
     "check-types": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "chokidar": "^5.0.0"

@@ -2,13 +2,13 @@
 id: T-008
 type: task
 title: CLI packaging hardening and first publish
-status: Planned
+status: In Progress
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [F-015, F-016]
 created: 2026-06-10T19:00:00Z
-updated: 2026-06-10T19:55:00Z
+updated: 2026-06-10T21:18:00Z
 ---
 
 # T-008 — CLI packaging hardening and first publish
