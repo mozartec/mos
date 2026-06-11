@@ -3,6 +3,13 @@
   "version": "0.2.0",
   "description": "The mos CLI: serve any vault's board and wiki locally (`mos serve`, ADR-012) and scaffold a new vault (`mos init`, ADR-013). Read-only over existing vaults (ADR-002); ships the built web app bundled with the vault endpoints in one Node process.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mozartec/mos.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/mozartec/mos#readme",
+  "bugs": "https://github.com/mozartec/mos/issues",
   "type": "module",
   "bin": {
     "mos": "bin/mos.mjs"
