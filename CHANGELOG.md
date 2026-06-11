@@ -13,14 +13,19 @@ stable. See [`docs/11-RELEASING.md`](docs/11-RELEASING.md) for how releases work
 
 ## [Unreleased]
 
-The project is in its planning stage. No app has been released yet; the first tagged
-release will be `v0.1.0`.
+## [0.1.0] — 2026-06-11
+
+First published release: `@mozartec/mos-cli` on npm, bundling the web app.
 
 ### Added
 
 - `@mozartec/mos-cli` — the published `mos` command: `mos serve [dir]` renders any vault's board
   and wiki without cloning this repo (F-015, ADR-012), backed by the shared
   `@mos/vault-server` endpoints.
+- The web app the CLI serves: wiki, board, dependency-graph, and reader lenses over any
+  mos vault — config-driven (types, states, and columns from `.mos/config.json`),
+  live-reloading, strictly read-only. Internal links — id references and relative
+  markdown paths — navigate in-app.
 - `mos init [dir]` — scaffold a new vault (starter config, example card, agent guide);
   one-time bootstrap that never touches an existing vault (F-016, ADR-013).
 - Optional `watch` config key: the vault-relative folders the server watches for live
@@ -38,4 +43,5 @@ release will be `v0.1.0`.
 - `AGENTS.md` write convention for AI assistants.
 - Front-door files: `README`, `LICENSE` (MIT), `CONTRIBUTING`.
 
-[Unreleased]: https://github.com/mozartec/mos/commits/main
+[Unreleased]: https://github.com/mozartec/mos/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/mozartec/mos/releases/tag/v0.1.0

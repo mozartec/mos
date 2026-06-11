@@ -53,13 +53,10 @@ mos init           # turn the current folder into a vault: starter config,
 mos serve          # board + wiki at http://127.0.0.1:4400, live-reloading on file changes
 ```
 
-Once the package is on npm this is `npx @mozartec/mos-cli init` / `npx @mozartec/mos-cli serve`. Until
-then, run it from a clone:
-
-```bash
-bun install && bunx turbo run build --filter=@mozartec/mos-cli
-node apps/cli/bin/mos.mjs serve <your-vault-dir>
-```
+The `mos` command comes from
+[`@mozartec/mos-cli`](https://www.npmjs.com/package/@mozartec/mos-cli) (Node ≥ 20):
+`npx @mozartec/mos-cli init` / `npx @mozartec/mos-cli serve`, or `npm i -g @mozartec/mos-cli`
+for a global `mos`.
 
 mos never writes your files — `init` is a one-time scaffold, and serving is strictly
 read-only. Your editor and your AI assistant do the writing.

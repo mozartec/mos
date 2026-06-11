@@ -1,6 +1,6 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-06-10T21:55:00Z
+updated: 2026-06-11T11:00:00Z
 ---
 
 # Using mos in your project
@@ -43,13 +43,6 @@ It renders the same board, wiki, and graph lenses as this repo's dev setup, live
 on file changes, and refuses to start where no `.mos/config.json` resolves. It is strictly
 read-only (ADR-002): every write to the vault happens through your editor or your agent,
 never the app.
-
-Until the package is on npm, the in-repo equivalent is:
-
-```bash
-bunx turbo run build --filter=@mozartec/mos-cli   # in this repo, once
-node apps/cli/bin/mos.mjs serve <your-vault-dir>
-```
 
 ## 3. Install the agent skills
 
