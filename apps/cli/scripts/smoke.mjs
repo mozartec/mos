@@ -40,6 +40,7 @@ process.on('exit', cleanup);
 const packOutput = execFileSync('npm', ['pack', '--pack-destination', workDir], {
   cwd: cliDir,
   encoding: 'utf-8',
+  timeout: 180_000,
 });
 const tarball = join(workDir, packOutput.trim().split('\n').at(-1));
 if (!existsSync(tarball)) fail(`npm pack did not produce ${tarball}`);
@@ -48,7 +49,7 @@ ok(`packed ${tarball}`);
 // 2. Install it in a clean consumer project (no workspace, no repo).
 const consumerDir = join(workDir, 'consumer');
 writeFileSync(join(workDir, 'package.json'), JSON.stringify({ name: 'mos-smoke-consumer', private: true }));
-execFileSync('npm', ['install', tarball], { cwd: workDir, encoding: 'utf-8' });
+execFileSync('npm', ['install', tarball], { cwd: workDir, encoding: 'utf-8', timeout: 180_000 });
 const mosBin = join(workDir, 'node_modules', '.bin', 'mos');
 if (!existsSync(mosBin)) fail('installed package exposes no `mos` bin');
 ok('tarball installed, `mos` bin present');
@@ -126,8 +127,15 @@ const clash = spawn('node', [mosBin, 'serve', consumerDir, '--port', String(port
 });
 const clashResult = await new Promise((resolve) => {
   let err = '';
+  const timer = setTimeout(() => {
+    clash.kill('SIGKILL');
+    resolve({ code: null, err: `${err}\n(timed out — second serve neither bound nor failed)` });
+  }, 15000);
   clash.stderr.on('data', (chunk) => (err += String(chunk)));
-  clash.on('exit', (code) => resolve({ code, err }));
+  clash.on('exit', (code) => {
+    clearTimeout(timer);
+    resolve({ code, err });
+  });
 });
 if (clashResult.code !== 1 || !clashResult.err.includes('already in use')) {
   fail(`port clash: exit ${clashResult.code}, stderr: ${clashResult.err}`);
@@ -138,3 +146,6 @@ if (clashResult.err.trim().split('\n').length !== 1) {
 ok('EADDRINUSE produces a one-line error');
 
 console.log('[smoke] PASS — packed artifact installs, inits, serves, watches, stays read-only');
+// The spawned server child keeps the event loop alive, so reaching the end of
+// the script does not end the process — exit explicitly (cleanup runs on exit).
+process.exit(0);
