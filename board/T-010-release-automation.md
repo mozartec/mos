@@ -2,13 +2,13 @@
 id: T-010
 type: task
 title: Release automation — versioning, changelog, npm publish from CI
-status: In Progress
+status: Done
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [T-008]
 created: 2026-06-10T21:37:00Z
-updated: 2026-06-11T11:23:00Z
+updated: 2026-06-11T21:57:20Z
 ---
 
 # T-010 — Release automation — versioning, changelog, npm publish from CI
@@ -85,18 +85,18 @@ Versioning, changelog, and publishing run from GitHub:
 
 ## Acceptance
 
-- [ ] Merging a conventionally-titled PR to `main` yields/updates a release PR with the
+- [x] Merging a conventionally-titled PR to `main` yields/updates a release PR with the
       correct 0.x version bump and changelog entry; the pre-existing hand-written
       CHANGELOG content is preserved beneath it.
-- [ ] Merging the release PR tags `vX.Y.Z`, creates the GitHub Release, and the tag
+- [x] Merging the release PR tags `vX.Y.Z`, creates the GitHub Release, and the tag
       workflow publishes `@mozartec/mos-cli` to npmjs — observed end-to-end at least once
       (a real `0.1.x` publish).
-- [ ] The publish step is gated on the pack-and-install smoke test in the same workflow
+- [x] The publish step is gated on the pack-and-install smoke test in the same workflow
       run.
-- [ ] Publishing authenticates via trusted publishing with provenance, or the documented
+- [x] Publishing authenticates via trusted publishing with provenance, or the documented
       `NPM_TOKEN` fallback — no broad-scope token in secrets either way.
-- [ ] Root and `apps/cli` versions are identical after a release.
-- [ ] `docs/11-RELEASING.md` describes the automated flow as built; the tool/auth
+- [x] Root and `apps/cli` versions are identical after a release.
+- [x] `docs/11-RELEASING.md` describes the automated flow as built; the tool/auth
       decision is an ADR; `bun run validate` passes.
 
 ## Dependencies
