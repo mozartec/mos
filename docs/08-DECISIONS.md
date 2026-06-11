@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-11T12:07:00Z
+updated: 2026-06-11T23:00:00Z
 ---
 
 # Decisions (ADRs)
@@ -352,3 +352,82 @@ publishing depends on one machine.
 **Consequences.** A release is one merged PR; versions and the changelog are never edited
 by hand. Only `feat`/`fix` (and breaking) commits feed a release PR — `docs`/`chore`/`ci`
 merges alone release nothing.
+
+## ADR-016 — Design system: "Ink & Highlight" over stock themes
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** The web app shipped on daisyUI's stock `wireframe`/`black` themes — both
+all-grayscale, so the product has no brand color — with Inter as the typeface. The per-type
+card colors use raw Tailwind classes with `dark:` variants, and Tailwind keys `dark:` on
+the OS `prefers-color-scheme` while the app's toggle sets `data-theme`; when the two
+disagree, card colors render for the wrong theme.
+
+**Decision.** Adopt the **Ink & Highlight** design system, specified in
+[`13-DESIGN_SYSTEM.md`](13-DESIGN_SYSTEM.md): two custom daisyUI themes (`mos-paper`
+light, `mos-carbon` dark, warm-hued, amber highlighter accent), IBM Plex Sans/Mono with
+Newsreader for rendered prose, and semantic daisyUI tokens as the only sanctioned color
+source. The `dark:` variant is re-keyed to `data-theme` via `@custom-variant`, and the
+curated card-color ramp (VAULT_SPEC §5b) stays the single permitted raw-palette use,
+centralized in one mapping.
+
+**Consequences.** Every view is restyled once against tokens (F-018); future UI work has
+one place to look for color/type/motion rules. The stored theme names change, so the theme
+service migrates the persisted value. The doc is normative: app and doc may not drift.
+
+## ADR-017 — Sprints: names with optional dates
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** `config.sprints` is a flat ordered list of names. A board that shows one
+sprint at a time needs to know which sprint is *current*, and plain names can't say.
+
+**Decision.** A `sprints` entry is **either a string or an object**
+`{ "name": "S2", "starts": "2026-06-15", "ends": "2026-06-28" }` (dates optional,
+ISO 8601, UTC dates). With dates, the app resolves the current sprint by date and may show
+time remaining; without, it falls back to the last sprint with unfinished cards, then the
+user's last selection. Normalization and current-sprint resolution are pure core functions
+(the clock is an input). This is an additive vault-spec change: **spec 0.3 → 0.4**;
+existing string-only vaults parse unchanged.
+
+**Consequences.** Vaults opt into dates per sprint, no migration. The validator learns the
+object form and flags malformed or overlapping dates. Auto-generated cadences (true
+Linear-style cycles) remain a possible future ADR; nothing here precludes them.
+
+## ADR-018 — Board scope: one sprint at a time; Backlog = no sprint
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** The board renders every card at once with a sprint `<select>`, and "Backlog"
+ambiguously names both a board column (a status mapping) and the filter value for cards
+without a sprint.
+
+**Decision.** The board lens is **scoped to one sprint at a time** (switcher in the
+header; vaults with no `sprints` configured keep today's unscoped board). **Backlog** is
+defined as *cards whose sprint field is empty and whose status isn't done*, shown as its
+own priority-ranked list view — independent of which column a status maps to. A vault's
+"Backlog" *column* remains a plain status mapping and simply isn't what the Backlog view
+means. Cross-sprint browsing belongs to the Cards lens (F-020), not the board.
+
+**Consequences.** The board answers "how is this sprint going", the backlog answers "what
+is unscheduled" — without double-counting. The sprint `<select>` retires in favor of the
+scope switcher plus a config-driven filter bar shared with the Cards lens.
+
+## ADR-019 — Subcards: children are the board's units
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** Hierarchy exists in the data (`parent:` on stories), but the board renders
+parents and children as undifferentiated cards in columns; container progress is
+invisible, and a container card in a column says nothing about where its children stand.
+
+**Decision.** Cards that other cards name as `parent` are **containers** and don't occupy
+board columns; the board's units are **leaf cards**, each carrying a small parent
+breadcrumb chip linking to its container. Containers surface in list views (Backlog,
+Cards) with a children-progress chip (*n/m done*), and a card's page/peek shows its
+children with statuses. This matches the agent-side "prefer leaves" rule the next-card
+skill already applies.
+
+**Consequences.** Board column counts mean shippable units. Containers never look stalled
+in a column they don't really occupy; their progress is computed, not asserted. Vaults
+without hierarchy see no change.

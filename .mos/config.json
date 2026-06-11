@@ -10,7 +10,7 @@
     "id": { "type": "id", "label": "ID" },
     "title": { "type": "string", "label": "Title" },
     "status": { "type": "string", "label": "Status" },
-    "phase": { "type": "enum", "values": ["MVP", "Phase 2", "Future"], "label": "Phase", "icon": "tag" },
+    "phase": { "type": "enum", "values": ["MVP", "Phase 2", "Phase 3", "Future"], "label": "Phase", "icon": "tag" },
     "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority", "icon": "flag", "valueColors": { "P0": "red", "P1": "amber", "P2": "blue", "P3": "slate" } },
     "owner": { "type": "string", "label": "Owner", "icon": "user" },
     "sprint": { "type": "enum", "source": "sprints", "label": "Sprint", "icon": "calendar" },
