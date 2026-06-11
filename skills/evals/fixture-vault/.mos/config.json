@@ -1,0 +1,46 @@
+{
+  "specVersion": "0.3",
+  "vault": { "name": "Field Notes (eval fixture)" },
+
+  "meta": {
+    "timestamps": { "createdField": "created", "updatedField": "updated" }
+  },
+
+  "fields": {
+    "id": { "type": "id", "label": "ID" },
+    "title": { "type": "string", "label": "Title" },
+    "status": { "type": "string", "label": "Status" },
+    "priority": { "type": "enum", "values": ["Now", "Soon", "Later"], "label": "Priority" },
+    "parent": { "type": "id", "label": "Parent" },
+    "dependsOn": { "type": "id", "list": true, "label": "Depends on" },
+    "created": { "type": "datetime", "label": "Created" },
+    "updated": { "type": "datetime", "label": "Updated" }
+  },
+
+  "wiki": { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"], "fields": ["created", "updated"] },
+
+  "board": {
+    "include": ["board/**/*.md"],
+    "columns": ["Queued", "Doing", "Shipped"],
+    "sortWithinColumn": ["priority", "id"]
+  },
+
+  "types": {
+    "epic": {
+      "label": "Epic",
+      "parent": null,
+      "color": "purple",
+      "states": { "New": "Queued", "Rolling": "Doing", "Shipped": "Shipped", "Icebox": null },
+      "card": { "fields": ["id", "priority", "created", "updated"] }
+    },
+    "job": {
+      "label": "Job",
+      "parent": "epic",
+      "color": "blue",
+      "states": { "Queued": "Queued", "Doing": "Doing", "Blocked": "Doing", "Shipped": "Shipped" },
+      "card": { "fields": ["id", "parent", "priority", "dependsOn", "created", "updated"] }
+    }
+  },
+
+  "sprints": []
+}

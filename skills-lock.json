@@ -19,6 +19,18 @@
       "skillPath": "skills/daisyui/SKILL.md",
       "computedHash": "a98221a5c8f50bfb0dbaf4d0e52982598981bc5e472806814e118ee7df2a9712"
     },
+    "next-card": {
+      "source": "mozartec/mos",
+      "sourceType": "github",
+      "skillPath": "skills/next-card/SKILL.md",
+      "computedHash": "7531ef50c64c6d7d331e77d50b6506c52d1e28819693075fdbcca929e12d75e1"
+    },
+    "ship-card": {
+      "source": "mozartec/mos",
+      "sourceType": "github",
+      "skillPath": "skills/ship-card/SKILL.md",
+      "computedHash": "f02e6e3591a494922a60a9485e8c87f8103bf1ccc4ebc8a50679931bbd4f2cfd"
+    },
     "turborepo": {
       "source": "vercel/turborepo",
       "sourceType": "github",

@@ -90,16 +90,15 @@ A **turborepo** skill is installed at `.agents/skills/turborepo/` — use it for
 Turbo, caching, and internal-package questions (e.g. before editing `turbo.json` or a
 package's `exports`). Angular and daisyUI skills live in [`apps/web`](apps/web/AGENTS.md).
 
-First-party **mos** skills live under [`.agents/skills/mos/`](.agents/skills/mos/SKILL.md) —
-skills for operating this (or any) mos vault. Use
-[`mos/next-task`](.agents/skills/mos/next-task/SKILL.md) when asked what to work on next or to
-start the next task/story/card; it ranks the board and recommends a pick.
-
-The **distributable source** of the mos skills is [`skills/`](skills/README.md) at the repo
-root (`ship-card`, `next-card`) — authored there in the standard installable layout so other
-projects can `npx skills add` them (F-014). New mos skills are added as sibling folders in
-`skills/`; the `.agents/skills/mos/` copies are the currently installed versions and get
-refreshed from `skills/` in a later pass.
+First-party **mos** skills — for operating this (or any) mos vault — are **authored** in
+[`skills/`](skills/README.md) at the repo root (`next-card`, `ship-card`) in the standard
+installable layout, so any project can `npx skills add mozartec/mos` them (F-014). This
+repo consumes them the same way: CLI-installed copies live under `.agents/skills/` with
+`skills-lock.json` entries, like any third-party skill — never hand-edit the installed
+copies; change `skills/` and reinstall (T-009). Use
+[`next-card`](.agents/skills/next-card/SKILL.md) when asked what to work on next — it
+recommends a pick; shipping is ship-card's job — and
+[`ship-card`](.agents/skills/ship-card/SKILL.md) to take a named card to an open PR.
 
 ## Nested guidance (scoped instructions)
 
