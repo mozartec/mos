@@ -2,13 +2,13 @@
 id: T-010
 type: task
 title: Release automation — versioning, changelog, npm publish from CI
-status: Planned
+status: In Progress
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [T-008]
 created: 2026-06-10T21:37:00Z
-updated: 2026-06-10T21:37:00Z
+updated: 2026-06-11T11:23:00Z
 ---
 
 # T-010 — Release automation — versioning, changelog, npm publish from CI

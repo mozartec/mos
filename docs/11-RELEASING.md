@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T11:20:00Z
+updated: 2026-06-11T12:07:00Z
 ---
 
 # Releasing: branching, commits, versioning, and pipelines
@@ -74,46 +74,43 @@ no rush to 1.0.
 
 ## Changelog
 
-`CHANGELOG.md` lives at the repository **root** and follows
-[Keep a Changelog](https://keepachangelog.com/): an `## [Unreleased]` section at the top
-that we append to as work merges, with `Added / Changed / Deprecated / Removed / Fixed /
-Security` subsections. On release, the Unreleased items move under a new dated version
-heading. Hand-maintained for now; automated later (see below).
+`CHANGELOG.md` lives at the repository **root**. Up to `0.1.0` it was hand-maintained in
+[Keep a Changelog](https://keepachangelog.com/) form; from `0.1.0` on, release-please
+writes it (sections derived from Conventional Commit types). Don't edit it by hand —
+the release PR owns it.
 
-## Publishing the CLI (`@mozartec/mos-cli`)
+## Releasing (automated — ADR-015)
 
-The CLI (ADR-012) is the first published artifact, as `@mozartec/mos-cli` on npmjs with
-the `mos` bin (ADR-014). Publishing is manual until release automation lands:
+A release is **one merged PR**. The `Release` workflow
+([`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml)) runs
+on every push to `main`:
 
-```bash
-bunx turbo run build --filter=@mozartec/mos-cli   # bundles main.js + the web app into dist/
-bunx turbo run smoke --filter=@mozartec/mos-cli   # packs the tarball, installs it cold, probes init/serve
-cd apps/cli && npm publish                        # publishes bin/ + dist/ (see "files"; access is public)
-```
+1. **release-please** maintains a rolling release PR: version bump (root and
+   `apps/cli/package.json` in lockstep) plus the changelog section, both computed from
+   squash-merge commit titles since the last release tag. `feat`/`fix`/breaking commits
+   feed it; `docs`/`chore`/`ci` alone trigger no release. Pre-1.0, breaking changes bump
+   the **minor** (`bump-minor-pre-major`).
+2. **Merging the release PR** tags `vX.Y.Z` and creates the GitHub Release.
+3. The same workflow run then **publishes `@mozartec/mos-cli`**: build, the
+   pack-and-install smoke test (same gate CI runs on every PR — a red smoke aborts the
+   publish), then `npm publish` authenticated by **npm trusted publishing** (OIDC +
+   provenance; no token in repo secrets).
 
-The smoke step is the same one CI runs on every PR — never publish without it. The
-package version follows the app's SemVer above. Build with Bun (it's the bundler); the
-published output runs on Node ≥ 20. When release automation (below) is adopted, this
-step moves into the release pipeline.
+To force a specific version, add a `Release-As: x.y.z` footer to a commit on `main`.
+
+Manual publishing remains possible for emergencies (`bunx turbo run smoke
+--filter=@mozartec/mos-cli && cd apps/cli && npm publish`) — never without the smoke
+test, and expect to reconcile the version with release-please afterwards.
 
 ## Pipelines (GitHub Actions)
 
-Added in stages:
-
-1. **CI** (with the first code — task `T-003`): on every push and PR, run
-   `build → lint → test` on Bun. This is what makes PR-based merging worthwhile.
-2. **Release** (when cutting `v0.1.0`): triggered by a version tag (or a release-PR merge);
-   creates the GitHub Release. Later it also builds and attaches the Tauri binaries.
+1. **CI** (`ci.yml`, task `T-003`): on every push and PR — build, lint, test, the packed
+   CLI smoke test, vault validation.
+2. **Release** (`release-please.yml`, ADR-015): release PR upkeep on every `main` push;
+   tag + GitHub Release + npm publish on release-PR merge. Later it also builds and
+   attaches the Tauri binaries.
 3. **Nightly** (only once a binary exists): a scheduled (`cron`) build of `main` published
    as a rolling prerelease. Premature before desktop packaging.
-
-### Automating releases
-
-When we start cutting real releases, adopt a tool that reads Conventional Commits and
-handles versioning + changelog + GitHub Release. **release-please** is the recommended fit
-for this project (it opens a "release PR" that bumps the version and updates
-`CHANGELOG.md`, then tags and releases on merge). Alternatives: semantic-release (fully
-automatic) and changesets. Verify current versions when wiring one up.
 
 ## Release channels — beta vs stable
 
@@ -133,6 +130,7 @@ point at whichever channel.
    `CHANGELOG.md` (`0.1.0` / Unreleased). No CI.
 2. **`T-001` + `T-003`:** feature branches → squash-merge PRs; branch protection (CI
    required, no force-push, no required reviews); CI runs build + lint + test.
-3. **First usable build:** adopt release-please; tag `v0.1.0`; first GitHub Release.
+3. **First usable build** *(done — `v0.1.0` shipped manually, then ADR-015 automated the
+   loop)*: release-please + tag-and-publish on release-PR merge.
 4. **Tauri binaries:** release workflow builds per-OS artifacts; add nightly prereleases;
    use the prerelease flag + `-beta`/`-rc` suffixes for channels.

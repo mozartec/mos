@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T21:55:00Z
+updated: 2026-06-11T12:07:00Z
 ---
 
 # Decisions (ADRs)
@@ -327,3 +327,28 @@ renamed to match, so the published artifact and the repo agree on one name.
 zero registry configuration. The name is less discoverable than a hypothetical unscoped
 `mos`; if an unscoped alias ever becomes available, publishing one is a new decision. The
 scope ties publishing rights to the `mozartec` npm account.
+
+## ADR-015 — Releases are automated: release-please + npm trusted publishing
+
+**Status:** Accepted · **Date:** 2026-06-11
+
+**Context.** `0.1.0` was versioned, changelogged, and published by hand (T-008). Manual
+releases don't scale: versions drift from commit history, the changelog rots, and
+publishing depends on one machine.
+
+**Decision.** Releases run from GitHub Actions (`release-please.yml`):
+
+- **release-please** maintains a rolling release PR (version + changelog, computed from
+  the squash-merged Conventional Commit titles; one version line for the repo, with
+  `apps/cli/package.json` in lockstep). Merging that PR is the release: it tags
+  `vX.Y.Z` and creates the GitHub Release. Pre-1.0, breaking changes bump the minor
+  (`bump-minor-pre-major`).
+- **Publishing runs in the same workflow**, gated on a release being created — tags
+  pushed with the workflow's `GITHUB_TOKEN` cannot trigger other workflows. The publish
+  job reruns the pack-and-install smoke test before `npm publish`; red smoke, no publish.
+- **Auth is npm trusted publishing** (OIDC, provenance) — no npm token in repo secrets;
+  a granular per-package automation token is the fallback if OIDC fails.
+
+**Consequences.** A release is one merged PR; versions and the changelog are never edited
+by hand. Only `feat`/`fix` (and breaking) commits feed a release PR — `docs`/`chore`/`ci`
+merges alone release nothing.

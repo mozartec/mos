@@ -2,16 +2,15 @@
 
 All notable changes to this project are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
-project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While the
-version is `0.x`, anything may change between releases — the format and app are not yet
-stable. See [`docs/11-RELEASING.md`](docs/11-RELEASING.md) for how releases work.
+From `0.1.0` on, entries are written by release-please from Conventional Commit titles
+(ADR-015); don't edit this file by hand. The project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). While the version is `0.x`,
+anything may change between releases — the format and app are not yet stable. See
+[`docs/11-RELEASING.md`](docs/11-RELEASING.md) for how releases work.
 
 > The **vault format** is versioned separately from the app. The current spec version is
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
-
-## [Unreleased]
 
 ## [0.1.0] — 2026-06-11
 
@@ -43,5 +42,4 @@ First published release: `@mozartec/mos-cli` on npm, bundling the web app.
 - `AGENTS.md` write convention for AI assistants.
 - Front-door files: `README`, `LICENSE` (MIT), `CONTRIBUTING`.
 
-[Unreleased]: https://github.com/mozartec/mos/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/mozartec/mos/releases/tag/v0.1.0
