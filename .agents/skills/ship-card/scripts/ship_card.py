@@ -3,29 +3,25 @@
 
 Zero dependencies. Run with Python 3:
     python3 ship_card.py <card-id> [<vaultDir>] [--json]
-    python3 ship_card.py <card-id> --finish   # close the card: status -> Done,
+    python3 ship_card.py <card-id> --finish   # close the card: status -> Done state,
                                               # bump updated, tick Acceptance boxes
 
 A "vault" is any directory containing .mos/config.json. With no vaultDir the script
-discovers the nearest vault at or above the current directory. It is config-driven:
-types, their human labels, states, and the column order all come from
-.mos/config.json, so it works on any mos vault, not just this one.
+discovers the nearest vault at or above the current directory; without one it refuses
+to run. It is config-driven: types, their labels, states, and the column order all
+come from .mos/config.json, so it works on any mos vault.
 
-Given a card id (e.g. F-004-S-01, T-003), it gathers the facts you need before
-touching git, so you plan from data instead of guessing:
-
+Given a card id it gathers the facts you need before touching git:
   - locates the card file and reads its frontmatter (type, title, status, parent);
-  - computes the branch name from the vault's own type label + the file slug,
-    e.g. story F-004-S-01-render-columns -> "Story/F-004-S-01-render-columns";
-  - resolves the card's "Depends on:" ids and its parent, printing each one's file
-    path (so you open the real file, not a guessed board/<id>.md) and flagging any
-    dependency that isn't Done yet (you usually shouldn't start on an unfinished one);
-  - checks the body for the readiness sections a cold agent needs (Acceptance,
-    etc.) so a thin card gets flagged rather than silently half-built.
+  - computes the branch name from the vault's own type label + the file slug;
+  - resolves the card's "Depends on:" ids, parent, and children, printing each one's
+    file path and flagging dependencies that aren't done;
+  - a container card (one with children) is shippable: its unfinished children are
+    reported as in-scope, not treated as an error;
+  - checks the body for the readiness sections a cold agent needs (Acceptance, etc.).
 
-It does NOT make decisions. It prints what it found and where the soft spots are;
-judging whether the card is truly ready — and pausing to ask the human when it
-isn't — is the agent's job (see SKILL.md).
+It does NOT make decisions. Judging whether the card is truly ready — and pausing to
+ask the human when it isn't — is the agent's job (see SKILL.md).
 """
 import json, os, re, sys
 from datetime import datetime, timezone
@@ -34,7 +30,6 @@ from pathlib import Path
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
 
 # Body sections that signal a card is written to the "cold agent can execute it" bar.
-# Acceptance is the floor; the others make a card comfortable rather than just possible.
 READINESS_SECTIONS = ["Acceptance", "Outcome", "Context", "Constraints", "Plan"]
 
 ID_RE = re.compile(r"\b([A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*)\b")
@@ -122,9 +117,7 @@ def load(vault: Path):
 
 def branch_name(card):
     """<label>/<id>-<slug>, label lower-cased. Prefer the file slug (already
-    human-curated); fall back to the title. The id keeps it unique; the lower-cased
-    label groups branches by work type the way `story/...`, `task/...`, `feature/...`
-    read in `git branch`."""
+    human-curated); fall back to the title."""
     stem, cid = card["stem"], card["id"]
     slug = stem[len(cid) + 1:] if stem.startswith(cid + "-") else slugify(card["title"])
     return f"{card['label'].lower()}/{cid}-{slug}"
@@ -132,8 +125,8 @@ def branch_name(card):
 
 def set_frontmatter_field(text: str, field: str, value: str):
     """Replace `field: value` inside the leading frontmatter block, leaving everything
-    else byte-for-byte. Inserts the field before the closing `---` if it's absent. This is
-    the narrow, allowed agent write: frontmatter only (ADR-002)."""
+    else byte-for-byte. Inserts the field before the closing `---` if absent. This is
+    the narrow, allowed agent write: frontmatter only."""
     m = re.match(r"^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)", text)
     if not m:
         return text, False
@@ -147,8 +140,8 @@ def set_frontmatter_field(text: str, field: str, value: str):
 
 
 def tick_acceptance(text: str):
-    """Tick every `- [ ]` in the card's own `## Acceptance` section only — the one prose
-    edit the carve-out permits (ADR-002). Other prose is left untouched."""
+    """Tick every `- [ ]` in the card's own `## Acceptance` section only — the one
+    prose edit the write rules permit. Other prose is left untouched."""
     m = re.match(r"^---\r?\n[\s\S]*?\r?\n---\r?\n?", text)
     fm_end = m.end() if m else 0
     body = text[fm_end:]
@@ -163,9 +156,8 @@ def tick_acceptance(text: str):
 
 
 def finish(columns, types, card):
-    """Deterministically close a card: set frontmatter `status` to the type's Done state
-    (the one mapping to the last column), bump `updated`, and tick its Acceptance boxes.
-    A script does this so a silent/weak model can't skip the finish line (SKILL.md Step 5)."""
+    """Deterministically close a card: set frontmatter `status` to the type's state
+    mapping to the last column, bump `updated`, and tick its Acceptance boxes."""
     last = columns[-1] if columns else None
     states = types[card["type"]]["states"]
     done = next((s for s, col in states.items() if col == last), None)
@@ -187,7 +179,10 @@ def main():
     as_json = "--json" in args
     as_finish = "--finish" in args
     args = [a for a in args if a not in ("--json", "--finish")]
-    if not args:
+    unknown = [a for a in args if a.startswith("--")]
+    if unknown or not args:
+        if unknown:
+            print(f"Unknown option(s): {', '.join(unknown)}", file=sys.stderr)
         print("usage: ship_card.py <card-id> [<vaultDir>] [--json] [--finish]", file=sys.stderr)
         sys.exit(2)
 
@@ -195,7 +190,8 @@ def main():
     start = Path(args[1]) if len(args) > 1 else Path.cwd()
     vault = find_vault(start)
     if not vault:
-        print("No mos vault found (no .mos/config.json at or above the path).", file=sys.stderr)
+        print(f"Not a mos vault: no .mos/config.json found at or above '{start}'. "
+              "This skill requires one — refusing to start.", file=sys.stderr)
         sys.exit(2)
 
     cfg, columns, types, cards = load(vault)
@@ -224,7 +220,8 @@ def main():
     missing = [d for d in deps if d not in cards]
     is_done = card["column"] == last
     is_hidden = card["column"] is None
-    has_children = any(c["parent"] == card["id"] for c in cards.values())
+    children = sorted((c for c in cards.values() if c["parent"] == card["id"]), key=lambda c: c["id"])
+    open_children = [c for c in children if c["column"] != last]
     branch = branch_name(card)
     missing_sections = [s for s in READINESS_SECTIONS if s not in card["sections"]]
     parent_file = cards[card["parent"]]["rel"] if card["parent"] in cards else None
@@ -234,13 +231,18 @@ def main():
          "met": d in cards and cards[d]["column"] == last}
         for d in deps
     ]
+    children_detail = [
+        {"id": c["id"], "file": c["rel"], "status": c["status"], "done": c["column"] == last}
+        for c in children
+    ]
 
     if as_json:
         print(json.dumps({
             "id": card["id"], "title": card["title"], "type": card["type"],
             "status": card["status"], "column": card["column"], "file": card["rel"],
             "branch": branch, "parent": card["parent"] or None, "parent_file": parent_file,
-            "is_done": is_done, "is_hidden": is_hidden, "is_container": has_children,
+            "is_done": is_done, "is_hidden": is_hidden,
+            "children": children_detail, "open_children": [c["id"] for c in open_children],
             "deps": deps_detail, "unmet_deps": unmet, "missing_deps": missing,
             "has_acceptance": "Acceptance" in card["sections"],
             "missing_sections": missing_sections,
@@ -264,14 +266,17 @@ def main():
                 print(f"    - {d['id']}  ({mark})  → {d['file']}")
             else:
                 print(f"    - {d['id']}  (not found in board)")
+    if children_detail:
+        print("  children (in scope if not done):")
+        for c in children_detail:
+            mark = "✓ done" if c["done"] else f"✗ {c['status']}"
+            print(f"    - {c['id']}  ({mark})  → {c['file']}")
 
     flags = []
     if is_done:
         flags.append(f"already in [{last}] — this card looks done; confirm before re-doing it")
     if is_hidden:
-        flags.append(f"status '{card['status']}' maps to no column (Deferred/Dropped) — not meant to be worked")
-    if has_children:
-        flags.append("this card has child cards — it's a container; ship a child story/task, not this")
+        flags.append(f"status '{card['status']}' maps to no column — not meant to be worked")
     if unmet:
         flags.append("waiting on unfinished dependency: " + ", ".join(unmet))
     if missing:
@@ -281,6 +286,9 @@ def main():
     elif missing_sections:
         flags.append("missing helpful sections: " + ", ".join(missing_sections))
 
+    if open_children:
+        print(f"\n  ℹ Container card: shipping it includes its {len(open_children)} "
+              f"unfinished child card(s): " + ", ".join(c["id"] for c in open_children))
     if flags:
         print("\n  ⚠ Check before you start (pause and ask the human if any of these bite):")
         for f in flags:

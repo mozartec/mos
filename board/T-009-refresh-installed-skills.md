@@ -2,13 +2,13 @@
 id: T-009
 type: task
 title: Refresh installed skills — single source of discovery
-status: In Progress
+status: Done
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [F-014]
 created: 2026-06-10T19:55:00Z
-updated: 2026-06-11T20:15:58Z
+updated: 2026-06-11T20:27:36Z
 ---
 
 # T-009 — Refresh installed skills — single source of discovery
@@ -68,13 +68,13 @@ describes the layout truthfully.
 
 ## Acceptance
 
-- [ ] `.agents/skills/mos/` no longer exists and no file in the repo references it
+- [x] `.agents/skills/mos/` no longer exists and no file in the repo references it
       (grep for `.agents/skills/mos`, `mos-next-task`, `mos-ship-card` is clean).
-- [ ] `ship-card` and `next-card` are installed under `.agents/skills/` by the skills
+- [x] `ship-card` and `next-card` are installed under `.agents/skills/` by the skills
       CLI, recorded in `skills-lock.json` like the other installed skills.
-- [ ] Skill discovery against the repo offers exactly two skills — verified by actually
+- [x] Skill discovery against the repo offers exactly two skills — verified by actually
       running the installer.
-- [ ] `AGENTS.md` (and any nested agent guide) routes agents to the new skill names;
+- [x] `AGENTS.md` (and any nested agent guide) routes agents to the new skill names;
       `bun run validate` passes.
 
 ## Dependencies

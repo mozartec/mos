@@ -1,0 +1,69 @@
+{
+  "skill_name": "ship-card",
+  "fixture": "skills/evals/fixture-vault",
+  "setup": "Copy the fixture vault to a scratch dir outside the repo, `git init -b main` it, commit everything, and copy skills/next-card and skills/ship-card into <scratch>/.agents/skills/. Run the eval agent with cwd=<scratch>, no network, and `gh` unavailable. See skills/evals/README.md.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "ready-card-happy-path",
+      "prompt": "/ship-card JB-102",
+      "expected_output": "Pre-flights, reads the card, plans against its Acceptance, finds no blockers (JB-101 is Shipped) and continues without waiting. Branches as job/JB-102-hello-page, sets status Doing (frontmatter only, updated bumped), creates docs/hello.md per the Plan without touching docs/outline.md, closes the card with --finish (status Shipped, boxes ticked) folded into the final Conventional Commit, and — gh being unavailable — hands back the branch with a PR body draft that maps Acceptance to proof and includes a How to test section.",
+      "assertions": [
+        {"text": "Branch is job/JB-102-hello-page (type label lower-cased, id casing kept) — unless already on a harness branch"},
+        {"text": "Writes a short plan referencing the card's Acceptance before branching, and does not stall waiting for approval when nothing is wrong"},
+        {"text": "Sets status to Doing via a frontmatter-only edit with updated bumped (ISO 8601 UTC)"},
+        {"text": "Creates docs/hello.md per the Plan and does not modify docs/outline.md (Out of scope is binding)"},
+        {"text": "Closes the card via the script's --finish (status Shipped, Acceptance boxes ticked) folded into the final commit, not a trailing one"},
+        {"text": "Commit message and PR title are Conventional Commits"},
+        {"text": "With gh unavailable, falls back gracefully (compare URL or clear note) and the PR body draft maps each Acceptance bullet to its proof, with a How to test section a stranger can follow"}
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "blocked-card-stops",
+      "prompt": "Ship JB-103 and open a PR for it.",
+      "expected_output": "Pre-flights, sees status Blocked and the unmet dependency JB-104 (Queued, not Shipped), and stops with a concrete question — work JB-104 first, or proceed anyway? No branch, no code, no card edits.",
+      "assertions": [
+        {"text": "Creates no branch and writes no implementation code"},
+        {"text": "Names the blockers: Blocked status and/or unmet dependency JB-104"},
+        {"text": "Ends with a concrete, answerable question proposing options, not a silent stop or silent proceed"}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "container-card-in-scope",
+      "prompt": "/ship-card EP-100",
+      "expected_output": "Does NOT refuse the container. Pre-flight lists the children: JB-101 already Shipped, JB-102 unfinished and therefore in scope. Plans to deliver EP-100 by shipping JB-102's work, then proceeds (or asks only a genuinely necessary scope question).",
+      "assertions": [
+        {"text": "Does not treat the container as an error or redirect away from it"},
+        {"text": "Identifies JB-102 as the unfinished child whose work is in scope, and JB-101 as already done"},
+        {"text": "Any pause carries a concrete question; otherwise it proceeds to plan/build the child's work under the epic"}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "harness-branch-stay",
+      "prompt": "/ship-card JB-102",
+      "expected_output": "Setup places the agent on a pre-existing branch it didn't create (e.g. copilot/do-jb-102). The agent stays on it — no switch to main, no new job/JB-102-… branch — and otherwise ships normally.",
+      "assertions": [
+        {"text": "Performs no git switch / checkout to main or to a new branch; all commits land on the pre-existing branch"},
+        {"text": "Does not treat the branch name as a problem"}
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "not-a-vault-refusal",
+      "prompt": "/ship-card JB-102",
+      "expected_output": "Run from a directory with no .mos/config.json at or above it: states this isn't a mos vault and stops. No branch, no guessing at cards.",
+      "assertions": [
+        {"text": "Refuses, naming the missing .mos/config.json"},
+        {"text": "Creates nothing and invents nothing"}
+      ],
+      "files": []
+    }
+  ]
+}

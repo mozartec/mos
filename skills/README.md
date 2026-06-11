@@ -33,5 +33,6 @@ scripts.
 ## Relation to `.agents/skills/`
 
 `.agents/skills/` is where skills get **installed** (in this repo and in consumers); this
-folder is where they're **authored**. This repo currently still runs the older installed
-copies under `.agents/skills/mos/` — they'll be refreshed from here in a later pass.
+folder is where they're **authored**. This repo consumes its own skills the way any adopter
+does: CLI-installed copies under `.agents/skills/` with `skills-lock.json` entries (T-009).
+Never edit the installed copies — change `skills/` and reinstall.

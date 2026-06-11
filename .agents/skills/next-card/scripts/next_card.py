@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
-"""next_task.py — rank the actionable cards in a mos vault and recommend what to do next.
+"""next_card.py — rank the actionable cards in a mos vault and recommend what to do next.
 
 Zero dependencies. Run with Python 3:
-    python3 next_task.py [<vaultDir>] [--sprint S1] [--json]
+    python3 next_card.py [<vaultDir>] [--sprint S1] [--json]
 
 A "vault" is any directory containing .mos/config.json. With no path, the script
-discovers the nearest vault at or above the current directory. It is config-driven:
-columns, types, states, and sprints all come from .mos/config.json, so it works on
-any mos vault, not just this one.
+discovers the nearest vault at or above the current directory; without one it refuses
+to run. It is config-driven: columns, types, states, sprints, and the priority scale
+all come from .mos/config.json, so it works on any mos vault.
 
 What it does, mirroring how a maintainer eyeballs the board:
   - reads the config to learn columns (left→right = progress), each type's
-    state→column map, and the sprint order;
+    state→column map, the sprint order, and the priority values;
   - parses every board card's frontmatter, and scrapes "Depends on:" ids from the body;
-  - classifies each card as done / hidden / blocked / not-ready / ready;
+  - classifies each card as done / hidden / blocked / ready;
   - ranks the ready cards and prints the top recommendation plus a shortlist.
 
-It deliberately does NOT pick "container" features (cards that have child cards):
-you execute the concrete story or task, not the umbrella feature.
+It does NOT pick "container" cards (ones that have children): it recommends the
+concrete leaf to execute. Shipping a whole container is a deliberate human choice —
+use the ship-card skill directly with the container's id for that.
 """
 import json, os, re, sys
 from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
-PRIORITY_RANK = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
 
 def find_vault(start: Path):
@@ -44,7 +44,7 @@ def glob_to_re(glob: str):
 def parse_frontmatter(text: str):
     m = re.match(r"^---\r?\n([\s\S]*?)\r?\n---\r?\n?", text)
     if not m:
-        return {}, text[m.end():] if m else text
+        return {}, text
     obj = {}
     for line in m.group(1).split("\n"):
         mm = re.match(r"^([A-Za-z0-9_]+):\s*(.*)$", line)
@@ -65,7 +65,7 @@ def walk(root: Path):
                 yield Path(dirpath) / fn
 
 
-# ids like F-001, F-001-S-02, T-003, RB-005 — configurable shape, default permissive
+# ids like F-001, F-001-S-02, T-003, RB-005 — permissive default shape
 ID_RE = re.compile(r"\b([A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*)\b")
 
 
@@ -74,10 +74,17 @@ def depends_on(body: str):
     deps = []
     for line in body.split("\n"):
         if re.search(r"depends on", line, re.I):
-            # only take ids before a 'Blocks' clause on the same line
             seg = re.split(r"blocks", line, flags=re.I)[0]
             deps += ID_RE.findall(seg)
     return [d for d in deps if d]
+
+
+def priority_rank(cfg):
+    """Rank by position in the config's priority enum; fall back to a P0..P3 scale."""
+    values = (cfg.get("fields", {}).get("priority") or {}).get("values") or []
+    if values:
+        return {v: i for i, v in enumerate(values)}
+    return {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
 
 def load(vault: Path):
@@ -111,14 +118,8 @@ def load(vault: Path):
 
 def classify(columns, cards):
     last = columns[-1] if columns else None
-    has_children = set()
-    for c in cards.values():
-        if c["parent"]:
-            has_children.add(c["parent"])
-
-    # A real dependency id starts with a prefix some card actually uses (F, T, RB…).
-    # This disambiguates true ids (F-002) from prose fragments like "S-02/S-03" that
-    # share the id shape but aren't cards.
+    has_children = {c["parent"] for c in cards.values() if c["parent"]}
+    # A real dependency id starts with a prefix some card actually uses.
     known_prefixes = {cid.split("-")[0] for cid in cards}
 
     def done(c):
@@ -141,11 +142,11 @@ def is_ready(c):
             and not c["unmet_deps"] and not c["is_container"])
 
 
-def rank_key(columns, sprints):
+def rank_key(columns, sprints, prio_rank):
     def key(c):
         idx = columns.index(c["column"]) if c["column"] in columns else 0
         started = 0 if (0 < idx < len(columns) - 1) else 1  # started work first
-        prio = PRIORITY_RANK.get(c["priority"], 9)
+        prio = prio_rank.get(c["priority"], len(prio_rank) + 9)
         sp = sprints.index(c["sprint"]) if c["sprint"] in sprints else len(sprints)
         return (started, prio, sp, c["id"])
     return key
@@ -164,19 +165,20 @@ def main():
 
     vault = find_vault(start)
     if not vault:
-        print("No mos vault found (no .mos/config.json at or above the path).", file=sys.stderr)
+        print(f"Not a mos vault: no .mos/config.json found at or above '{start}'. "
+              "This skill requires one — refusing to start.", file=sys.stderr)
         sys.exit(2)
 
     cfg, columns, sprints, cards = load(vault)
     classify(columns, cards)
+    prio_rank = priority_rank(cfg)
 
     pool = list(cards.values())
     if sprint_filter:
         pool = [c for c in pool if c["sprint"] == sprint_filter]
 
-    ready = sorted([c for c in pool if is_ready(c)], key=rank_key(columns, sprints))
+    ready = sorted([c for c in pool if is_ready(c)], key=rank_key(columns, sprints, prio_rank))
     blocked = [c for c in pool if c["is_blocked_status"] or c["unmet_deps"] or c["missing_deps"]]
-    not_ready_doc = [c for c in ready if not c["ready_doc"]]
 
     if as_json:
         out = {"vault": cfg.get("vault", {}).get("name", str(vault)),
