@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-11T11:28:00Z
+updated: 2026-06-11T12:07:00Z
 ---
 
 # Releasing: branching, commits, versioning, and pipelines
@@ -97,12 +97,6 @@ on every push to `main`:
    provenance; no token in repo secrets).
 
 To force a specific version, add a `Release-As: x.y.z` footer to a commit on `main`.
-
-One-time external setup this depends on: the trusted-publisher entry for
-`@mozartec/mos-cli` on npmjs (owner `mozartec`, repo `mos`, workflow
-`release-please.yml`), and "Allow GitHub Actions to create and approve pull requests"
-under the repo's Actions settings. If OIDC ever breaks, the fallback is a granular
-`NPM_TOKEN` automation token scoped to the one package.
 
 Manual publishing remains possible for emergencies (`bunx turbo run smoke
 --filter=@mozartec/mos-cli && cd apps/cli && npm publish`) — never without the smoke

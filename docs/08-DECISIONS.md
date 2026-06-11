@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-11T11:25:00Z
+updated: 2026-06-11T12:07:00Z
 ---
 
 # Decisions (ADRs)
@@ -334,27 +334,21 @@ scope ties publishing rights to the `mozartec` npm account.
 
 **Context.** `0.1.0` was versioned, changelogged, and published by hand (T-008). Manual
 releases don't scale: versions drift from commit history, the changelog rots, and
-publishing depends on one machine and one npm login. The repo already squash-merges PRs
-with Conventional Commit titles — machine-readable input for automation.
+publishing depends on one machine.
 
 **Decision.** Releases run from GitHub Actions (`release-please.yml`):
 
-- **release-please** (manifest mode, one version line for the whole repo;
-  `apps/cli/package.json` kept in lockstep via `extra-files`) maintains a rolling release
-  PR from commit titles. Merging that PR is the release: it tags `vX.Y.Z` and creates the
-  GitHub Release. Pre-1.0 semantics use `bump-minor-pre-major`, so breaking changes bump
-  the minor. The changelog is release-please-maintained from `0.1.0` on.
-- **Publishing happens in the same workflow run**, gated on a release being created —
-  tags pushed with the workflow's `GITHUB_TOKEN` do not trigger other workflows, so a
-  separate tag-triggered pipeline would never fire. The publish job reruns the
-  pack-and-install smoke test before `npm publish`; a red smoke aborts the release's
-  publish.
-- **Auth is npm trusted publishing** (OIDC, provenance attached): npmjs trusts this
-  repo's `release-please.yml` workflow directly, so no npm token exists in repo secrets.
-  Fallback if OIDC fails: a granular automation token scoped to the one package.
+- **release-please** maintains a rolling release PR (version + changelog, computed from
+  the squash-merged Conventional Commit titles; one version line for the repo, with
+  `apps/cli/package.json` in lockstep). Merging that PR is the release: it tags
+  `vX.Y.Z` and creates the GitHub Release. Pre-1.0, breaking changes bump the minor
+  (`bump-minor-pre-major`).
+- **Publishing runs in the same workflow**, gated on a release being created — tags
+  pushed with the workflow's `GITHUB_TOKEN` cannot trigger other workflows. The publish
+  job reruns the pack-and-install smoke test before `npm publish`; red smoke, no publish.
+- **Auth is npm trusted publishing** (OIDC, provenance) — no npm token in repo secrets;
+  a granular per-package automation token is the fallback if OIDC fails.
 
-**Consequences.** A release is one merged PR; nobody edits versions or the changelog by
-hand. Two one-time settings hold it up if missing: the trusted-publisher entry on the
-npm package, and "Allow GitHub Actions to create and approve pull requests" in the repo's
-Actions settings. Only `feat`/`fix` (and breaking) commits trigger a release PR —
-`docs`/`chore`/`ci` merges alone release nothing.
+**Consequences.** A release is one merged PR; versions and the changelog are never edited
+by hand. Only `feat`/`fix` (and breaking) commits feed a release PR — `docs`/`chore`/`ci`
+merges alone release nothing.
