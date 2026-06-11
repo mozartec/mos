@@ -12,6 +12,13 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.2.1](https://github.com/mozartec/mos/compare/v0.2.0...v0.2.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **cli:** add repository metadata required by npm provenance ([#39](https://github.com/mozartec/mos/issues/39)) ([f36d1c1](https://github.com/mozartec/mos/commit/f36d1c14ae4dbcd5335e1cd7ae9edfe6c495999c))
+
 ## [0.2.0](https://github.com/mozartec/mos/compare/v0.1.0...v0.2.0) (2026-06-11)
 
 
