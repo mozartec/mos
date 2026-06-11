@@ -12,6 +12,13 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.2.0](https://github.com/mozartec/mos/compare/v0.1.0...v0.2.0) (2026-06-11)
+
+
+### Features
+
+* **release:** automate versioning, changelog, and npm publish ([#37](https://github.com/mozartec/mos/issues/37)) ([9cc1291](https://github.com/mozartec/mos/commit/9cc12910370a4a60e624664fa89ff99d60f76add))
+
 ## [0.1.0] — 2026-06-11
 
 First published release: `@mozartec/mos-cli` on npm, bundling the web app.
