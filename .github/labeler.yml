@@ -1,0 +1,52 @@
+# Auto-labeling rules (actions/labeler): areas from changed paths, types from
+# the branch-name conventions in docs/11-RELEASING.md / the ship-card skill.
+'area:web':
+  - changed-files:
+      - any-glob-to-any-file: 'apps/web/**'
+
+'area:cli':
+  - changed-files:
+      - any-glob-to-any-file: 'apps/cli/**'
+
+'area:core':
+  - changed-files:
+      - any-glob-to-any-file: 'packages/core/**'
+
+'area:server':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/vault-server/**'
+          - 'apps/dev-server/**'
+
+'area:vault':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'board/**'
+          - '.mos/**'
+          - 'examples/**'
+
+'area:skills':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'skills/**'
+          - '.agents/**'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+enhancement:
+  - head-branch: ['^feature/', '^story/', '^feat/']
+
+bug:
+  - head-branch: ['^fix/']
+
+chore:
+  - head-branch: ['^chore/', '^task/']
+
+release:
+  - head-branch: ['^release-please--']
