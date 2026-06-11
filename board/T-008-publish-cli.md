@@ -2,13 +2,13 @@
 id: T-008
 type: task
 title: CLI packaging hardening and first publish
-status: In Progress
+status: Done
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [F-015, F-016]
 created: 2026-06-10T19:00:00Z
-updated: 2026-06-10T21:55:00Z
+updated: 2026-06-11T11:02:30Z
 ---
 
 # T-008 — CLI packaging hardening and first publish
@@ -67,15 +67,15 @@ the first version is published.
 
 ## Acceptance
 
-- [ ] A scripted smoke test installs the packed tarball in a clean directory and proves
+- [x] A scripted smoke test installs the packed tarball in a clean directory and proves
       `init` + `serve` work (endpoints probed, SSE event observed); it runs in CI.
-- [ ] The name decision (`@mozartec/mos-cli` on npmjs, bin `mos`) is recorded as an ADR,
+- [x] The name decision (`@mozartec/mos-cli` on npmjs, bin `mos`) is recorded as an ADR,
       and the package, README, and docs all use it consistently.
-- [ ] `EADDRINUSE` produces a one-line human error; the served page title no longer
+- [x] `EADDRINUSE` produces a one-line human error; the served page title no longer
       reads `@mos/web`; third-party license file ships in the package.
-- [ ] Version `0.1.0` is published and a cold `install`/`npx` from the chosen registry
+- [x] Version `0.1.0` is published and a cold `install`/`npx` from the chosen registry
       renders a vault in a repo that is not mos.
-- [ ] `docs/11-RELEASING.md` and `docs/12-ADOPTING.md` match what was actually done.
+- [x] `docs/11-RELEASING.md` and `docs/12-ADOPTING.md` match what was actually done.
 
 ## Dependencies
 
