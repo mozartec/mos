@@ -8,12 +8,12 @@ phase: Phase 2
 owner: mozart
 dependsOn: [F-015]
 created: 2026-06-10T10:33:00Z
-updated: 2026-06-10T11:16:44Z
+updated: 2026-06-10T21:55:00Z
 ---
 
 # F-016 — Vault scaffolding (`mos init`)
 
-Adopting mos in an existing project (a new ERP repo, say) currently means hand-writing
+Adopting mos in an existing project currently means hand-writing
 `.mos/config.json` by copying this repo's. This feature gives the CLI an `init` command
 that turns any folder into a valid vault in one step, with the project's own card types —
 the missing first mile before F-015's `serve` and the F-014 skills are usable elsewhere.

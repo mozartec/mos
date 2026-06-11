@@ -127,7 +127,7 @@ One markdown file under \`board/\`, named \`<id>-<slug>.md\`, whose frontmatter 
 
 ## Check your work
 
-Reload the board (\`mos serve\`, or \`npx @mos/cli serve\`) and confirm every card lands in
+Reload the board (\`mos serve\`, or \`npx @mozartec/mos-cli serve\`) and confirm every card lands in
 a column. A card that doesn't render means broken frontmatter — fix it before moving on.
 `;
 }

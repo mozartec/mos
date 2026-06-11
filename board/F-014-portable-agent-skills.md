@@ -7,14 +7,14 @@ priority: P1
 phase: Phase 2
 owner: mozart
 created: 2026-06-10T10:33:00Z
-updated: 2026-06-10T10:43:48Z
+updated: 2026-06-10T21:55:00Z
 ---
 
 # F-014 — Portable agent skills
 
 mos ships its agent skills as an installable product. A `skills/` folder at the repo root
 holds the distributable source of truth — `ship-card` and `next-card` — written to run on
-**any** mos vault, so other projects (e.g. an ERP repo with its own card types) can install
+**any** mos vault, so other projects (each with its own card types) can install
 them with the standard skills CLI instead of copying repo-specific files.
 
 ## Outcome

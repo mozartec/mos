@@ -20,7 +20,7 @@ beforeAll(async () => {
   await mkdir(join(vaultDir, 'board'), { recursive: true });
   await mkdir(webRoot, { recursive: true });
   await writeFile(join(vaultDir, '.mos', 'config.json'), '{ "specVersion": "0.3" }');
-  await writeFile(join(vaultDir, 'board', 'ERP-001-card.md'), '---\nid: ERP-001\n---\n');
+  await writeFile(join(vaultDir, 'board', 'ACME-001-card.md'), '---\nid: ACME-001\n---\n');
   await writeFile(join(webRoot, 'index.html'), '<!doctype html><title>mos</title>');
   await writeFile(join(webRoot, 'main.js'), 'console.log("app")');
   running = await startServer({ vaultDir, webRoot, port: 0 });
@@ -54,10 +54,10 @@ describe('one process, two surfaces', () => {
   it('serves the vault endpoints on the same origin', async () => {
     const res = await fetch(url('/vault/files'));
     const { files } = (await res.json()) as { files: string[] };
-    expect(files).toEqual(['.mos/config.json', 'board/ERP-001-card.md']);
+    expect(files).toEqual(['.mos/config.json', 'board/ACME-001-card.md']);
 
-    const file = await fetch(url('/vault/file?path=board/ERP-001-card.md'));
-    expect(await file.text()).toContain('id: ERP-001');
+    const file = await fetch(url('/vault/file?path=board/ACME-001-card.md'));
+    expect(await file.text()).toContain('id: ACME-001');
   });
 
   it('stays read-only: non-GET is rejected on both surfaces', async () => {
