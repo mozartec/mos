@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T11:45:00Z
+updated: 2026-06-10T21:55:00Z
 ---
 
 # Decisions (ADRs)
@@ -243,7 +243,7 @@ supersede or extend this ADR.
 
 **Context.** Until now the only way to see a vault rendered was to clone this repo and run
 the dev stack (ADR-006's dev server plus the Angular dev build) with `VAULT_DIR` pointed at
-the folder. F-015 wants the validated web app usable in *any* project — an ERP repo, a
+the folder. F-015 wants the validated web app usable in *any* project — another product repo, a
 notes folder — with one command and no clone. That raises three choices: the runtime the
 command runs on, how the UI and the file endpoints are served together, and how the
 endpoint logic relates to the dev server we already trust.

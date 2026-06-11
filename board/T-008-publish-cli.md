@@ -8,7 +8,7 @@ phase: Phase 2
 owner: mozart
 dependsOn: [F-015, F-016]
 created: 2026-06-10T19:00:00Z
-updated: 2026-06-10T21:18:00Z
+updated: 2026-06-10T21:55:00Z
 ---
 
 # T-008 — CLI packaging hardening and first publish
@@ -20,7 +20,7 @@ workspace" and "anyone can install it", and cuts the first published version.
 
 ## Outcome
 
-A consumer in another repo (e.g. the ERP project) can install the CLI from a registry and
+A consumer in another repo can install the CLI from a registry and
 run `mos init` / `mos serve` with no clone of this repo. The packed artifact is smoke-
 tested (locally and in CI), the package name/registry choice is recorded as an ADR, and
 the first version is published.

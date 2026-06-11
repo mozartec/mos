@@ -1,11 +1,11 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-06-10T11:45:00Z
+updated: 2026-06-10T21:55:00Z
 ---
 
 # Using mos in your project
 
-How to put mos to work in a repo that isn't this one — your app, your notes, your ERP.
+How to put mos to work in a repo that isn't this one — your app, your notes, your team backlog.
 mos has three independently adoptable pieces: the **format** (a folder of markdown plus
 `.mos/config.json` — see [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md)), the **app** that renders
 it, and the **agent skills** that operate it.
