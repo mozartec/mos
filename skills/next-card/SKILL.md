@@ -1,18 +1,19 @@
 ---
 name: next-card
 description: >
-  Pick — and start — the next card to work on from a mos vault's board. Use when the user
-  asks what to do next, what's ready, or to "grab the next task/story/card" in any repo
+  Recommend the next card to work on from a mos vault's board. Use when the user asks
+  what to do next, what's ready, or to "grab the next task/story/card" in any repo
   with a `.mos/config.json`; requires that file and refuses to start without it. It
-  recommends one card with a short rationale, then works it on confirmation. Once a
-  specific card is named, use ship-card instead.
+  recommends one card with a short rationale plus alternatives — shipping the pick is
+  ship-card's job. Once a specific card is named, use ship-card instead.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # next-card
 
-Recommend the single best next card from the board, then do it on confirmation.
+Recommend the single best next card from the board. This skill only suggests —
+building the confirmed pick is ship-card's job.
 
 **Gate first:** this skill only runs inside a mos vault. If there is no `.mos/config.json`
 at or above the working directory, tell the user this isn't a mos vault and stop. All
@@ -52,12 +53,11 @@ Read the nearest `AGENTS.md` too; it holds the vault's working rules.
 
 Present, briefly: the pick (id, title, one-line why), a shortlist of the next 2–3 ready
 cards, and any caveat (everything blocked → name what unblocks it; thin card body → say
-so). The user confirms or redirects in a word.
+so). If the ask points at a container or a big card, steer toward a ready child first —
+but a user who wants the bigger scope can have it. The user confirms or redirects in a
+word.
 
-## 4. Execute on confirmation
+## 4. Hand off on confirmation
 
-If the ship-card skill is installed, hand the confirmed id to it. Otherwise: read the
-card and everything it links, do only what it scopes, honor the vault's constraints, and
-follow the write rules — card edits are frontmatter only, never prose; bump `updated`
-(ISO 8601 UTC) on every edit. Verify the card's Acceptance before calling it done, and
-run the vault's validator if the project has one.
+Hand the confirmed id to the ship-card skill — shipping is its job, not this skill's.
+If ship-card isn't installed, say so and stop at the recommendation.

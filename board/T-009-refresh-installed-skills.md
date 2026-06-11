@@ -2,13 +2,13 @@
 id: T-009
 type: task
 title: Refresh installed skills — single source of discovery
-status: Planned
+status: In Progress
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [F-014]
 created: 2026-06-10T19:55:00Z
-updated: 2026-06-10T19:55:00Z
+updated: 2026-06-11T20:15:58Z
 ---
 
 # T-009 — Refresh installed skills — single source of discovery

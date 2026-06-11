@@ -2,7 +2,7 @@
 """ship_card.py — pre-flight a single mos card before you start shipping it.
 
 Zero dependencies. Run with Python 3:
-    python3 ship_card.py <card-id> [<vaultDir>] [--type <type>] [--json]
+    python3 ship_card.py <card-id> [<vaultDir>] [--json]
     python3 ship_card.py <card-id> --finish   # close the card: status -> Done state,
                                               # bump updated, tick Acceptance boxes
 
@@ -13,7 +13,6 @@ come from .mos/config.json, so it works on any mos vault.
 
 Given a card id it gathers the facts you need before touching git:
   - locates the card file and reads its frontmatter (type, title, status, parent);
-  - validates an explicitly requested --type against the config and the card;
   - computes the branch name from the vault's own type label + the file slug;
   - resolves the card's "Depends on:" ids, parent, and children, printing each one's
     file path and flagging dependencies that aren't done;
@@ -180,16 +179,11 @@ def main():
     as_json = "--json" in args
     as_finish = "--finish" in args
     args = [a for a in args if a not in ("--json", "--finish")]
-    want_type = None
-    if "--type" in args:
-        i = args.index("--type")
-        if i + 1 >= len(args):
-            print("--type needs a value.", file=sys.stderr)
-            sys.exit(2)
-        want_type = args[i + 1]
-        del args[i:i + 2]
-    if not args:
-        print("usage: ship_card.py <card-id> [<vaultDir>] [--type <type>] [--json] [--finish]", file=sys.stderr)
+    unknown = [a for a in args if a.startswith("--")]
+    if unknown or not args:
+        if unknown:
+            print(f"Unknown option(s): {', '.join(unknown)}", file=sys.stderr)
+        print("usage: ship_card.py <card-id> [<vaultDir>] [--json] [--finish]", file=sys.stderr)
         sys.exit(2)
 
     card_id = args[0]
@@ -203,10 +197,6 @@ def main():
     cfg, columns, types, cards = load(vault)
     last = columns[-1] if columns else None
 
-    if want_type and want_type not in types:
-        print(f"Unknown type '{want_type}'. This vault defines: {', '.join(types)}.", file=sys.stderr)
-        sys.exit(1)
-
     # Resolve the requested id; allow a case-insensitive / exact match.
     card = cards.get(card_id)
     if not card:
@@ -218,11 +208,6 @@ def main():
         if near:
             msg += " Did you mean: " + ", ".join(near[:5]) + "?"
         print(msg, file=sys.stderr)
-        sys.exit(1)
-
-    if want_type and card["type"] != want_type:
-        print(f"Type mismatch: {card['id']} is a {card['type']}, not a {want_type}. "
-              "Tell the user and stop.", file=sys.stderr)
         sys.exit(1)
 
     if as_finish:

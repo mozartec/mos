@@ -16,7 +16,7 @@ scripts.
 
 | Skill | What it does |
 |---|---|
-| [`next-card`](next-card/SKILL.md) | Rank the board and recommend the single best next card, then work it on confirmation. |
+| [`next-card`](next-card/SKILL.md) | Rank the board and recommend the single best next card; hands the confirmed pick to ship-card. |
 | [`ship-card`](ship-card/SKILL.md) | Take one named card (any configured type — feature, story, task, …) from id to an open PR. |
 
 ## Conventions for skills in this folder
@@ -27,6 +27,8 @@ scripts.
 - Keep `SKILL.md` short and rule-dense: these run on small models too, so every line has
   to earn its context cost. Project specifics belong in the target vault's `AGENTS.md`
   and docs, not here.
+- Each skill ships `evals/evals.json`. Evals run against the shared fixture vault in
+  [`evals/`](evals/README.md) — never against this repo's live board, which moves.
 
 ## Relation to `.agents/skills/`
 

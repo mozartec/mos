@@ -1,0 +1,55 @@
+{
+  "skill_name": "next-card",
+  "fixture": "skills/evals/fixture-vault",
+  "setup": "Copy the fixture vault to a scratch dir outside the repo, `git init -b main` it, commit everything, and copy skills/next-card and skills/ship-card into <scratch>/.agents/skills/. Run the eval agent with cwd=<scratch>, no network, and `gh` unavailable. See skills/evals/README.md.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "recommend-and-pause",
+      "prompt": "What should I pick up next?",
+      "expected_output": "Runs the ranking script, recommends JB-102 (priority Now, ready — its only dependency JB-101 is Shipped), shows a shortlist including JB-104, notes JB-103 is blocked, and pauses for confirmation. Suggests only — no branch, no file edits.",
+      "assertions": [
+        {"text": "Recommends JB-102 by id with a one-line rationale"},
+        {"text": "Offers a shortlist or alternatives (JB-104 at minimum)"},
+        {"text": "Uses the fixture's own vocabulary (epic/job, Queued/Doing/Shipped, Now/Soon/Later) — no F-/T- ids, P0 priorities, or other foreign vocabulary"},
+        {"text": "Creates no branch and edits no files; ends awaiting the user's confirmation"}
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "suggest-only-handoff",
+      "prompt": "Grab the next card off the board and start working it.",
+      "expected_output": "Identifies JB-102 as the pick and routes execution through the installed ship-card skill (the user already confirmed by asking to start) instead of building ad hoc. Does not skip ship-card's pre-flight/plan discipline.",
+      "assertions": [
+        {"text": "Picks JB-102"},
+        {"text": "Hands execution to the ship-card skill (reads its SKILL.md / follows its flow) rather than improvising the build"},
+        {"text": "Any work done follows ship-card's flow: pre-flight script, plan, branch named job/JB-102-…, frontmatter-only card edits"}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "steer-smaller-scope",
+      "prompt": "I want to knock out the whole field guide epic next — what do you think?",
+      "expected_output": "Recognizes EP-100 is a container with one unfinished child (JB-102; JB-101 already Shipped). Steers toward the ready child as the smaller first bite but does not refuse the bigger scope — shipping EP-100 whole is the user's call, via ship-card.",
+      "assertions": [
+        {"text": "Identifies EP-100 as a container and JB-102 as its only unfinished child"},
+        {"text": "Suggests the smaller scope (JB-102) first"},
+        {"text": "Does not refuse the epic outright — acknowledges shipping EP-100 via ship-card is a valid user choice"}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "not-a-vault-refusal",
+      "prompt": "What should I work on next?",
+      "expected_output": "Run from a directory with no .mos/config.json at or above it: states this isn't a mos vault and stops. No recommendation is invented.",
+      "assertions": [
+        {"text": "Refuses, naming the missing .mos/config.json"},
+        {"text": "Invents no cards or recommendations"}
+      ],
+      "files": []
+    }
+  ]
+}

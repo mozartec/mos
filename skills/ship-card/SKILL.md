@@ -2,12 +2,12 @@
 name: ship-card
 description: >
   Ship one mos board card end-to-end — pre-flight, plan, branch, build, commit, push, open
-  a PR. Use when the user names a card id (optionally with its type) and wants it built:
-  "/ship-card F-004-S-01", "/ship-card feature F-014", "ship T-003", "finish RB-007".
-  Works on any card type the vault's `.mos/config.json` defines; requires that file and
-  refuses to start without it. When no card has been chosen yet, use next-card instead.
+  a PR. Use when the user names a card id and wants it built: "/ship-card F-004-S-01",
+  "ship T-003", "finish RB-007". Works on any card type the vault's `.mos/config.json`
+  defines; requires that file and refuses to start without it. When no card has been
+  chosen yet, use next-card instead.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # ship-card
@@ -19,16 +19,9 @@ at or above the working directory, tell the user this isn't a mos vault and stop
 vocabulary — card types, states, columns — comes from that config. Never assume id
 prefixes, type names, state names, or column names.
 
-## Invocation
-
-```
-/ship-card <id>            # type read from the card's frontmatter
-/ship-card <type> <id>     # type validated against the config and the card
-```
-
-A given type must exist in the config's `types` and match the card; on mismatch, report
-and stop. Any configured type is shippable. A **container card** (other cards point at it
-via `parent:`) is shipped by delivering its unfinished children — they are in scope.
+Invoke with the card id: `/ship-card <id>` — the type comes from the card's frontmatter,
+and any configured type is shippable. A **container card** (other cards point at it via
+`parent:`) is shipped by delivering its unfinished children — they are in scope.
 
 ## 1. Pre-flight
 
@@ -36,7 +29,7 @@ Run the bundled script (it lives in this skill's own `scripts/` folder — resol
 from wherever the skill is installed):
 
 ```bash
-python3 <skill-dir>/scripts/ship_card.py <id> [--type <type>] [--json]
+python3 <skill-dir>/scripts/ship_card.py <id> [--json]
 ```
 
 It locates the card, prints the branch name, resolves parent/dependencies/children with
@@ -60,8 +53,12 @@ the user's calls. If nothing bites, say "no blockers" and continue **without wai
 
 ## 3. Branch and mark In Progress
 
-- If a harness already put you on a work branch, stay on it. Otherwise branch from the
-  up-to-date default branch using the script's name: `<label>/<id>-<slug>`.
+- **If a harness already put you on a work branch, stay on it.** Cloud/GitHub agents are
+  often only allowed to push to the branch they were given — creating another fights
+  permissions and can drop your card edit. The branch name is cosmetic; never switch.
+- Only when starting from the up-to-date default branch, create the name the script
+  printed: `<label>/<id>-<slug>` — the card's type label from the config, lower-cased;
+  the id keeps its casing (e.g. `story/F-004-S-01-render-columns`).
 - Set the card's `status` to the state that maps to an in-progress column and bump
   `updated` (ISO 8601 UTC). Frontmatter only.
 
@@ -77,11 +74,24 @@ card never touched are pre-existing: note them, don't chase them.
 
 1. Run the project's full checks **once** (include the vault validator if it has one).
 2. Close the card: `python3 <skill-dir>/scripts/ship_card.py <id> --finish` — sets the
-   Done status, bumps `updated`, ticks the card's own `## Acceptance` boxes.
-3. Fold that edit into the **final commit**. Use Conventional Commits
-   (`feat(scope): …`); the PR title is one too (squash-merge friendly).
-4. Push and open the PR: the body references the card id and maps each Acceptance bullet
-   to the check that proved it. No `gh`? Give the compare URL instead of blocking.
+   Done status, bumps `updated`, ticks the card's own `## Acceptance` boxes. Always
+   close via the script; never hand-edit the status, timestamp, or boxes.
+3. Fold that edit into the **final commit**. Commits and the PR title are Conventional
+   Commits (squash-merge friendly): `<type>(<area>): <summary>` — `feat` for new
+   behavior (most stories), `fix`, `docs`, `refactor`, `test`, or `chore`/`ci`/`build`
+   for plumbing; breaking changes use `!`.
+4. Write the PR body: reference the card id and map each Acceptance bullet to the check
+   that proved it. When the change has a user-visible surface, add a **How to test**
+   section a reviewer who doesn't know the code can follow — derive it from Acceptance.
+   If the repo has a PR template (`.github/PULL_REQUEST_TEMPLATE.md`, or on Azure DevOps
+   `pull_request_template.md` under `.azuredevops/`, `.vsts/`, `docs/`, or the root),
+   fill its sections — CLI `--body`/`--description` flags bypass the platform's
+   auto-fill, so read the file yourself. Template or not, these sections are a floor,
+   not a ceiling: also record anything review needs — deviations from the card's plan
+   (and why), pre-existing issues you found, what was deliberately left out of scope.
+5. Push and open the PR. If the repo defines labels (`gh label list`), pass the matching
+   area/type ones via `--label`. No `gh` or no network? Still write the full PR body,
+   and hand it back with the compare URL instead of blocking.
 
 ## Write rules (always)
 
