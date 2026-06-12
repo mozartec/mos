@@ -29,7 +29,7 @@ describe('initVault', () => {
       types: Record<string, { states: Record<string, string | null> }>;
       board: { columns: string[] };
     };
-    expect(config.specVersion).toBe('0.3');
+    expect(config.specVersion).toBe('0.4');
     expect(Object.keys(config.types)).toEqual(['feature', 'task']);
     // Every state maps to a configured column (or null = hidden).
     for (const type of Object.values(config.types)) {
