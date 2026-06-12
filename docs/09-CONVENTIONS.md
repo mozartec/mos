@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-13T00:06:00Z
+updated: 2026-06-12T22:15:00Z
 ---
 
 # Conventions
@@ -99,6 +99,24 @@ has the rationale). The workflow rules:
 - **Writing the field is a claim** — declare `[]` only for genuinely surface-free work,
   and omit the field only while the surface isn't known yet (§5c defines how each is
   treated). `bun run validate` is the cheap check that every declared name resolves.
+
+## Review findings
+
+A review finding that isn't fixed in the PR doesn't live in the PR thread — threads
+aren't memory. Give every finding exactly one disposition, recorded where the next
+worker will actually read it:
+
+- **Fix now** — in the same PR.
+- **Record** — as a constraint or plan note on the card that will consume it
+  (refinement of initial-state cards,
+  [ADR-022](08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state)),
+  or a new card when none fits.
+- **Accept** — with the rationale stated in the PR body.
+
+[PR #49](https://github.com/mozartec/mos/pull/49) is the worked example: a
+batch-diagnostics obligation became a constraint on the card that consumes it, an
+ownership question became a plan note on the card that decides it, and the rest were
+fixed or accepted in the PR.
 
 ## Timestamps
 

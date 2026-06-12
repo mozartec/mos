@@ -29,7 +29,7 @@
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/ship-card/SKILL.md",
-      "computedHash": "f02e6e3591a494922a60a9485e8c87f8103bf1ccc4ebc8a50679931bbd4f2cfd"
+      "computedHash": "cb5fcb387f2f971254ec63f834852276e643330d38ed1dbc435b9c9f5903ffc9"
     },
     "turborepo": {
       "source": "vercel/turborepo",
