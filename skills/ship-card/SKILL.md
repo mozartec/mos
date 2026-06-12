@@ -7,7 +7,7 @@ description: >
   defines; requires that file and refuses to start without it. When no card has been
   chosen yet, use next-card instead.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # ship-card
@@ -70,7 +70,26 @@ status or prose, even one that looks done. Iterate with the project's cheap scop
 Acceptance bullet is genuinely verified, stop — no gold-plating. Failures in code the
 card never touched are pre-existing: note them, don't chase them.
 
-## 5. Finish, commit, PR
+## 5. Self-review the diff
+
+Before finishing, read the full diff once as a **reviewer, not the author**. Beyond the
+obvious bug hunt, two checks earn their cost:
+
+- **Generalizations keep their special case's guarantees.** If the build replaced a
+  special case with a general mechanism, list what the special case enforced and verify
+  each behavior is preserved — a test per behavior beats a hopeful diff.
+- **Untested guard code is where regressions land.** If the change touched validation
+  or other guard logic that has no tests, say so in the PR body.
+
+Then give every finding exactly one disposition — none are dropped silently:
+
+1. **Fix now** — in scope and cheap: do it before finishing.
+2. **Record** — where the next worker will actually read it: on the card that will
+   consume the finding, if the vault's write rules allow reshaping that card (never
+   rewrite the prose of decided cards); otherwise a new card; at minimum in the PR body.
+3. **Accept** — with the rationale stated in the PR body.
+
+## 6. Finish, commit, PR
 
 1. Run the project's full checks **once** (include the vault validator if it has one).
 2. Close the card: `python3 <skill-dir>/scripts/ship_card.py <id> --finish` — sets the

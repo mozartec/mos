@@ -46,6 +46,9 @@ for any work, skill or not.)
 - [ ] **Scope held** — you changed only what the task scopes; any card you edited was in scope,
       frontmatter only — the sole prose edit allowed is ticking the card's own `## Acceptance`
       boxes to mark it done (ADR-002) — with `updated` bumped.
+- [ ] **Generalizations keep their guarantees** — if you replaced a special case with a general
+      mechanism, you enumerated what the special case enforced and verified each behavior
+      survived, ideally as a test per behavior.
 - [ ] **You stopped when done** — no gold-plating once acceptance is met and any "when in doubt"
       questions are answered.
 
