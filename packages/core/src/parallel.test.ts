@@ -192,14 +192,21 @@ describe('parallelBatch', () => {
     expect(result.errors).toContain('T-002: touches entry is not an area name (3)');
   });
 
-  it('reuses a caller-provided dependency graph instead of rebuilding', () => {
+  it('honors a caller-provided dependency graph instead of rebuilding one', () => {
     const m = model([
       { id: 'T-001', touches: ['core'] },
       { id: 'T-002', touches: ['web'], dependsOn: ['T-001'] },
     ]);
     const config = makeConfig(AREAS);
-    const graph = buildDependencyGraph(m, config);
-    expect(parallelBatch(m, config, undefined, graph)).toEqual(parallelBatch(m, config));
+    // A graph built from a state where T-001 is already Done: in it, T-002 is
+    // ready and T-001 is not — the opposite of what rebuilding from `m` gives.
+    const doneModel = model([
+      { id: 'T-001', touches: ['core'], status: 'Done' },
+      { id: 'T-002', touches: ['web'], dependsOn: ['T-001'] },
+    ]);
+    const providedGraph = buildDependencyGraph(doneModel, config);
+    expect(parallelBatch(m, config).batch).toEqual(['T-001']);
+    expect(parallelBatch(m, config, undefined, providedGraph).batch).toEqual(['T-002']);
   });
 
   it('degrades to the plain ready set when the vault configures no areas', () => {

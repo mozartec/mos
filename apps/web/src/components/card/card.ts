@@ -96,16 +96,20 @@ export class CardComponent {
         });
       } else if (type === 'enum') {
         if (fieldDef?.list === true || Array.isArray(rawVal)) {
-          const entries = Array.isArray(rawVal) ? rawVal : [rawVal];
+          // Dedup after stringifying: duplicate entries would render twice
+          // and collide as @for track keys.
+          const entries = [
+            ...new Set((Array.isArray(rawVal) ? rawVal : [rawVal]).map((v) => String(v))),
+          ];
           list.push({
             key,
             label,
             value: rawVal,
             type,
             isList: true,
-            listChips: entries.map((v) => ({
-              value: String(v),
-              chipClass: chipClassFor(fieldDef?.valueColors?.[String(v)]),
+            listChips: entries.map((value) => ({
+              value,
+              chipClass: chipClassFor(fieldDef?.valueColors?.[value]),
             })),
             icon,
           });

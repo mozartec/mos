@@ -1,5 +1,5 @@
 {
-  "_note": "Swap-in alternative to config.json that keeps the sprint scope (ADR-020). The app reads only config.json; to use this, replace config.json with it and re-add sprint values to cards (git history has the originals). F-023 migrates this file to the spec 0.4 scopeField form.",
+  "_note": "Swap-in alternative to config.json that keeps the sprint scope (ADR-020). The app reads only config.json; to use this, replace config.json with it and re-add sprint values to cards (git history has the originals). F-023 migrates this file to the spec 0.4 scopeField form. Keep 'areas' and the 'fields' registry mirrored with config.json — cards carry 'touches', so a swap with a stale copy fails validation.",
   "specVersion": "0.4",
   "vault": { "name": "Markdown on Steroids" },
 

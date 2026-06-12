@@ -118,9 +118,9 @@ export function parallelBatch(
   fieldName: string = TOUCHES_FIELD,
   graph: DependencyGraph = buildDependencyGraph(model, config),
 ): ParallelBatchResult {
-  const ready = readySet(graph);
   const errors = [...graph.errors];
-  const candidates = [...ready].sort(compareIdsByPriority(model, config));
+  // readySet returns a fresh array, safe to sort in place.
+  const candidates = readySet(graph).sort(compareIdsByPriority(model, config));
 
   if (Object.keys(config.areas).length === 0) {
     return { batch: candidates, conflicts: [], undeclared: [], errors };
@@ -141,14 +141,15 @@ export function parallelBatch(
       undeclared.push(id);
       continue;
     }
-    const overlaps: BatchConflict[] = [];
+    let conflicted = false;
     for (const [member, memberNames] of claimed) {
       const shared = declared.names.filter((n) => memberNames.includes(n));
-      if (shared.length > 0) overlaps.push({ excluded: id, with: member, areas: shared });
+      if (shared.length > 0) {
+        conflicts.push({ excluded: id, with: member, areas: shared });
+        conflicted = true;
+      }
     }
-    if (overlaps.length > 0) {
-      conflicts.push(...overlaps);
-    } else {
+    if (!conflicted) {
       batch.push(id);
       claimed.set(id, declared.names);
     }
