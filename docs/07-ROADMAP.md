@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T19:10:00Z
 ---
 
 # Roadmap
@@ -67,6 +67,10 @@ run at the same time?" is computed, not guessed
 - **`F-025` Parallel-aware skills.** `next-card` recommends a conflict-free batch of
   ready cards instead of just one; `ship-card` pre-flights a card's `touches` against
   work already in flight.
+- **`F-027` Refine-batch skill.** Explicitly invoked backlog refinement
+  ([ADR-022](08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state)):
+  raise initial-state cards to readiness, fill `touches`, and reshape overlap clusters
+  into sequenced enablers plus parallel-safe leaves.
 
 ## Future — the ecosystem
 

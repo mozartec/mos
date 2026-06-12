@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T19:10:00Z
 ---
 
 # Decisions (ADRs)
@@ -492,3 +492,40 @@ guess. F-024 ships the spec/core/validator pieces, F-025 teaches the skills to r
 batches and pre-flight overlaps, F-026 surfaces collisions on the board. Until git
 verification exists, a wrong declaration still slips through — declared truth bounds the
 plan, not the diff.
+
+## ADR-022 — Backlog refinement may reshape cards that haven't left their initial state
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** The write discipline of
+[ADR-002](#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer) — frontmatter
+only, never rewrite prose — protects decided cards from drift. But it also forbids the
+one upstream activity conflict-aware planning depends on: reshaping not-yet-ready cards
+so parallel-safe batches exist to be picked.
+[ADR-021](#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)
+detects collisions at pick and ship time; it cannot fix a backlog whose cards all pile
+onto one surface. Early-stage repos concentrate work in shared plumbing, and a backlog
+decomposed feature-first yields "independent" cards that every one of them touches —
+batch math then correctly answers "one at a time."
+
+**Decision.** **Refinement** is a distinct, explicitly invoked agent-layer stage that
+applies only to cards still in their type's *initial* state (this vault: `Draft` /
+`Todo` — the first state each type declares in config). During refinement the agent may
+rewrite card prose, split a card, create enabler cards, and set `touches` and
+`dependsOn`. Splits follow the vault's hierarchy where the type allows a parent: an
+oversized card becomes a container with child cards
+([ADR-019](#adr-019--subcards-children-are-the-boards-units)) rather than a scatter of
+siblings, so the split stays legible on the board. The goal is raising cards to the
+cold-start standard
+([ADR-007](#adr-007--the-repository-is-the-memory-cards-target-cold-any-model-agents))
+*and* reshaping overlap clusters into sequenced enablers plus disjoint leaves. Once a
+card leaves its initial state, ADR-002 applies unchanged (the sole prose edit remains
+ticking `## Acceptance` on ship). Refinement never happens as a side effect of picking
+or shipping; it runs only when asked. The packaged form is the refine-batch skill
+(F-027), and the conventions text updates ship with it.
+
+**Consequences.** Backlog *shape* becomes an explicit work product: a refinement pass
+turns "four parallel features that all collide" into "one enabler, then three safe
+leaves." Decided cards keep their no-drift guarantee, and the boundary is mechanical — a
+status check — so any agent can apply it cold. Until F-027 ships, the blanket no-prose
+rule stays in force.
