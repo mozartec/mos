@@ -7,8 +7,9 @@ priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-024]
+touches: [skills]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T20:08:00Z
 ---
 
 # F-025 — Parallel-aware skills — batch picks and overlap pre-flight

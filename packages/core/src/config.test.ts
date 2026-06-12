@@ -79,6 +79,7 @@ describe('loadConfig', () => {
       expect(config.board.sortWithinColumn).toEqual(['priority', 'id']);
       expect(config.wiki.exclude).toEqual([]);
       expect(config.sprints).toEqual([]);
+      expect(config.areas).toEqual({});
       expect(config.fields).toEqual({});
       expect(config.meta.timestamps).toEqual({
         createdField: 'created',
@@ -171,6 +172,23 @@ describe('loadConfig', () => {
       expect(errors.some((e) => /enum source 'doesNotExist' does not resolve/.test(e))).toBe(true);
     });
 
+    it('accepts an enum field sourced from a config map (its keys are the values)', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        areas: { web: ['apps/web/**'] },
+        fields: { touches: { type: 'enum', source: 'areas', list: true } },
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('rejects an area whose value is not a list of glob strings', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        areas: { web: ['apps/web/**'], broken: 'apps/web/**' },
+      });
+      expect(errors.some((e) => /area broken: expected a list of glob strings/.test(e))).toBe(true);
+    });
+
     it('rejects an invalid references.idPattern regex', () => {
       const { errors } = loadConfig({
         board: { columns: ['Done'] },
@@ -245,6 +263,7 @@ describe('fieldOrder (F-013)', () => {
       'parent',
       'estimate',
       'dependsOn',
+      'touches',
       'created',
       'updated',
     ]);

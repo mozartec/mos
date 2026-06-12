@@ -7,8 +7,9 @@ priority: P1
 phase: Phase 3
 owner: mozart
 dependsOn: [F-018]
+touches: [core, web, docs, scripts, config]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T20:08:00Z
 ---
 
 # F-023 — Scoped board & backlog — config-named scope

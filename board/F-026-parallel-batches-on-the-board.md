@@ -7,8 +7,9 @@ priority: P2
 phase: Future
 owner: mozart
 dependsOn: [F-023, F-024]
+touches: [core, web]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T20:08:00Z
 ---
 
 # F-026 — Parallel batches on the board — collision badges and safe-to-start

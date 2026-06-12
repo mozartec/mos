@@ -53,8 +53,15 @@ function parseFrontmatter(text) {
 // The shipped default frontmatter order (F-013); config `fieldOrder` overrides it.
 const DEFAULT_FIELD_ORDER = [
   'id', 'type', 'title', 'status', 'priority', 'phase', 'owner', 'sprint',
-  'parent', 'estimate', 'dependsOn', 'created', 'updated',
+  'parent', 'estimate', 'dependsOn', 'touches', 'created', 'updated',
 ];
+
+// A frontmatter list value: inline `[a, b]` or a bare single value; null when absent.
+function parseList(raw) {
+  if (raw == null || raw === '') return null;
+  const inline = /^\[(.*)\]$/.exec(raw);
+  return inline ? inline[1].split(',').map((s) => s.trim()).filter(Boolean) : [raw];
+}
 
 function validateVault(root) {
   const errors = [];
@@ -118,13 +125,14 @@ function validateVault(root) {
     // Every id in a list-of-id field (e.g. dependsOn, F-012-S-01) must resolve to a card.
     for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
       if (def?.type !== 'id' || def?.list !== true) continue;
-      const raw = c[fieldName];
-      if (raw == null || raw === '' || raw === '[]') continue;
-      const inline = /^\[(.*)\]$/.exec(raw);
-      const ids = inline ? inline[1].split(',').map((s) => s.trim()).filter(Boolean) : [raw];
-      for (const id of ids) {
+      for (const id of parseList(c[fieldName]) ?? []) {
         if (!cards[id]) errors.push(`${c.id}: ${fieldName} '${id}' does not resolve to a card`);
       }
+    }
+    // Every declared touches entry must name a configured area (F-024, ADR-021).
+    for (const name of parseList(c.touches) ?? []) {
+      if (!Object.hasOwn(cfg.areas ?? {}, name))
+        errors.push(`${c.id}: touches '${name}' names no configured area`);
     }
     // Frontmatter property order (F-013): a warning, never an error.
     const fieldOrder = Array.isArray(cfg.fieldOrder) ? cfg.fieldOrder : DEFAULT_FIELD_ORDER;
@@ -132,6 +140,26 @@ function validateVault(root) {
     const expected = fieldOrder.filter((k) => present.includes(k));
     if (present.join(' ') !== expected.join(' '))
       warnings.push(`${c.id}: frontmatter keys out of order (expected ${expected.join(', ')})`);
+  }
+
+  // Two cards concurrently in flight — in the column before the last, the
+  // counterpart of "last column is done" — that declare overlapping areas are
+  // heading for the same files (F-024, ADR-021). A warning, never an error.
+  const inFlightCol = columns.length >= 3 ? columns[columns.length - 2] : null;
+  if (inFlightCol != null) {
+    const inFlight = Object.values(cards)
+      .filter((c) => types[c.type].states[c.status] === inFlightCol)
+      .map((c) => ({ id: c.id, areas: parseList(c.touches) ?? [] }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    for (let i = 0; i < inFlight.length; i++) {
+      for (let j = i + 1; j < inFlight.length; j++) {
+        const shared = inFlight[i].areas.filter((a) => inFlight[j].areas.includes(a));
+        if (shared.length)
+          warnings.push(
+            `${inFlight[i].id} and ${inFlight[j].id}: both in '${inFlightCol}' and declare overlapping area(s): ${shared.join(', ')}`,
+          );
+      }
+    }
   }
 
   const rank = { P0: 0, P1: 1, P2: 2, P3: 3 };

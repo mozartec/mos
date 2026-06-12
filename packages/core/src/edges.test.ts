@@ -17,6 +17,7 @@ const config: VaultConfig = {
     task: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
   },
   sprints: [],
+  areas: {},
   fieldOrder: [],
 };
 
