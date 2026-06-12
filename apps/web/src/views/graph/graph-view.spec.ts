@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import type { VaultSource } from '@mos/core';
 import { GraphView } from './graph-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
+import { InMemoryVaultSource, settle } from '../../testing/test-helpers';
 
 const TEST_CONFIG = JSON.stringify({
   specVersion: '0.3',
@@ -44,25 +44,9 @@ function makeCard(id: string, status: string, dependsOn: string[] = []): string 
   ].join('\n');
 }
 
-class TestVaultSource implements VaultSource {
-  constructor(private readonly files: Record<string, string>) {}
-  listFiles(): Promise<string[]> {
-    return Promise.resolve(Object.keys(this.files));
-  }
-  readFile(path: string): Promise<string> {
-    const content = this.files[path];
-    return content === undefined
-      ? Promise.reject(new Error(`No such file: ${path}`))
-      : Promise.resolve(content);
-  }
-  watch(): () => void {
-    return () => undefined;
-  }
-}
-
 describe('GraphView', () => {
   async function createGraph(extraFiles: Record<string, string> = {}) {
-    const source = new TestVaultSource({
+    const source = new InMemoryVaultSource({
       '.mos/config.json': TEST_CONFIG,
       ...extraFiles,
     });
@@ -71,11 +55,7 @@ describe('GraphView', () => {
       providers: [provideRouter([]), { provide: VAULT_SOURCE, useValue: source }],
     }).compileComponents();
     const fixture = TestBed.createComponent(GraphView);
-    for (let i = 0; i < 5; i++) {
-      await fixture.whenStable();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    fixture.detectChanges();
+    await settle(fixture);
     return fixture;
   }
 

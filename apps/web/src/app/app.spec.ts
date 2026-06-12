@@ -1,33 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import type { VaultSource } from '@mos/core';
 import { App } from './app';
 import { routes } from './app.routes';
 import { StaticVaultSource } from '../sources/static-vault-source';
 import { VAULT_SOURCE } from '../sources/vault-source.token';
+import { InMemoryVaultSource, settle } from '../testing/test-helpers';
 
-/** A source that serves only a vault config with the given name. */
-class ConfigOnlySource implements VaultSource {
-  constructor(private readonly name: string) {}
-  listFiles(): Promise<string[]> {
-    return Promise.resolve(['.mos/config.json']);
-  }
-  readFile(path: string): Promise<string> {
-    return path === '.mos/config.json'
-      ? Promise.resolve(JSON.stringify({ specVersion: '0.3', vault: { name: this.name } }))
-      : Promise.reject(new Error(`No such file: ${path}`));
-  }
-  watch(): () => void {
-    return () => undefined;
-  }
-}
-
-async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges(): void }) {
-  for (let i = 0; i < 3; i++) {
-    await fixture.whenStable();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  }
-  fixture.detectChanges();
+/** A source serving only a vault config with the given name. */
+function configOnlySource(name: string): InMemoryVaultSource {
+  return new InMemoryVaultSource({
+    '.mos/config.json': JSON.stringify({ specVersion: '0.3', vault: { name } }),
+  });
 }
 
 describe('App', () => {
@@ -58,20 +41,28 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter(routes),
-        { provide: VAULT_SOURCE, useValue: new ConfigOnlySource('Recipe Box') },
+        { provide: VAULT_SOURCE, useValue: configOnlySource('Recipe Box') },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(App);
     await settle(fixture);
     const header = (fixture.nativeElement as HTMLElement).querySelector('header');
     expect(header?.textContent).toContain('Recipe Box');
+    // The configured name carries the brand; the product mark stays alongside.
+    expect(header?.textContent).toContain('mos');
   });
 
   it('falls back to the product name when the vault has no config', async () => {
     // StaticVaultSource (from beforeEach) serves no .mos/config.json.
     const fixture = TestBed.createComponent(App);
     await settle(fixture);
-    const brand = (fixture.nativeElement as HTMLElement).querySelector('header .navbar-start');
+    const el = fixture.nativeElement as HTMLElement;
+    const brand = el.querySelector('header .navbar-start');
     expect(brand?.textContent?.trim()).toBe('mos');
+    // The brand already says "mos", so the duplicate product mark is hidden.
+    const marks = Array.from(el.querySelectorAll('header span')).filter(
+      (s) => s.textContent?.trim() === 'mos',
+    );
+    expect(marks).toHaveLength(1);
   });
 });

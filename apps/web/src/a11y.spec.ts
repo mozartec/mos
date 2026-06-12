@@ -2,13 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import type { Type } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import axe from 'axe-core';
-import type { VaultSource } from '@mos/core';
 import { App } from './app/app';
 import { BoardView } from './views/board/board-view';
 import { GraphView } from './views/graph/graph-view';
 import { ReaderView } from './views/reader/reader-view';
 import { WikiView } from './views/wiki/wiki-view';
 import { VAULT_SOURCE } from './sources/vault-source.token';
+import { InMemoryVaultSource, settle } from './testing/test-helpers';
 
 /**
  * AXE checks for every lens, with the document carrying each registered theme
@@ -55,35 +55,27 @@ const TEST_FILES: Record<string, string> = {
     '---\nid: T-002\ntype: task\ntitle: Second task\nstatus: In Progress\npriority: P1\ndependsOn: [T-001]\n---\n\n# T-002\n',
 };
 
-class StubVaultSource implements VaultSource {
-  listFiles(): Promise<string[]> {
-    return Promise.resolve(Object.keys(TEST_FILES));
-  }
-  readFile(path: string): Promise<string> {
-    const content = TEST_FILES[path];
-    return content === undefined
-      ? Promise.reject(new Error(`No such file: ${path}`))
-      : Promise.resolve(content);
-  }
-  watch(): () => void {
-    return () => undefined;
-  }
-}
-
-async function renderAndAudit(component: Type<unknown>, theme: string): Promise<void> {
+async function renderAndAudit(
+  component: Type<unknown>,
+  theme: string,
+  loadedMarker: string,
+): Promise<void> {
   await TestBed.configureTestingModule({
     imports: [component],
-    providers: [provideRouter([]), { provide: VAULT_SOURCE, useClass: StubVaultSource }],
+    providers: [
+      provideRouter([]),
+      { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(TEST_FILES) },
+    ],
   }).compileComponents();
 
   document.documentElement.dataset['theme'] = theme;
   const fixture = TestBed.createComponent(component);
-  // Drain the async vault loads the views kick off on creation.
-  for (let i = 0; i < 5; i++) {
-    await fixture.whenStable();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  }
-  fixture.detectChanges();
+  await settle(fixture);
+
+  // Guard against auditing the loading/skeleton state: the audit only counts
+  // once the view provably rendered its content.
+  const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+  expect(text).toContain(loadedMarker);
 
   const results = await axe.run(fixture.nativeElement as HTMLElement, {
     rules: { 'color-contrast': { enabled: false } },
@@ -98,18 +90,20 @@ describe('AXE accessibility audit', () => {
     delete document.documentElement.dataset['theme'];
   });
 
-  const views: [string, Type<unknown>][] = [
-    ['app shell', App],
-    ['wiki', WikiView],
-    ['board', BoardView],
-    ['graph', GraphView],
-    ['reader', ReaderView],
+  // Each view's marker is text that only exists once its data has loaded
+  // (the reader, opened without a path, legitimately audits its empty state).
+  const views: [string, Type<unknown>, string][] = [
+    ['app shell', App, 'A11y Test Vault'],
+    ['wiki', WikiView, 'welcome.md'],
+    ['board', BoardView, 'T-001'],
+    ['graph', GraphView, 'T-002'],
+    ['reader', ReaderView, 'No file selected'],
   ];
 
   for (const theme of ['mos-paper', 'mos-carbon']) {
-    for (const [name, component] of views) {
+    for (const [name, component, loadedMarker] of views) {
       it(`${name} has no AXE violations under ${theme}`, async () => {
-        await renderAndAudit(component, theme);
+        await renderAndAudit(component, theme, loadedMarker);
       });
     }
   }

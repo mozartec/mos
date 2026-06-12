@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 /**
  * Guards the Ink & Highlight design system (docs/13-DESIGN_SYSTEM.md, ADR-016)
@@ -11,7 +11,9 @@ import { dirname, resolve } from 'node:path';
  * - `mos-paper`/`mos-carbon` are the only registered themes and stay
  *   token-identical to the design doc;
  * - every text-bearing token pair meets WCAG AA (4.5:1), computed from the
- *   oklch values, in both themes.
+ *   oklch values, in both themes;
+ * - raw Tailwind palette classes appear nowhere outside the sanctioned
+ *   card-color ramp in card-style.ts.
  */
 
 /** Resolve a repo-root-relative path by walking up from the test runner's cwd. */
@@ -29,13 +31,18 @@ function repoFile(relativePath: string): string {
 const stylesCss = readFileSync(repoFile('apps/web/src/styles.css'), 'utf8');
 const designDoc = readFileSync(repoFile('docs/13-DESIGN_SYSTEM.md'), 'utf8');
 
-/** Every `@plugin 'daisyui/theme' { … }` block in a stylesheet, keyed by name. */
+/**
+ * Every `@plugin 'daisyui/theme' { … }` block in a stylesheet, keyed by name.
+ * Tolerant of formatter churn: comments are stripped first, quotes may be
+ * single or double, whitespace is free-form.
+ */
 function themeBlocks(source: string): Record<string, string> {
+  const noComments = source.replace(/\/\*[\s\S]*?\*\//g, '');
   const blocks: Record<string, string> = {};
-  const re = /@plugin 'daisyui\/theme' \{([^}]*)\}/g;
-  for (const match of source.matchAll(re)) {
+  const re = /@plugin\s+['"]daisyui\/theme['"]\s*\{([^}]*)\}/g;
+  for (const match of noComments.matchAll(re)) {
     const body = match[1];
-    const name = /name: '([^']+)'/.exec(body)?.[1];
+    const name = /name:\s*['"]([^'"]+)['"]/.exec(body)?.[1];
     if (name) blocks[name] = body;
   }
   return blocks;
@@ -54,7 +61,7 @@ describe('dark: variant re-key (ADR-016)', () => {
   it('keys dark: on data-theme=mos-carbon, not the OS scheme', () => {
     const line = stylesCss.split('\n').find((l) => l.includes('@custom-variant dark'));
     expect(line).toBeDefined();
-    expect(line).toContain("[data-theme='mos-carbon']");
+    expect(line).toMatch(/\[data-theme=['"]mos-carbon['"]\]/);
     expect(line).not.toContain('prefers-color-scheme');
   });
 
@@ -65,7 +72,7 @@ describe('dark: variant re-key (ADR-016)', () => {
 
 describe('theme registration', () => {
   it('disables the daisyUI built-in themes', () => {
-    expect(stylesCss).toMatch(/@plugin 'daisyui' \{\s*themes: false;\s*\}/);
+    expect(stylesCss).toMatch(/@plugin\s+['"]daisyui['"]\s*\{\s*themes:\s*false;?\s*\}/);
   });
 
   it('registers exactly mos-paper and mos-carbon', () => {
@@ -74,10 +81,10 @@ describe('theme registration', () => {
 
   it('makes mos-paper the default and mos-carbon the OS-dark pick', () => {
     const blocks = themeBlocks(stylesCss);
-    expect(blocks['mos-paper']).toContain('default: true');
-    expect(blocks['mos-paper']).toContain("color-scheme: 'light'");
-    expect(blocks['mos-carbon']).toContain('prefersdark: true');
-    expect(blocks['mos-carbon']).toContain("color-scheme: 'dark'");
+    expect(blocks['mos-paper']).toMatch(/default:\s*true/);
+    expect(blocks['mos-paper']).toMatch(/color-scheme:\s*['"]?light/);
+    expect(blocks['mos-carbon']).toMatch(/prefersdark:\s*true/);
+    expect(blocks['mos-carbon']).toMatch(/color-scheme:\s*['"]?dark/);
   });
 
   it('stays token-identical to docs/13-DESIGN_SYSTEM.md', () => {
@@ -117,7 +124,7 @@ describe('WCAG AA contrast of the theme tokens', () => {
   }
 
   function parseOklch(value: string): [number, number, number] {
-    const match = /oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/.exec(value);
+    const match = /oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*\)/.exec(value);
     if (!match) throw new Error(`not an oklch literal: ${value}`);
     return [Number(match[1]) / 100, Number(match[2]), Number(match[3])];
   }
@@ -158,4 +165,26 @@ describe('WCAG AA contrast of the theme tokens', () => {
       }
     });
   }
+});
+
+describe('semantic tokens only (ADR-016)', () => {
+  // The curated card-color ramp is the one sanctioned use of raw Tailwind
+  // palette classes; specs may quote them to test that mapping. Everything
+  // else must go through daisyUI semantic tokens.
+  const RAW_PALETTE =
+    /\b(?:bg|text|border|border-[lrtbxy]|from|via|to|ring|outline|fill|stroke|decoration|divide|caret|shadow)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d+(?:\/\d+)?/g;
+
+  it('keeps raw Tailwind palette classes out of everything but card-style.ts', () => {
+    const srcDir = repoFile('apps/web/src');
+    const offenders: string[] = [];
+    for (const entry of readdirSync(srcDir, { recursive: true }) as string[]) {
+      if (!/\.(ts|html|css)$/.test(entry)) continue;
+      if (entry.endsWith('card-style.ts') || entry.endsWith('.spec.ts')) continue;
+      const content = readFileSync(join(srcDir, entry), 'utf8');
+      for (const match of content.matchAll(RAW_PALETTE)) {
+        offenders.push(`${entry}: ${match[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });

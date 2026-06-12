@@ -35,7 +35,11 @@
         </a>
       </nav>
 
-      <span class="font-mono text-sm font-medium tracking-wider text-base-content/50">mos</span>
+      @if (showProductMark()) {
+        <span class="font-mono text-sm font-medium tracking-wider text-base-content/50">
+          {{ productName }}
+        </span>
+      }
       <button
         type="button"
         class="btn btn-circle btn-ghost"

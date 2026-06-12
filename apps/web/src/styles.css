@@ -110,6 +110,14 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Hairline panel — the raised-surface idiom (design system §Shape): base-100
+   surface separated by a hairline border, never a resting shadow. */
+.panel-hairline {
+  border-radius: var(--radius-box);
+  border: 1px solid var(--color-base-300);
+  background-color: var(--color-base-100);
+}
+
 /* Baseline focus ring for everything interactive (design system §Focus).
    :where() keeps specificity at zero so any component-level focus utility
    still wins. */

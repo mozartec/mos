@@ -20,7 +20,7 @@
       @if (bodyError()) {
         <p role="alert" class="text-error">{{ bodyError() }}</p>
       } @else {
-        <section class="rounded-box border border-base-300 bg-base-100 p-4">
+        <section class="panel-hairline p-4">
           <app-markdown-reader
             [body]="body()"
             [model]="model()"

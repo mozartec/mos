@@ -3,6 +3,7 @@ import { Router, provideRouter } from '@angular/router';
 import type { VaultSource } from '@mos/core';
 import { BoardView, paramToSprintFilter, sprintFilterToParam } from './board-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
+import { InMemoryVaultSource, settle } from '../../testing/test-helpers';
 
 /** Minimal config with three columns and two card types. */
 const TEST_CONFIG = JSON.stringify({
@@ -54,54 +55,11 @@ function makeCard(
   return lines.join('\n');
 }
 
-class TestVaultSource implements VaultSource {
-  /** Paths handed to readFile, for re-parse accounting. */
-  readonly readPaths: string[] = [];
-  /** How many watch subscriptions have been disposed. */
-  unwatchedCount = 0;
-  private readonly watchers: ((path: string) => void)[] = [];
-
-  constructor(readonly files: Record<string, string>) {}
-
-  listFiles(): Promise<string[]> {
-    return Promise.resolve(Object.keys(this.files));
-  }
-
-  readFile(path: string): Promise<string> {
-    this.readPaths.push(path);
-    const content = this.files[path];
-    return content === undefined
-      ? Promise.reject(new Error(`No such file: ${path}`))
-      : Promise.resolve(content);
-  }
-
-  watch(onChange: (path: string) => void): () => void {
-    this.watchers.push(onChange);
-    return () => {
-      this.unwatchedCount++;
-    };
-  }
-
-  /** Simulate a file-change event from the dev-server watcher. */
-  emit(path: string): void {
-    for (const watcher of this.watchers) watcher(path);
-  }
-}
-
 describe('BoardView', () => {
-  let lastSource: TestVaultSource;
-
-  /** Drain the queued microtask/macrotask rounds of async work. */
-  async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges(): void }) {
-    for (let i = 0; i < 5; i++) {
-      await fixture.whenStable();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    fixture.detectChanges();
-  }
+  let lastSource: InMemoryVaultSource;
 
   async function createBoard(extraFiles: Record<string, string> = {}) {
-    const source = new TestVaultSource({
+    const source = new InMemoryVaultSource({
       '.mos/config.json': TEST_CONFIG,
       ...extraFiles,
     });

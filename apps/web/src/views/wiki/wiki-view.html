@@ -7,7 +7,7 @@
   <div class="mt-3 grid gap-3 lg:grid-cols-[22rem_1fr]">
     <!-- File tree -->
     <nav aria-label="File tree">
-      <ul class="h-fit w-full rounded-box border border-base-300 bg-base-100 p-2" role="tree">
+      <ul class="panel-hairline h-fit w-full p-2" role="tree">
         @for (entry of visibleEntries(); track entryKey($index, entry)) {
           @if (entry.kind === 'folder') {
             <button
@@ -60,7 +60,7 @@
     </nav>
 
     <!-- File reader -->
-    <section class="rounded-box border border-base-300 bg-base-100 p-4">
+    <section class="panel-hairline p-4">
       @if (selectedPath()) {
         <h3 class="mb-3 font-mono text-sm text-base-content/70">{{ selectedPath() }}</h3>
         <app-markdown-reader

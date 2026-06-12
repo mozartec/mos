@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { loadConfig } from '@mos/core';
@@ -6,6 +6,9 @@ import { ThemeService } from '../services/theme-service';
 import { VAULT_SOURCE } from '../sources/vault-source.token';
 import { IconComponent } from '../components/icon/icon';
 import { IconMoon, IconSun } from '../icons/tabler-icons.generated';
+
+/** The product name, shown when a vault doesn't bring its own. */
+const PRODUCT_NAME = 'mos';
 
 @Component({
   selector: 'app-root',
@@ -27,6 +30,10 @@ export class App {
    */
   protected readonly vaultName = signal<string | null>(null);
 
+  /** The "mos" mark would stutter next to a brand that already says it. */
+  protected readonly showProductMark = computed(() => this.vaultName() !== PRODUCT_NAME);
+  protected readonly productName = PRODUCT_NAME;
+
   protected readonly iconSun = IconSun;
   protected readonly iconMoon = IconMoon;
 
@@ -41,10 +48,10 @@ export class App {
           this.title.setTitle(name);
           this.vaultName.set(name);
         } else {
-          this.vaultName.set('mos');
+          this.vaultName.set(PRODUCT_NAME);
         }
       })
-      .catch(() => this.vaultName.set('mos'));
+      .catch(() => this.vaultName.set(PRODUCT_NAME));
   }
 
   protected toggleTheme(): void {
