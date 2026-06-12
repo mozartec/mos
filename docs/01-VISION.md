@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Vision
@@ -30,7 +30,8 @@ mos is a local-first desktop tool that puts two read-only lenses over a folder o
 markdown you own:
 
 - a **wiki** for reading and navigating the project, and
-- a **board** for seeing the work — features, stories, tasks — by status and sprint.
+- a **board** for seeing the work — features, stories, tasks — by status, grouped however
+  the vault chooses.
 
 The folder is the single source of truth. There is no database and no cloud. Creating
 and updating work happens through your AI assistant, which edits the markdown directly,
@@ -40,7 +41,8 @@ guided by a convention file in the vault. mos renders; the agent writes.
 
 Solo developers and very small teams who already work alongside an AI, want their plan to
 stay as portable plain files under their own git history, and want a visual board without
-adopting a heavyweight tracker.
+adopting a heavyweight tracker. The personas behind every design call are drawn out in
+[`14-PERSONAS.md`](14-PERSONAS.md).
 
 ## What success looks like
 

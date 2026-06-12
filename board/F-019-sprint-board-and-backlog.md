@@ -2,13 +2,13 @@
 id: F-019
 type: feature
 title: Sprint board & backlog — one sprint at a time
-status: Draft
+status: Dropped
 priority: P1
 phase: Phase 3
 owner: mozart
 dependsOn: [F-018]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-11T23:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-019 — Sprint board & backlog — one sprint at a time

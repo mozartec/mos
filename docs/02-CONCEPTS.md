@@ -1,11 +1,11 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Core concepts
 
-A small vocabulary runs through the whole project. Get these five terms and the rest of
+A small vocabulary runs through the whole project. Get these terms and the rest of
 the docs read easily.
 
 ## Vault
@@ -40,8 +40,18 @@ level only, for now), and which fields to show on the card. mos hardcodes no typ
 `feature`, `story`, and `task` are just the defaults this repo happens to use. Another
 project could define `epic`, `bug`, and `chore` instead.
 
-## Sprint
+## Scope
 
-A short code (e.g. `S1`) on a card that groups it into a planning period. The board can
-filter by sprint. A card with no sprint is backlog. Sprints are deliberately simple;
-date-based scheduling is a future idea, not part of the model today.
+An optional grouping the vault can put on the board — named by the vault, not by mos. A
+config-designated field (a team might call it `sprint`, `cycle`, or `iteration`) scopes
+the board to one group at a time, and its values may carry dates. A card with an empty
+scope value is backlog. Vaults that pace work by parallel capacity instead of time-boxes
+simply don't define one
+([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint)).
+
+## Area
+
+A named set of paths declared in config (e.g. `"web"` → `apps/web/**`). A card lists the
+areas it expects to change in its `touches` field, which is what lets planning pick
+**parallel batches** — ready cards that won't collide in the same files
+([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).

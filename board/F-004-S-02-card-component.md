@@ -5,12 +5,11 @@ title: Card component showing type fields
 status: Done
 priority: P0
 owner: mozart
-sprint: S2
 parent: F-004
 estimate: S
 dependsOn: [F-001-S-02, F-002-S-01]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-004-S-02 — Card component showing type fields

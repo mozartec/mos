@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Conventions
@@ -75,7 +75,7 @@ skipped.
 ## Priority and phase
 
 - Priority: `P0` (MVP-critical) · `P1` (next) · `P2` (later) · `P3` (someday).
-- Phase: `MVP` · `Phase 2` · `Future`.
+- Phase: `MVP` · `Phase 2` · `Phase 3` · `Phase 4` · `Future`.
 
 ## Timestamps
 

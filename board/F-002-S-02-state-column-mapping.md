@@ -5,12 +5,11 @@ title: Apply the type state-to-column mapping
 status: Done
 priority: P0
 owner: mozart
-sprint: S2
 parent: F-002
 estimate: M
 dependsOn: [F-002-S-01]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-002-S-02 — Apply the type state→column mapping

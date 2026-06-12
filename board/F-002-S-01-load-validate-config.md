@@ -5,12 +5,11 @@ title: Load and validate .mos/config.json
 status: Done
 priority: P0
 owner: mozart
-sprint: S1
 parent: F-002
 estimate: S
 dependsOn: [T-001]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-002-S-01 — Load and validate .mos/config.json
