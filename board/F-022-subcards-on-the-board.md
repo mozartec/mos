@@ -7,8 +7,9 @@ priority: P2
 phase: Phase 3
 owner: mozart
 dependsOn: [F-023, F-021]
+touches: [core, web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T20:08:00Z
 ---
 
 # F-022 — Subcards on the board — leaves in columns, containers as progress

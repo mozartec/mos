@@ -7,8 +7,9 @@ priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-024]
+touches: [skills]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-13T00:08:00Z
 ---
 
 # F-025 — Parallel-aware skills — batch picks and overlap pre-flight
@@ -59,6 +60,13 @@ independently planned tasks meet again as merge conflicts.
   analysis.
 - **Degrade, don't demand:** vaults without `areas` keep today's behavior plus an
   honest caveat — no new required config.
+- **Surface batch diagnostics, never just the picks** (review of
+  [PR #49](https://github.com/mozartec/mos/pull/49)): a `dependsOn` id that resolves to
+  no card does **not** block readiness — the edge is dropped and reported only in the
+  batch result's `errors` (see `parallelBatch` in
+  [`packages/core/src/parallel.ts`](../packages/core/src/parallel.ts)) — and malformed
+  `touches` entries land there too. Batch mode and pre-flight must print these
+  diagnostics alongside the picks, not swallow them.
 - **Source of truth:** change [`skills/`](../skills/README.md), then reinstall;
   installed copies under `.agents/skills/` are never edited directly (T-009).
 

@@ -8,7 +8,7 @@
  * Sorting within a column uses priority rank (P0, P1, P2, P3) then card id.
  */
 
-import type { Card, VaultConfig } from './index.js';
+import type { Card, VaultConfig, VaultModel } from './index.js';
 
 /**
  * Result of placing a card on the board: the column it belongs in (or `null`
@@ -82,6 +82,24 @@ export function getPriorityRank(config: VaultConfig): readonly string[] {
     return priorityField.values;
   }
   return DEFAULT_PRIORITY_RANK;
+}
+
+/**
+ * Comparator factory: order card ids by the config-driven priority rank, then
+ * id — the shared tie-break behind the graph layout's within-rank order and
+ * the parallel batch's pick order. Unknown priorities sort last.
+ */
+export function compareIdsByPriority(
+  model: VaultModel,
+  config: VaultConfig,
+): (a: string, b: string) => number {
+  const priorityRank = getPriorityRank(config);
+  const index = new Map(priorityRank.map((p, i) => [p, i]));
+  return (a, b) => {
+    const pa = index.get(model.cards[a]?.priority ?? '') ?? priorityRank.length;
+    const pb = index.get(model.cards[b]?.priority ?? '') ?? priorityRank.length;
+    return pa - pb || a.localeCompare(b);
+  };
 }
 
 /**

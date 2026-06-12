@@ -35,17 +35,33 @@ function walk(dir, acc = []) {
   return acc;
 }
 
+function unquote(v) {
+  return (v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))
+    ? v.slice(1, -1)
+    : v;
+}
+
 function parseFrontmatter(text) {
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
   if (!m) return null;
   const obj = {};
-  for (const line of m[1].split(/\r?\n/)) {
-    const mm = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(line);
+  const lines = m[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const mm = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(lines[i]);
     if (!mm) continue;
-    let v = mm[2].trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
-      v = v.slice(1, -1);
-    obj[mm[1]] = v;
+    const v = mm[2].trim();
+    if (v === '') {
+      // A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
+      //   key:
+      //     - entry
+      const items = [];
+      for (let item; i + 1 < lines.length && (item = /^\s*-\s*(.*)$/.exec(lines[i + 1])); i++) {
+        items.push(unquote(item[1].trim()));
+      }
+      obj[mm[1]] = items.length > 0 ? items : v;
+    } else {
+      obj[mm[1]] = unquote(v);
+    }
   }
   return obj;
 }
@@ -53,8 +69,31 @@ function parseFrontmatter(text) {
 // The shipped default frontmatter order (F-013); config `fieldOrder` overrides it.
 const DEFAULT_FIELD_ORDER = [
   'id', 'type', 'title', 'status', 'priority', 'phase', 'owner', 'sprint',
-  'parent', 'estimate', 'dependsOn', 'created', 'updated',
+  'parent', 'estimate', 'dependsOn', 'touches', 'created', 'updated',
 ];
+
+// A frontmatter list value, deduped: a block list (already an array from
+// parseFrontmatter), an inline `[a, b]` — entries may be quoted, but a quoted
+// entry containing a comma is beyond this interim parser — or a bare single
+// value; null when absent.
+function parseList(raw) {
+  if (raw == null || raw === '') return null;
+  if (Array.isArray(raw)) return [...new Set(raw)];
+  const inline = /^\[(.*)\]$/.exec(raw);
+  const items = inline
+    ? inline[1].split(',').map((s) => unquote(s.trim())).filter(Boolean)
+    : [raw];
+  return [...new Set(items)];
+}
+
+// Values an enum `source` supplies: a config list's entries, or a config map's keys.
+function sourceValues(cfg, source) {
+  if (typeof source !== 'string' || !Object.hasOwn(cfg, source)) return null;
+  const src = cfg[source];
+  if (Array.isArray(src)) return src;
+  if (src !== null && typeof src === 'object') return Object.keys(src);
+  return null;
+}
 
 function validateVault(root) {
   const errors = [];
@@ -83,14 +122,31 @@ function validateVault(root) {
     }
   }
 
+  // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
+  // declared `values` list, the resolved source, or — when the declared
+  // source names no config key — the empty set, so every declared value is
+  // flagged rather than the whole check silently skipped.
+  const listEnumAllowed = new Map();
+  for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
+    if (def?.type !== 'enum' || def?.list !== true) continue;
+    const allowed =
+      Array.isArray(def.values) && def.values.length > 0
+        ? def.values
+        : def.source !== undefined
+          ? (sourceValues(cfg, def.source) ?? [])
+          : null;
+    if (allowed != null)
+      listEnumAllowed.set(fieldName, { allowed: new Set(allowed), source: def.source });
+  }
+
   const cards = {};
   for (const f of walk(root).filter((f) => f.endsWith('.md'))) {
     const rel = relative(root, f).split(sep).join('/');
     if (!includes.some((re) => re.test(rel))) continue;
     const data = parseFrontmatter(readFileSync(f, 'utf8'));
     if (!data || !types[data.type]) continue; // not a card
-    if (!data.id) {
-      errors.push(`${rel}: card has no id`);
+    if (!data.id || typeof data.id !== 'string') {
+      errors.push(`${rel}: card has no scalar id`);
       continue;
     }
     if (cards[data.id]) errors.push(`duplicate id '${data.id}' (${rel})`);
@@ -102,7 +158,9 @@ function validateVault(root) {
     if (!(c.status in t.states))
       errors.push(`${c.id}: status '${c.status}' not allowed for type '${c.type}'`);
     if (c.parent != null) {
-      if (t.parent == null) errors.push(`${c.id}: type '${c.type}' may not have a parent`);
+      if (typeof c.parent !== 'string')
+        errors.push(`${c.id}: parent is not a single id`);
+      else if (t.parent == null) errors.push(`${c.id}: type '${c.type}' may not have a parent`);
       else if (!cards[c.parent]) errors.push(`${c.id}: parent '${c.parent}' not found`);
       else if (cards[c.parent].type !== t.parent)
         errors.push(
@@ -112,18 +170,35 @@ function validateVault(root) {
     for (const field of tsFields) {
       const v = c[field];
       if (v == null || v === '') continue; // timestamps are optional
-      if (!UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
+      if (typeof v !== 'string' || !UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
         errors.push(`${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`);
     }
     // Every id in a list-of-id field (e.g. dependsOn, F-012-S-01) must resolve to a card.
     for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
       if (def?.type !== 'id' || def?.list !== true) continue;
-      const raw = c[fieldName];
-      if (raw == null || raw === '' || raw === '[]') continue;
-      const inline = /^\[(.*)\]$/.exec(raw);
-      const ids = inline ? inline[1].split(',').map((s) => s.trim()).filter(Boolean) : [raw];
-      for (const id of ids) {
+      for (const id of parseList(c[fieldName]) ?? []) {
         if (!cards[id]) errors.push(`${c.id}: ${fieldName} '${id}' does not resolve to a card`);
+      }
+    }
+    // Every value of a list-enum field must come from its declared values or
+    // source — the list analogue of the id check above (F-024, ADR-021; e.g.
+    // a `touches` entry that names no configured area).
+    for (const [fieldName, { allowed, source }] of listEnumAllowed) {
+      for (const v of parseList(c[fieldName]) ?? []) {
+        if (!allowed.has(v))
+          errors.push(
+            `${c.id}: ${fieldName} '${v}' is not a value of ${source !== undefined ? `config '${source}'` : 'its enum'}`,
+          );
+      }
+    }
+    // §5c fallback: `touches` is the spec's conventional surface field. When
+    // the registry doesn't already type it as a list enum, its entries must
+    // still name configured areas — a vault using touches without areas is
+    // half-configured, not exempt.
+    if (!listEnumAllowed.has('touches')) {
+      for (const name of parseList(c.touches) ?? []) {
+        if (!Object.hasOwn(cfg.areas ?? {}, name))
+          errors.push(`${c.id}: touches '${name}' names no configured area`);
       }
     }
     // Frontmatter property order (F-013): a warning, never an error.
@@ -132,6 +207,28 @@ function validateVault(root) {
     const expected = fieldOrder.filter((k) => present.includes(k));
     if (present.join(' ') !== expected.join(' '))
       warnings.push(`${c.id}: frontmatter keys out of order (expected ${expected.join(', ')})`);
+  }
+
+  // Two cards concurrently in flight — in the column before the last, the
+  // counterpart of "last column is done" — that declare overlapping areas are
+  // heading for the same files (F-024, ADR-021). A warning, never an error.
+  // `touches` is the spec's conventional surface field (VAULT_SPEC §5c),
+  // mirroring core's TOUCHES_FIELD, the way `dependsOn` is the deps convention.
+  const inFlightCol = columns.length >= 3 ? columns[columns.length - 2] : null;
+  if (inFlightCol != null) {
+    const inFlight = Object.values(cards)
+      .filter((c) => types[c.type].states[c.status] === inFlightCol)
+      .map((c) => ({ id: c.id, areas: parseList(c.touches) ?? [] }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    for (let i = 0; i < inFlight.length; i++) {
+      for (let j = i + 1; j < inFlight.length; j++) {
+        const shared = inFlight[i].areas.filter((a) => inFlight[j].areas.includes(a));
+        if (shared.length)
+          warnings.push(
+            `${inFlight[i].id} and ${inFlight[j].id}: both in '${inFlightCol}' and declare overlapping area(s): ${shared.join(', ')}`,
+          );
+      }
+    }
   }
 
   const rank = { P0: 0, P1: 1, P2: 2, P3: 3 };

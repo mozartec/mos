@@ -79,6 +79,7 @@ describe('loadConfig', () => {
       expect(config.board.sortWithinColumn).toEqual(['priority', 'id']);
       expect(config.wiki.exclude).toEqual([]);
       expect(config.sprints).toEqual([]);
+      expect(config.areas).toEqual({});
       expect(config.fields).toEqual({});
       expect(config.meta.timestamps).toEqual({
         createdField: 'created',
@@ -171,6 +172,39 @@ describe('loadConfig', () => {
       expect(errors.some((e) => /enum source 'doesNotExist' does not resolve/.test(e))).toBe(true);
     });
 
+    it('accepts an enum field sourced from a config map (its keys are the values)', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        areas: { web: ['apps/web/**'] },
+        fields: { touches: { type: 'enum', source: 'areas', list: true } },
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('rejects an enum source that only resolves via the prototype chain', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        fields: { sneaky: { type: 'enum', source: '__proto__' } },
+      });
+      expect(errors.some((e) => /enum source '__proto__' does not resolve/.test(e))).toBe(true);
+    });
+
+    it('rejects a parent type that exists only on the prototype chain', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        types: { story: { parent: 'constructor', states: { Done: 'Done' } } },
+      });
+      expect(errors.some((e) => /parent type 'constructor' is not defined/.test(e))).toBe(true);
+    });
+
+    it('rejects an area whose value is not a list of glob strings', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        areas: { web: ['apps/web/**'], broken: 'apps/web/**' },
+      });
+      expect(errors.some((e) => /area broken: expected a list of glob strings/.test(e))).toBe(true);
+    });
+
     it('rejects an invalid references.idPattern regex', () => {
       const { errors } = loadConfig({
         board: { columns: ['Done'] },
@@ -245,6 +279,7 @@ describe('fieldOrder (F-013)', () => {
       'parent',
       'estimate',
       'dependsOn',
+      'touches',
       'created',
       'updated',
     ]);

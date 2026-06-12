@@ -12,6 +12,7 @@ const TEST_CONFIG: VaultConfig = {
   references: { idPattern: '[A-Z]+-[0-9]+' },
   types: {},
   sprints: [],
+  areas: {},
   fieldOrder: [],
 };
 

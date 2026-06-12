@@ -2,12 +2,13 @@
 id: F-024
 type: feature
 title: Areas & touches — declared file surfaces
-status: Draft
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
+touches: [core, docs, board, config, scripts]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-12T20:10:50Z
 ---
 
 # F-024 — Areas & touches — declared file surfaces
@@ -80,16 +81,16 @@ parallel-aware skills (F-025) and board indicators (F-026) build on.
 
 ## Acceptance
 
-- [ ] [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) documents `areas` and
+- [x] [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) documents `areas` and
       `touches` as optional 0.4 config; a vault without them validates with no new
       warnings.
-- [ ] Core exposes a pure parallel-batch function (ready ∧ pairwise-disjoint `touches`)
+- [x] Core exposes a pure parallel-batch function (ready ∧ pairwise-disjoint `touches`)
       that also reports excluded conflicting pairs, unit-tested for overlap, missing
       declarations, and unfinished dependencies.
-- [ ] The validator flags a `touches` value that names no configured area, and warns
+- [x] The validator flags a `touches` value that names no configured area, and warns
       when two In Progress cards overlap.
-- [ ] This vault's config defines `areas`, and every non-done card declares `touches`.
-- [ ] [`docs/09-CONVENTIONS.md`](../docs/09-CONVENTIONS.md) documents when and how
+- [x] This vault's config defines `areas`, and every non-done card declares `touches`.
+- [x] [`docs/09-CONVENTIONS.md`](../docs/09-CONVENTIONS.md) documents when and how
       agents set `touches`.
 
 ## Dependencies

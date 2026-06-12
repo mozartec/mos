@@ -61,12 +61,25 @@
                 </span>
               }
               @case ('enum') {
-                <span
-                  class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[9px] font-semibold tracking-tight"
-                  [class]="field.chipClass"
-                >
-                  {{ field.formattedValue }}
-                </span>
+                @if (field.isList) {
+                  <div class="flex flex-wrap justify-end gap-1">
+                    @for (chip of field.listChips; track chip.value) {
+                      <span
+                        class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[9px] font-semibold tracking-tight"
+                        [class]="chip.chipClass"
+                      >
+                        {{ chip.value }}
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <span
+                    class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[9px] font-semibold tracking-tight"
+                    [class]="field.chipClass"
+                  >
+                    {{ field.formattedValue }}
+                  </span>
+                }
               }
               @case ('id') {
                 <div class="flex flex-wrap justify-end gap-1">

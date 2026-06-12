@@ -131,6 +131,13 @@ export interface VaultConfig {
   types: Record<string, TypeDef>;
   sprints: string[];
   /**
+   * Vault-defined file surfaces (VAULT_SPEC §5c, ADR-021): area name → glob
+   * list, e.g. `{ "web": ["apps/web/**"] }`. Cards name areas in a `touches`
+   * list field; `parallelBatch` plans conflict-free work over those names.
+   * Optional — `{}` means the vault doesn't plan by surface.
+   */
+  areas: Record<string, string[]>;
+  /**
    * Canonical frontmatter property order for the write path (F-013). The app
    * reads frontmatter as a map, so order never affects rendering — agents and
    * scripts that create or update cards emit properties in this order.
@@ -153,6 +160,7 @@ export const DEFAULT_FIELD_ORDER: readonly string[] = [
   'parent',
   'estimate',
   'dependsOn',
+  'touches',
   'created',
   'updated',
 ];
@@ -208,6 +216,7 @@ function defaultConfig(): VaultConfig {
     references: { idPattern: DEFAULT_ID_PATTERN },
     types: {},
     sprints: [],
+    areas: {},
     fieldOrder: [...DEFAULT_FIELD_ORDER],
   };
 }
@@ -249,6 +258,7 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
     },
     types: isObject(obj['types']) ? (obj['types'] as Record<string, TypeDef>) : {},
     sprints: asStringArray(obj['sprints']),
+    areas: isObject(obj['areas']) ? (obj['areas'] as Record<string, string[]>) : {},
     fieldOrder:
       obj['fieldOrder'] === undefined ? [...DEFAULT_FIELD_ORDER] : asStringArray(obj['fieldOrder']),
   };
@@ -296,7 +306,9 @@ function validate(config: VaultConfig, errors: string[]): void {
 
     const parent = type['parent'];
     if (parent != null) {
-      if (typeof parent !== 'string' || !(parent in types)) {
+      // hasOwn, not `in`: a parent like 'constructor' must not resolve via
+      // the prototype chain of a plain JSON object.
+      if (typeof parent !== 'string' || !Object.hasOwn(types, parent)) {
         errors.push(
           `type ${typeName}: parent type '${String(parent)}' is not defined`,
         );
@@ -368,16 +380,26 @@ function validate(config: VaultConfig, errors: string[]): void {
       const hasValues = Array.isArray(field['values']) && (field['values'] as unknown[]).length > 0;
       if (hasValues) continue;
       const source = field['source'];
+      // A source resolves to a config list (its entries are the values, e.g.
+      // `sprints`) or a config map (its keys are the values, e.g. `areas`).
+      // Own keys only: '__proto__' or 'constructor' must not resolve.
+      const resolved =
+        typeof source === 'string' && Object.hasOwn(config, source)
+          ? (config as unknown as Record<string, unknown>)[source]
+          : undefined;
       if (source === undefined) {
         errors.push(`field ${fieldName}: enum needs 'values' or 'source'`);
-      } else if (
-        typeof source !== 'string' ||
-        !Array.isArray((config as unknown as Record<string, unknown>)[source])
-      ) {
+      } else if (!Array.isArray(resolved) && !isObject(resolved)) {
         errors.push(
-          `field ${fieldName}: enum source '${String(source)}' does not resolve to a config list`,
+          `field ${fieldName}: enum source '${String(source)}' does not resolve to a config list or map`,
         );
       }
+    }
+  }
+
+  for (const [areaName, globs] of Object.entries(config.areas)) {
+    if (!Array.isArray(globs) || globs.some((g) => typeof g !== 'string')) {
+      errors.push(`area ${areaName}: expected a list of glob strings`);
     }
   }
 }

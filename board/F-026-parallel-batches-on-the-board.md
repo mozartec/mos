@@ -7,8 +7,9 @@ priority: P2
 phase: Future
 owner: mozart
 dependsOn: [F-023, F-024]
+touches: [core, web]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-13T00:55:00Z
 ---
 
 # F-026 — Parallel batches on the board — collision badges and safe-to-start
@@ -54,7 +55,18 @@ described in [`docs/14-PERSONAS.md`](../docs/14-PERSONAS.md).
 ## Plan
 
 1. Core: selectors for in-flight collisions and safe-to-start cards over the F-024
-   batch function; unit tests.
+   batch function; unit tests. This is where core takes ownership of the
+   **in-flight-column derivation** (the column before the last — the counterpart of
+   "last column is done", [`05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) §5c), which
+   today is re-derived only inside
+   [`scripts/validate-vault.mjs`](../scripts/validate-vault.mjs) (review of
+   [PR #49](https://github.com/mozartec/mos/pull/49)); the validator and these
+   selectors should share it. Weigh whether config should name the in-flight
+   column(s) explicitly with the positional rule as default —
+   [ADR-020](../docs/08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint)'s
+   precedent against format-imposed structural conventions; if so, a small ADR.
+   Pass the lens's already-built dependency graph into `parallelBatch` (it
+   accepts one) rather than rebuilding it.
 2. Board: collision badge + safe-to-start highlight per design-system idioms.
 3. Graph lens: same distinction in the ready-set rendering.
 4. Specs for both states; `bun run validate` untouched (no data change).

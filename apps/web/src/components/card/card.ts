@@ -14,6 +14,8 @@ interface RenderField {
   absoluteTime?: string;
   isList?: boolean;
   listValues?: string[];
+  /** Per-entry chips for a list `enum` field: each value with its own color. */
+  listChips?: { value: string; chipClass: string }[];
   icon?: string;
   chipClass?: string;
 }
@@ -73,6 +75,7 @@ export class CardComponent {
 
       const rawVal = card.fields[key];
       if (rawVal === undefined || rawVal === null || rawVal === '') continue;
+      if (Array.isArray(rawVal) && rawVal.length === 0) continue;
 
       const fieldDef = registry[key];
       const label = fieldDef?.label || key;
@@ -92,15 +95,35 @@ export class CardComponent {
           icon,
         });
       } else if (type === 'enum') {
-        list.push({
-          key,
-          label,
-          value: rawVal,
-          type,
-          formattedValue: String(rawVal),
-          chipClass: chipClassFor(fieldDef?.valueColors?.[String(rawVal)]),
-          icon,
-        });
+        if (fieldDef?.list === true || Array.isArray(rawVal)) {
+          // Dedup after stringifying: duplicate entries would render twice
+          // and collide as @for track keys.
+          const entries = [
+            ...new Set((Array.isArray(rawVal) ? rawVal : [rawVal]).map((v) => String(v))),
+          ];
+          list.push({
+            key,
+            label,
+            value: rawVal,
+            type,
+            isList: true,
+            listChips: entries.map((value) => ({
+              value,
+              chipClass: chipClassFor(fieldDef?.valueColors?.[value]),
+            })),
+            icon,
+          });
+        } else {
+          list.push({
+            key,
+            label,
+            value: rawVal,
+            type,
+            formattedValue: String(rawVal),
+            chipClass: chipClassFor(fieldDef?.valueColors?.[String(rawVal)]),
+            icon,
+          });
+        }
       } else if (type === 'id') {
         const listValues = Array.isArray(rawVal) ? rawVal.map((v) => String(v)) : [String(rawVal)];
         list.push({

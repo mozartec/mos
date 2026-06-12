@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T12:20:00Z
+updated: 2026-06-13T00:06:00Z
 ---
 
 # Vault spec
@@ -11,7 +11,7 @@ repo are a living implementation of it.
 
 ## 0. Spec version
 
-The current vault format is **spec version `0.3`**. It is versioned separately from the
+The current vault format is **spec version `0.4`**. It is versioned separately from the
 mos app, because the format is a contract that vaults depend on. Each vault declares the
 version it targets via `specVersion` in `.mos/config.json`, and the app states which spec
 versions it supports. Bump this only when the format itself changes. See
@@ -19,9 +19,14 @@ versions it supports. Bump this only when the format itself changes. See
 
 `0.2` adds an optional **field-types registry** (§5a) and **created/updated timestamps**
 (§4a). `0.3` adds an optional **card-color palette and icon set** (§5b): a type may set a
-`color`, and a field may set an `icon` or per-value `valueColors`. All of these are purely
-additive: a `0.1`/`0.2` vault that declares none of them is still valid, and every new key
-is optional, so nothing breaks if it's absent.
+`color`, and a field may set an `icon` or per-value `valueColors`. `0.4` adds optional
+**areas & touches** (§5c,
+[ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)):
+an `areas` config map of vault-defined names to glob lists, a `touches` list field in
+which a card declares the areas it expects to modify, and enum `source`s that may name a
+config map as well as a list (§5a). All of these are purely additive: a vault on an
+earlier version that declares none of them is still valid, and every new key is optional,
+so nothing breaks if it's absent.
 
 ## 1. Two lenses over one folder
 
@@ -94,6 +99,7 @@ Freeform body. mos never rewrites this; only frontmatter is machine-managed.
 - `dependsOn` — a list of `id`s this card depends on. One direction only; `blocks` is
   derived by scanning all cards' `dependsOn` lists (never stored). Used by scripts, the
   board, and the graph lens.
+- `touches` — a list of area names this card expects to modify (§5c).
 - `created` / `updated` — optional audit timestamps (§4a).
 - other fields (`priority`, `owner`, `sprint`, `estimate`, `phase`, ...) — optional, shown
   on the card per the type's `card.fields`, and typed by the field registry (§5a). Unknown
@@ -142,7 +148,7 @@ the registry is purely additive — omit it entirely and everything still works.
 | Type | Meaning | Example |
 |---|---|---|
 | `string` | Plain text (the default). | `owner: mozart` |
-| `enum` | One of a fixed set, via `values: [...]` or `source: "<configKey>"` (e.g. `sprints`). | `priority: P1` |
+| `enum` | One of a fixed set, via `values: [...]` or `source: "<configKey>"` — a config list whose entries are the values (e.g. `sprints`), or a config map whose keys are (e.g. `areas`). | `priority: P1` |
 | `id` | A card/doc id; resolvable like a reference (§7). | `parent: F-001` |
 | `date` | A calendar date, ISO `YYYY-MM-DD`. | `due: 2026-07-01` |
 | `datetime` | A date+time, ISO 8601 (§4a). | `updated: 2026-06-08T09:00:00Z` |
@@ -227,11 +233,52 @@ Where they apply:
 
 All three are optional; a vault that sets none renders with neutral defaults.
 
+## 5c. Areas & touches (declared file surfaces)
+
+`dependsOn` captures logical order; it says nothing about which files a card will change,
+so two unblocked cards can still rewrite the same code. Spec `0.4` adds the physical
+counterpart
+([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)):
+
+- **`areas`** — an optional top-level config map of vault-defined names to glob lists
+  (vault-relative, same glob dialect as `board.include`):
+
+  ```jsonc
+  "areas": {
+    "core": ["packages/core/**"],
+    "web":  ["apps/web/**"],
+    "docs": ["docs/**", "*.md"]
+  }
+  ```
+
+  The names are the vocabulary; the globs say what each name means in this vault. Define
+  areas as non-overlapping surfaces — tooling compares declarations by *name*, so two
+  differently-named areas whose globs overlap defeat the point.
+
+- **`touches`** — a list field in which a card names the areas it expects to modify
+  (`touches: [core, docs]`). Register it as a list `enum` sourced from `areas` (§5a) so
+  values are validated against the configured names. Like every card write, it's
+  agent-maintained: the writing agent fills it at planning time and keeps it honest when
+  scope changes (ADR-002); the app only reads it.
+
+A **parallel batch** is a set of *ready* cards — every dependency done — whose `touches`
+are **pairwise disjoint**: work that is both unblocked and collision-free. Batch
+computation is a pure core function (`parallelBatch`). A missing `touches` is not a claim:
+such a card's surface is unknown and it is set aside rather than batched, while an explicit
+empty list (`touches: []`) declares "touches nothing" and batches with anything.
+
+Validation: a `touches` entry that names no configured area is flagged, and two cards
+concurrently in flight (in the column before the last — the counterpart of "last column
+is done") that declare overlapping areas draw a warning. Everything here is additive: a
+vault with no `areas` and no `touches` validates and renders exactly as before, and batch
+computation degrades to the plain ready set. Verifying declarations against actual git
+diffs is deliberately out of spec for now (ADR-021).
+
 ## 6. config.json
 
 ```jsonc
 {
-  "specVersion": "0.3",
+  "specVersion": "0.4",
   "vault": { "name": "My Project" },
 
   // optional: maps the two timestamp roles to frontmatter field names (defaults shown)
@@ -246,8 +293,16 @@ All three are optional; a vault that sets none renders with neutral defaults.
     "sprint":    { "type": "enum", "source": "sprints", "icon": "calendar" },
     "owner":     { "type": "string", "label": "Owner", "icon": "user" },
     "dependsOn": { "type": "id", "list": true, "label": "Depends on", "icon": "git-commit" },
+    "touches":   { "type": "enum", "source": "areas", "list": true, "label": "Touches", "icon": "stack" },
     "created":   { "type": "datetime", "label": "Created", "icon": "clock" },
     "updated":   { "type": "datetime", "label": "Updated", "icon": "clock" }
+  },
+
+  // optional: vault-defined file surfaces for parallel planning (§5c).
+  "areas": {
+    "core": ["packages/core/**"],
+    "web":  ["apps/web/**"],
+    "docs": ["docs/**", "*.md"]
   },
 
   // optional: canonical frontmatter property order for the write path (F-013).
@@ -255,10 +310,11 @@ All three are optional; a vault that sets none renders with neutral defaults.
   // agents/scripts emit properties in this order, and the validator warns
   // (non-fatally) when a card deviates. When omitted, this default applies:
   //   id, type, title, status, priority, phase, owner, sprint, parent,
-  //   estimate, dependsOn, created, updated
+  //   estimate, dependsOn, touches, created, updated
   // Properties not in the list go after the listed ones, in their own order.
   "fieldOrder": ["id", "type", "title", "status", "priority", "phase", "owner",
-                 "sprint", "parent", "estimate", "dependsOn", "created", "updated"],
+                 "sprint", "parent", "estimate", "dependsOn", "touches",
+                 "created", "updated"],
 
   // optional: the folders (or files) the server watches for live reload,
   // vault-relative. An allowlist, not an ignore list — on big repos watching
@@ -285,7 +341,7 @@ All three are optional; a vault that sets none renders with neutral defaults.
       "states": { "Draft": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done",
                   "Deferred": null, "Dropped": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     },
     "story": {
       "label": "Story",
@@ -293,7 +349,7 @@ All three are optional; a vault that sets none renders with neutral defaults.
       "color": "green",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Blocked": "In Progress", "Done": "Done" },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "touches", "created", "updated"] }
     },
     "task": {
       "label": "Task",
@@ -301,7 +357,7 @@ All three are optional; a vault that sets none renders with neutral defaults.
       "color": "blue",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done", "Deferred": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     }
   },
   "sprints": ["S1", "S2", "S3"]

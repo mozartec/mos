@@ -37,6 +37,7 @@ describe('buildModel', () => {
       task: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
     },
     sprints: [],
+    areas: {},
     fieldOrder: [],
   };
 
@@ -280,6 +281,7 @@ describe('applyFileChange', () => {
       story: { parent: null, states: { Todo: 'Backlog', Done: 'Done' } },
     },
     sprints: [],
+    areas: {},
     fieldOrder: [],
   };
 
