@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { loadConfig } from '@mos/core';
@@ -7,12 +7,14 @@ import { VAULT_SOURCE } from '../sources/vault-source.token';
 import { IconComponent } from '../components/icon/icon';
 import { IconMoon, IconSun } from '../icons/tabler-icons.generated';
 
+/** The product name, shown when a vault doesn't bring its own. */
+const PRODUCT_NAME = 'mos';
+
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css',
 })
 export class App {
   private readonly themeService = inject(ThemeService);
@@ -20,6 +22,17 @@ export class App {
   private readonly source = inject(VAULT_SOURCE);
 
   protected readonly isDark = this.themeService.isDark;
+
+  /**
+   * The vault's configured name (ADR-003: never hardcoded). `null` while the
+   * config loads — the navbar shows a skeleton — and the product name when the
+   * vault has no readable config.
+   */
+  protected readonly vaultName = signal<string | null>(null);
+
+  /** The "mos" mark would stutter next to a brand that already says it. */
+  protected readonly showProductMark = computed(() => this.vaultName() !== PRODUCT_NAME);
+  protected readonly productName = PRODUCT_NAME;
 
   protected readonly iconSun = IconSun;
   protected readonly iconMoon = IconMoon;
@@ -31,9 +44,14 @@ export class App {
       .readFile('.mos/config.json')
       .then((text) => {
         const name = loadConfig(text).config.vault.name;
-        if (name) this.title.setTitle(name);
+        if (name) {
+          this.title.setTitle(name);
+          this.vaultName.set(name);
+        } else {
+          this.vaultName.set(PRODUCT_NAME);
+        }
       })
-      .catch(() => undefined);
+      .catch(() => this.vaultName.set(PRODUCT_NAME));
   }
 
   protected toggleTheme(): void {

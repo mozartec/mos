@@ -2,17 +2,19 @@
   <!-- Card Header: ID, Type Badge, and Blocked Badge -->
   <div class="flex items-center justify-between gap-2">
     <div class="flex items-center gap-1.5">
-      <span class="font-mono text-[11px] font-semibold text-base-content/40 tracking-wider">
+      <span class="font-mono text-[11px] font-semibold tracking-wider text-base-content/40">
         {{ card().id }}
       </span>
-      <span class="badge badge-sm uppercase text-[9px] tracking-wider py-1 font-bold rounded" 
-            [class]="typeBadgeClass()">
+      <span
+        class="badge rounded py-1 badge-sm text-[9px] font-bold tracking-wider uppercase"
+        [class]="typeBadgeClass()"
+      >
         {{ card().type }}
       </span>
     </div>
-    
+
     @if (blocked()) {
-      <span class="badge badge-error badge-sm gap-1 text-white font-bold animate-pulse py-1 rounded">
+      <span class="badge gap-1 rounded py-1 badge-sm font-semibold badge-error">
         <app-icon [icon]="iconLock" [size]="11" />
         Blocked
       </span>
@@ -20,7 +22,7 @@
   </div>
 
   <!-- Title -->
-  <h4 class="text-sm font-semibold leading-snug text-base-content group-hover:text-primary transition-colors">
+  <h4 class="text-sm leading-snug font-semibold text-base-content">
     {{ card().title }}
   </h4>
 
@@ -30,45 +32,58 @@
       @for (field of renderedFields(); track field.key) {
         <div class="flex items-start justify-between gap-4 text-xs">
           <!-- Field Name / Icon Label -->
-          <div class="flex items-center gap-1.5 text-base-content/50 min-w-0 shrink-0">
+          <div class="flex min-w-0 shrink-0 items-center gap-1.5 text-base-content/50">
             @if (field.icon) {
-              <app-icon [icon]="field.icon" [size]="12" class="text-base-content/40 shrink-0" />
+              <app-icon [icon]="field.icon" [size]="12" class="shrink-0 text-base-content/40" />
             }
-            <span class="font-medium truncate max-w-[80px]" [attr.title]="field.label">
+            <span class="max-w-[80px] truncate font-medium" [attr.title]="field.label">
               {{ field.label }}
             </span>
           </div>
 
           <!-- Field Value -->
-          <div class="text-right min-w-0 font-medium">
+          <div class="min-w-0 text-right font-medium">
             @switch (field.type) {
               @case ('datetime') {
-                <span class="font-mono text-[10px] text-base-content/70 cursor-help" [attr.title]="field.absoluteTime">
+                <span
+                  class="cursor-help font-mono text-[10px] text-base-content/70"
+                  [attr.title]="field.absoluteTime"
+                >
                   {{ field.relativeTime }}
                 </span>
               }
               @case ('date') {
-                <span class="font-mono text-[10px] text-base-content/70 cursor-help" [attr.title]="field.absoluteTime">
+                <span
+                  class="cursor-help font-mono text-[10px] text-base-content/70"
+                  [attr.title]="field.absoluteTime"
+                >
                   {{ field.relativeTime }}
                 </span>
               }
               @case ('enum') {
-                <span class="badge badge-xs font-semibold px-1.5 py-0.5 text-[9px] tracking-tight rounded-sm badge-soft"
-                      [class]="field.chipClass">
+                <span
+                  class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[9px] font-semibold tracking-tight"
+                  [class]="field.chipClass"
+                >
                   {{ field.formattedValue }}
                 </span>
               }
               @case ('id') {
                 <div class="flex flex-wrap justify-end gap-1">
                   @for (val of field.listValues; track val) {
-                    <span class="font-mono text-[10px] bg-base-200 px-1 py-0.5 rounded text-base-content/85">
+                    <span
+                      class="rounded bg-base-200 px-1 py-0.5 font-mono text-[10px] text-base-content/85"
+                    >
                       {{ val }}
                     </span>
                   }
                 </div>
               }
               @default {
-                <span class="text-base-content/85 truncate block max-w-[150px]" [attr.title]="field.formattedValue">
+                <span
+                  class="block max-w-[150px] truncate text-base-content/85"
+                  [attr.title]="field.formattedValue"
+                >
                   {{ field.formattedValue }}
                 </span>
               }

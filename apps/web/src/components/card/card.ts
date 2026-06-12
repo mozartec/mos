@@ -25,8 +25,8 @@ interface RenderField {
   templateUrl: './card.html',
   host: {
     '[class]': 'hostClass()',
-    'tabindex': '0',
-    'role': 'button',
+    tabindex: '0',
+    role: 'button',
     '(click)': 'onSelect()',
     '(keydown.enter)': 'onSelect()',
     '(keydown.space)': 'onSelect(); $event.preventDefault()',
@@ -43,9 +43,13 @@ export class CardComponent {
   protected readonly iconLock = IconLock;
 
   protected readonly hostClass = computed(() => {
-    const base = 'card bg-base-100/95 border-y border-r border-base-content/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ease-out cursor-pointer block rounded-box p-3.5 focus:outline-none focus:ring-2 focus:ring-primary/40';
+    // Hairlines separate, shadows mean elevation: the card earns its shadow
+    // only while raised on hover (design system §Shape, §Motion). Focus comes
+    // from the global focus-visible ring in styles.css.
+    const base =
+      'card bg-base-100 border-y border-r border-base-content/10 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-150 ease-out cursor-pointer block rounded-box p-3';
     const accent = this.accentClass();
-    const blockedClass = this.blocked() ? 'border border-error/40 border-l-error shadow-error/5 bg-error/5' : '';
+    const blockedClass = this.blocked() ? 'border border-error/40 border-l-error bg-error/5' : '';
     return `${base} ${accent} ${blockedClass}`.trim();
   });
 
@@ -98,9 +102,7 @@ export class CardComponent {
           icon,
         });
       } else if (type === 'id') {
-        const listValues = Array.isArray(rawVal)
-          ? rawVal.map((v) => String(v))
-          : [String(rawVal)];
+        const listValues = Array.isArray(rawVal) ? rawVal.map((v) => String(v)) : [String(rawVal)];
         list.push({
           key,
           label,

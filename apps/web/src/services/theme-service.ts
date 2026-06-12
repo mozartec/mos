@@ -1,11 +1,17 @@
 import { DOCUMENT, Injectable, computed, effect, inject, signal } from '@angular/core';
 
-/** The daisyUI themes registered in `styles.css`. */
-export type Theme = 'wireframe' | 'black';
+/** The daisyUI themes registered in `styles.css` (docs/13-DESIGN_SYSTEM.md). */
+export type Theme = 'mos-paper' | 'mos-carbon';
 
-const LIGHT: Theme = 'wireframe';
-const DARK: Theme = 'black';
+const LIGHT: Theme = 'mos-paper';
+const DARK: Theme = 'mos-carbon';
 const STORAGE_KEY = 'mos-theme';
+
+/** Themes that shipped before the design system; stored values migrate on read. */
+const LEGACY_THEMES: Record<string, Theme> = {
+  wireframe: LIGHT,
+  black: DARK,
+};
 
 /**
  * Tracks the active daisyUI theme and reflects it onto `<html data-theme>`.
@@ -31,13 +37,7 @@ export class ThemeService {
   toggle(): void {
     const next: Theme = this.isDark() ? LIGHT : DARK;
     this.theme.set(next);
-    try {
-      this.document.defaultView?.localStorage?.setItem(STORAGE_KEY, next);
-    } catch {
-      // Persisting is best-effort: storage can be full, disabled, or locked
-      // down (private mode). A failed write only means the choice won't survive
-      // a reload — never a reason to crash the toggle.
-    }
+    this.persist(next);
   }
 
   private initialTheme(): Theme {
@@ -53,17 +53,37 @@ export class ThemeService {
   }
 
   /**
-   * Read the persisted theme, or `null` when nothing valid is stored. The read
-   * is wrapped because some privacy modes throw on the `localStorage` access
-   * itself — which optional chaining can't guard — and that must not break app
-   * bootstrap.
+   * Read the persisted theme, or `null` when nothing valid is stored. A value
+   * persisted by a pre-design-system build (`wireframe`/`black`) maps to its
+   * successor and the mapping is written back, so the legacy name never
+   * lingers. The read is wrapped because some privacy modes throw on the
+   * `localStorage` access itself — which optional chaining can't guard — and
+   * that must not break app bootstrap.
    */
   private readStoredTheme(): Theme | null {
     try {
       const stored = this.document.defaultView?.localStorage?.getItem(STORAGE_KEY);
-      return stored === LIGHT || stored === DARK ? stored : null;
+      if (stored === LIGHT || stored === DARK) {
+        return stored;
+      }
+      const migrated = stored == null ? undefined : LEGACY_THEMES[stored];
+      if (migrated) {
+        this.persist(migrated);
+        return migrated;
+      }
+      return null;
     } catch {
       return null;
+    }
+  }
+
+  private persist(theme: Theme): void {
+    try {
+      this.document.defaultView?.localStorage?.setItem(STORAGE_KEY, theme);
+    } catch {
+      // Persisting is best-effort: storage can be full, disabled, or locked
+      // down (private mode). A failed write only means the choice won't survive
+      // a reload — never a reason to crash the toggle.
     }
   }
 }

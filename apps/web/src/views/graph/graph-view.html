@@ -28,11 +28,11 @@
       @if (nodes().length === 0) {
         <p class="text-base-content/60">No cards to graph.</p>
       } @else {
-        <div class="flex-1 overflow-auto rounded-box bg-base-100 shadow-sm">
+        <div class="panel-hairline flex-1 overflow-auto">
           <svg
             [attr.width]="canvas().width"
             [attr.height]="canvas().height"
-            role="img"
+            role="group"
             aria-label="Dependency graph: prerequisites on the left, dependents on the right"
           >
             <defs>
@@ -59,7 +59,7 @@
                 marker-end="url(#arrow)"
                 class="stroke-base-content/40"
                 [class.stroke-error]="edge.broken"
-                [class.stroke-secondary]="edge.critical && !edge.broken"
+                [class.stroke-accent]="edge.critical && !edge.broken"
                 [attr.stroke-dasharray]="edge.broken ? '6 4' : null"
                 [attr.stroke-width]="edge.critical ? 3 : 1.5"
               >
@@ -74,7 +74,7 @@
               <g
                 role="link"
                 tabindex="0"
-                class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                class="cursor-pointer"
                 [attr.aria-label]="node.id + ' — ' + node.title + ' (' + node.status + ')'"
                 (click)="openNode(node)"
                 (keydown.enter)="openNode(node)"
@@ -103,7 +103,7 @@
                     [attr.cx]="node.x + NODE_W - 8"
                     [attr.cy]="node.y + 8"
                     r="5"
-                    class="fill-secondary"
+                    class="fill-accent"
                     data-ready=""
                   >
                     <title>Ready to start: every dependency is done</title>
@@ -116,7 +116,11 @@
                 >
                   {{ node.id }}
                 </text>
-                <text [attr.x]="node.x + 10" [attr.y]="node.y + 38" class="fill-base-content/70 text-xs">
+                <text
+                  [attr.x]="node.x + 10"
+                  [attr.y]="node.y + 38"
+                  class="fill-base-content/70 text-xs"
+                >
                   {{ node.title.length > 28 ? node.title.slice(0, 27) + '…' : node.title }}
                 </text>
               </g>
@@ -125,33 +129,54 @@
         </div>
 
         <!-- Legend (F-012-S-04) -->
-        <ul aria-label="Graph legend" class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-base-content/70">
+        <ul
+          aria-label="Graph legend"
+          class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-base-content/70"
+        >
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-base-content/30 bg-base-200"></span>
+            <span
+              aria-hidden="true"
+              class="inline-block h-3 w-5 rounded border border-base-content/30 bg-base-200"
+            ></span>
             To do
           </li>
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-info bg-info/15"></span>
+            <span
+              aria-hidden="true"
+              class="inline-block h-3 w-5 rounded border border-info bg-info/15"
+            ></span>
             In progress
           </li>
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-error bg-error/15"></span>
+            <span
+              aria-hidden="true"
+              class="inline-block h-3 w-5 rounded border border-error bg-error/15"
+            ></span>
             Blocked
           </li>
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border border-success bg-success/15"></span>
+            <span
+              aria-hidden="true"
+              class="inline-block h-3 w-5 rounded border border-success bg-success/15"
+            ></span>
             Done
           </li>
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-3 w-5 rounded border-2 border-secondary"></span>
+            <span
+              aria-hidden="true"
+              class="inline-block h-3 w-5 rounded border-2 border-accent"
+            ></span>
             Critical path
           </li>
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-2.5 w-2.5 rounded-full bg-secondary"></span>
+            <span aria-hidden="true" class="inline-block h-2.5 w-2.5 rounded-full bg-accent"></span>
             Ready to start
           </li>
           <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block w-5 border-t-2 border-dashed border-error"></span>
+            <span
+              aria-hidden="true"
+              class="inline-block w-5 border-t-2 border-dashed border-error"
+            ></span>
             Cycle (broken)
           </li>
         </ul>

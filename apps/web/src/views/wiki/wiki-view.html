@@ -1,23 +1,20 @@
 <section aria-labelledby="wiki-heading">
   <h2 id="wiki-heading" class="text-xl font-semibold">Wiki</h2>
-  <p class="mt-1 text-base-content/70">
-    {{ files().length }} markdown files in the vault.
-  </p>
+  <p class="mt-1 text-base-content/70">{{ files().length }} markdown files in the vault.</p>
   @if (loadError()) {
     <p role="alert" class="mt-2 text-error">Failed to load the wiki: {{ loadError() }}</p>
   }
   <div class="mt-3 grid gap-3 lg:grid-cols-[22rem_1fr]">
-
     <!-- File tree -->
     <nav aria-label="File tree">
-      <ul class="h-fit w-full rounded-box bg-base-100 p-2 shadow-sm" role="tree">
+      <ul class="panel-hairline h-fit w-full p-2" role="tree">
         @for (entry of visibleEntries(); track entryKey($index, entry)) {
           @if (entry.kind === 'folder') {
             <button
               #treeItem
               role="treeitem"
               type="button"
-              class="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm font-medium hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              class="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm font-medium hover:bg-base-200"
               [style.padding-left.rem]="0.5 + entry.depth * 1"
               [attr.aria-expanded]="expandedFolders().has(entry.key)"
               [attr.aria-level]="entry.depth + 1"
@@ -39,7 +36,7 @@
               #treeItem
               role="treeitem"
               type="button"
-              class="w-full truncate rounded px-2 py-1 text-left font-mono text-xs hover:bg-base-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              class="w-full truncate rounded px-2 py-1 text-left font-mono text-xs hover:bg-base-200"
               [style.padding-left.rem]="0.5 + entry.depth * 1"
               [class.bg-primary]="selectedPath() === entry.path"
               [class.text-primary-content]="selectedPath() === entry.path"
@@ -63,7 +60,7 @@
     </nav>
 
     <!-- File reader -->
-    <section class="rounded-box bg-base-100 p-4 shadow-sm">
+    <section class="panel-hairline p-4">
       @if (selectedPath()) {
         <h3 class="mb-3 font-mono text-sm text-base-content/70">{{ selectedPath() }}</h3>
         <app-markdown-reader
@@ -77,6 +74,5 @@
         <p class="text-base-content/50">Select a markdown file to preview it.</p>
       }
     </section>
-
   </div>
 </section>

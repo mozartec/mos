@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import type { VaultSource } from '@mos/core';
 import { ReaderView } from './reader-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
+import { InMemoryVaultSource, settle } from '../../testing/test-helpers';
 
 const TEST_CONFIG = JSON.stringify({
   specVersion: '0.2',
@@ -21,44 +21,38 @@ const TEST_CONFIG = JSON.stringify({
 
 const FILES: Record<string, string> = {
   '.mos/config.json': TEST_CONFIG,
-  'board/S-001.md': ['---', 'id: S-001', 'type: story', 'status: Todo', '---', '', '# Story one', '', 'See S-002.'].join('\n'),
-  'board/S-002.md': ['---', 'id: S-002', 'type: story', 'status: Todo', '---', '', '# Story two'].join('\n'),
+  'board/S-001.md': [
+    '---',
+    'id: S-001',
+    'type: story',
+    'status: Todo',
+    '---',
+    '',
+    '# Story one',
+    '',
+    'See S-002.',
+  ].join('\n'),
+  'board/S-002.md': [
+    '---',
+    'id: S-002',
+    'type: story',
+    'status: Todo',
+    '---',
+    '',
+    '# Story two',
+  ].join('\n'),
 };
 
-class TestVaultSource implements VaultSource {
-  listFiles(): Promise<string[]> {
-    return Promise.resolve(Object.keys(FILES));
-  }
-  readFile(path: string): Promise<string> {
-    const content = FILES[path];
-    return content === undefined
-      ? Promise.reject(new Error(`No such file: ${path}`))
-      : Promise.resolve(content);
-  }
-  watch(): () => void {
-    return () => undefined;
-  }
-}
-
 describe('ReaderView', () => {
-  /** Drain the queued microtask/macrotask rounds of the view's async init. */
-  async function settle(harness: RouterTestingHarness) {
-    for (let i = 0; i < 5; i++) {
-      await harness.fixture.whenStable();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    harness.detectChanges();
-  }
-
   async function openReader(url: string) {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'reader', component: ReaderView }]),
-        { provide: VAULT_SOURCE, useClass: TestVaultSource },
+        { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(FILES) },
       ],
     });
     const harness = await RouterTestingHarness.create(url);
-    await settle(harness);
+    await settle(harness.fixture);
     return harness;
   }
 
@@ -90,7 +84,7 @@ describe('ReaderView', () => {
     const harness = await openReader('/reader?path=board/S-001.md&from=board&sprint=S1');
     const component = harness.routeDebugElement!.componentInstance as ReaderView;
     component['onNavigate']('board/S-002.md');
-    await settle(harness);
+    await settle(harness.fixture);
     const router = TestBed.inject(Router);
     expect(router.url).toContain('path=board%2FS-002.md');
     expect(router.url).toContain('from=board');

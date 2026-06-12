@@ -2,9 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { Router, provideRouter } from '@angular/router';
-import type { VaultSource } from '@mos/core';
 import { WikiView } from './wiki-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
+import { InMemoryVaultSource, settle } from '../../testing/test-helpers';
 
 /** Minimal vault config that includes all .md files and excludes apps/**. */
 const TEST_CONFIG = JSON.stringify({
@@ -17,48 +17,24 @@ const TEST_CONFIG = JSON.stringify({
   types: {},
 });
 
-class TestVaultSource implements VaultSource {
-  private readonly watchers: ((path: string) => void)[] = [];
-
-  readonly files: Record<string, string> = {
-    '.mos/config.json': TEST_CONFIG,
-    'board/T-001-sample.md': [
-      '---',
-      'id: T-001',
-      'type: task',
-      'status: Done',
-      '---',
-      '',
-      '# Sample task',
-      '',
-      'A body line.',
-    ].join('\n'),
-    'docs/intro.md': '# Intro\n\nIntroduction.',
-    // This path should be excluded by the config (apps/**).
-    'apps/web/README.md': '# App readme',
-  };
-
-  listFiles(): Promise<string[]> {
-    return Promise.resolve(Object.keys(this.files));
-  }
-
-  readFile(path: string): Promise<string> {
-    const file = this.files[path];
-    return file === undefined
-      ? Promise.reject(new Error(`No such file: ${path}`))
-      : Promise.resolve(file);
-  }
-
-  watch(onChange: (path: string) => void): () => void {
-    this.watchers.push(onChange);
-    return () => undefined;
-  }
-
-  /** Simulate a file-change event from the dev-server watcher. */
-  emit(path: string): void {
-    for (const watcher of this.watchers) watcher(path);
-  }
-}
+/** The wiki fixture files served by the in-memory source. */
+const WIKI_FILES: Record<string, string> = {
+  '.mos/config.json': TEST_CONFIG,
+  'board/T-001-sample.md': [
+    '---',
+    'id: T-001',
+    'type: task',
+    'status: Done',
+    '---',
+    '',
+    '# Sample task',
+    '',
+    'A body line.',
+  ].join('\n'),
+  'docs/intro.md': '# Intro\n\nIntroduction.',
+  // This path should be excluded by the config (apps/**).
+  'apps/web/README.md': '# App readme',
+};
 
 describe('WikiView', () => {
   beforeEach(async () => {
@@ -67,7 +43,8 @@ describe('WikiView', () => {
       providers: [
         provideRouter([]),
         provideLocationMocks(),
-        { provide: VAULT_SOURCE, useClass: TestVaultSource },
+        // Clone per test: one spec simulates a file edit by mutating the map.
+        { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource({ ...WIKI_FILES }) },
       ],
     }).compileComponents();
   });
@@ -116,7 +93,7 @@ describe('WikiView', () => {
     expect(text).not.toContain('App readme');
   });
 
-  it('auto-expands the initial file\'s ancestor folders on load', async () => {
+  it("auto-expands the initial file's ancestor folders on load", async () => {
     const fixture = TestBed.createComponent(WikiView);
     await fixture.whenStable();
     fixture.detectChanges();
@@ -143,7 +120,7 @@ describe('WikiView', () => {
     fixture.detectChanges();
 
     // The file inside 'docs/' should now be visible
-    expect((host.textContent ?? '')).toContain('intro.md');
+    expect(host.textContent ?? '').toContain('intro.md');
   });
 
   it('marks the selected file treeitem as aria-selected="true"', async () => {
@@ -271,7 +248,7 @@ describe('WikiView', () => {
     // The first wiki file (board/T-001-sample.md) is auto-selected on load.
     expect(fixture.nativeElement.textContent).toContain('A body line.');
 
-    const source = TestBed.inject(VAULT_SOURCE) as TestVaultSource;
+    const source = TestBed.inject(VAULT_SOURCE) as InMemoryVaultSource;
     source.files['board/T-001-sample.md'] = [
       '---',
       'id: T-001',
@@ -296,14 +273,6 @@ describe('WikiView', () => {
   });
 
   // ── Acceptance F-017: link clicks push history; back returns to the source ─
-
-  async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges(): void }) {
-    for (let i = 0; i < 5; i++) {
-      await fixture.whenStable();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    fixture.detectChanges();
-  }
 
   it('opens a reader link via the path query param (history entry)', async () => {
     const router = TestBed.inject(Router);
