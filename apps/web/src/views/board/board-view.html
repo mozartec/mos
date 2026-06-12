@@ -22,7 +22,7 @@
           <label class="flex items-center gap-2 text-sm">
             <span class="text-base-content/70">Sprint</span>
             <select
-              class="select select-bordered select-sm"
+              class="select select-ghost select-sm w-auto font-mono"
               [value]="sprintFilterValue()"
               (change)="onSprintFilterChange($event)"
             >
@@ -68,7 +68,7 @@
                 <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/70">
                   {{ col.name }}
                 </h3>
-                <span class="badge badge-neutral badge-sm">{{ col.cards.length }}</span>
+                <span class="badge badge-ghost badge-sm font-mono">{{ col.cards.length }}</span>
               </div>
 
               <!-- Cards -->

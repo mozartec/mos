@@ -1,6 +1,6 @@
 ---
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-11T23:00:00Z
+updated: 2026-06-12T12:27:01Z
 ---
 
 # Design system — Ink & Highlight
@@ -71,9 +71,9 @@ page, `primary` appears once per view, status colors mean status.
   --color-accent-content: oklch(98% 0.01 210);
   --color-neutral: oklch(32% 0.012 75);
   --color-neutral-content: oklch(96% 0.008 90);
-  --color-info: oklch(55% 0.13 245);
+  --color-info: oklch(53% 0.13 245);
   --color-info-content: oklch(97% 0.01 245);
-  --color-success: oklch(56% 0.12 150);
+  --color-success: oklch(51% 0.12 150);
   --color-success-content: oklch(97% 0.01 150);
   --color-warning: oklch(64% 0.16 50);
   --color-warning-content: oklch(20% 0.04 50);

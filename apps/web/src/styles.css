@@ -1,21 +1,108 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles: the Ink & Highlight design system (docs/13-DESIGN_SYSTEM.md, ADR-016). */
 
-/* Self-hosted fonts via Fontsource — no CDN dependency at runtime. */
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/500.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/jetbrains-mono/400.css';
-@import '@fontsource/jetbrains-mono/500.css';
+/* Self-hosted fonts via Fontsource — no CDN dependency at runtime.
+   IBM Plex Sans carries the UI, IBM Plex Mono the ids/code, Newsreader the
+   rendered markdown prose (and nothing else). */
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/newsreader/400.css';
+@import '@fontsource/newsreader/400-italic.css';
+@import '@fontsource/newsreader/500.css';
+@import '@fontsource/newsreader/500-italic.css';
 
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
-@plugin 'daisyui';
+
+/* themes: false drops daisyUI's built-ins — mos-paper and mos-carbon below are
+   the only registered themes (ADR-016). */
+@plugin 'daisyui' {
+  themes: false;
+}
 
 /* Expose project typefaces as Tailwind/daisyUI theme tokens.
    font-sans and font-mono utilities resolve to these. */
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  --font-prose: 'Newsreader', Georgia, 'Times New Roman', serif;
+}
+
+/* The app's theme is data-theme (set by the in-app toggle), not the OS scheme.
+   Re-key Tailwind's dark: variant to it so the curated card-color ramp follows
+   the toggle (ADR-016 — the OS-vs-toggle bug). */
+@custom-variant dark (&:where([data-theme='mos-carbon'], [data-theme='mos-carbon'] *));
+
+@plugin 'daisyui/theme' {
+  name: 'mos-paper';
+  default: true;
+  prefersdark: false;
+  color-scheme: 'light';
+  --color-base-100: oklch(98.5% 0.006 90);
+  --color-base-200: oklch(96% 0.008 90);
+  --color-base-300: oklch(92.5% 0.01 90);
+  --color-base-content: oklch(24% 0.012 75);
+  --color-primary: oklch(76% 0.14 78);
+  --color-primary-content: oklch(27% 0.06 78);
+  --color-secondary: oklch(30% 0.015 75);
+  --color-secondary-content: oklch(97% 0.005 90);
+  --color-accent: oklch(52% 0.09 210);
+  --color-accent-content: oklch(98% 0.01 210);
+  --color-neutral: oklch(32% 0.012 75);
+  --color-neutral-content: oklch(96% 0.008 90);
+  --color-info: oklch(53% 0.13 245);
+  --color-info-content: oklch(97% 0.01 245);
+  --color-success: oklch(51% 0.12 150);
+  --color-success-content: oklch(97% 0.01 150);
+  --color-warning: oklch(64% 0.16 50);
+  --color-warning-content: oklch(20% 0.04 50);
+  --color-error: oklch(55% 0.19 25);
+  --color-error-content: oklch(97% 0.01 25);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+}
+
+@plugin 'daisyui/theme' {
+  name: 'mos-carbon';
+  default: false;
+  prefersdark: true;
+  color-scheme: 'dark';
+  --color-base-100: oklch(21% 0.008 75);
+  --color-base-200: oklch(18.5% 0.008 75);
+  --color-base-300: oklch(16% 0.008 75);
+  --color-base-content: oklch(91% 0.012 85);
+  --color-primary: oklch(80% 0.14 80);
+  --color-primary-content: oklch(24% 0.06 80);
+  --color-secondary: oklch(90% 0.012 85);
+  --color-secondary-content: oklch(20% 0.01 75);
+  --color-accent: oklch(72% 0.1 200);
+  --color-accent-content: oklch(18% 0.02 200);
+  --color-neutral: oklch(28% 0.01 75);
+  --color-neutral-content: oklch(92% 0.01 85);
+  --color-info: oklch(70% 0.12 245);
+  --color-info-content: oklch(18% 0.03 245);
+  --color-success: oklch(72% 0.13 150);
+  --color-success-content: oklch(18% 0.03 150);
+  --color-warning: oklch(75% 0.15 55);
+  --color-warning-content: oklch(20% 0.04 55);
+  --color-error: oklch(68% 0.17 25);
+  --color-error-content: oklch(16% 0.03 25);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
 }
 
 /* Apply the project font to the document root. */
@@ -23,74 +110,39 @@ body {
   font-family: var(--font-sans);
 }
 
-@plugin 'daisyui/theme' {
-  name: 'wireframe';
-  default: true;
-  prefersdark: false;
-  color-scheme: 'light';
-  --color-base-100: oklch(100% 0 0);
-  --color-base-200: oklch(97% 0 0);
-  --color-base-300: oklch(94% 0 0);
-  --color-base-content: oklch(20% 0 0);
-  --color-primary: oklch(87% 0 0);
-  --color-primary-content: oklch(26% 0 0);
-  --color-secondary: oklch(87% 0 0);
-  --color-secondary-content: oklch(26% 0 0);
-  --color-accent: oklch(87% 0 0);
-  --color-accent-content: oklch(26% 0 0);
-  --color-neutral: oklch(87% 0 0);
-  --color-neutral-content: oklch(26% 0 0);
-  --color-info: oklch(44% 0.11 240.79);
-  --color-info-content: oklch(90% 0.058 230.902);
-  --color-success: oklch(43% 0.095 166.913);
-  --color-success-content: oklch(90% 0.093 164.15);
-  --color-warning: oklch(47% 0.137 46.201);
-  --color-warning-content: oklch(92% 0.12 95.746);
-  --color-error: oklch(44% 0.177 26.899);
-  --color-error-content: oklch(88% 0.062 18.334);
-  --radius-selector: 0rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.25rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 0;
-  --noise: 0;
+/* Baseline focus ring for everything interactive (design system §Focus).
+   :where() keeps specificity at zero so any component-level focus utility
+   still wins. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  outline-offset: 2px;
 }
 
-@plugin 'daisyui/theme' {
-  name: 'black';
-  default: false;
-  prefersdark: false;
-  color-scheme: 'dark';
-  --color-base-100: oklch(0% 0 0);
-  --color-base-200: oklch(19% 0 0);
-  --color-base-300: oklch(22% 0 0);
-  --color-base-content: oklch(87.609% 0 0);
-  --color-primary: oklch(35% 0 0);
-  --color-primary-content: oklch(100% 0 0);
-  --color-secondary: oklch(35% 0 0);
-  --color-secondary-content: oklch(100% 0 0);
-  --color-accent: oklch(35% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(35% 0 0);
-  --color-neutral-content: oklch(100% 0 0);
-  --color-info: oklch(45.201% 0.313 264.052);
-  --color-info-content: oklch(89.04% 0.062 264.052);
-  --color-success: oklch(51.975% 0.176 142.495);
-  --color-success-content: oklch(90.395% 0.035 142.495);
-  --color-warning: oklch(96.798% 0.211 109.769);
-  --color-warning-content: oklch(19.359% 0.042 109.769);
-  --color-error: oklch(62.795% 0.257 29.233);
-  --color-error-content: oklch(12.559% 0.051 29.233);
-  --radius-selector: 0rem;
-  --radius-field: 0rem;
-  --radius-box: 0rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 0;
-  --noise: 0;
+/* Motion collapses to (near-)instant state changes when the visitor asks
+   for reduced motion (design system §Motion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Rendered markdown reads as a document: Newsreader for the body, while
+   headings keep Plex Sans 600 and code keeps Plex Mono, so prose and UI
+   share one skeleton (design system §Typography). */
+.prose {
+  font-family: var(--font-prose);
+  font-size: 1.0625rem;
+}
+.prose :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+.prose :where(code, pre, kbd, samp) {
+  font-family: var(--font-mono);
 }
 
 /* Clickable wiki reference links inside markdown reader */

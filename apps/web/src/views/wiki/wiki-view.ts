@@ -193,14 +193,11 @@ export class WikiView {
       const excludeMatchers = excludeGlobs.map(globToRegExp);
 
       // Normalize to POSIX paths before filtering and storing.
-      const wikiFiles = allPaths
-        .map(toPosixPath)
-        .filter((rel) => {
-          return (
-            includeMatchers.some((re) => re.test(rel)) &&
-            !excludeMatchers.some((re) => re.test(rel))
-          );
-        });
+      const wikiFiles = allPaths.map(toPosixPath).filter((rel) => {
+        return (
+          includeMatchers.some((re) => re.test(rel)) && !excludeMatchers.some((re) => re.test(rel))
+        );
+      });
 
       this.files.set(wikiFiles);
 

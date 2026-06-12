@@ -96,7 +96,7 @@ describe('CardComponent', () => {
     expect(host.textContent).toContain('Owner');
     expect(host.textContent).toContain('Sprint');
     expect(host.textContent).toContain('Created');
-    
+
     // Values
     expect(host.textContent).toContain('P0');
     expect(host.textContent).toContain('mozart');
@@ -147,7 +147,7 @@ describe('CardComponent', () => {
       fieldsRegistry: testFieldsRegistry,
     });
     const component = fixture.componentInstance;
-    
+
     let emittedCard: Card | undefined;
     component.cardSelect.subscribe((c) => {
       emittedCard = c;

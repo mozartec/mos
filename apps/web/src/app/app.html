@@ -1,36 +1,41 @@
-<div class="min-h-dvh bg-base-200 text-base-content">
-  <header class="navbar bg-base-100 shadow-sm">
+<div class="min-h-dvh bg-base-100 text-base-content">
+  <header class="navbar border-b border-base-300 bg-base-100">
     <div class="navbar-start gap-2">
-      <span class="text-lg font-semibold">Markdown on Steroids</span>
+      @if (vaultName(); as name) {
+        <span class="text-lg font-semibold">{{ name }}</span>
+      } @else {
+        <span class="h-6 w-44 skeleton" aria-hidden="true"></span>
+      }
     </div>
-    <div class="navbar-end gap-2">
-      <nav class="join" aria-label="Choose view">
+    <div class="navbar-end gap-3">
+      <nav class="tabs-box tabs" aria-label="Choose view">
         <a
-          class="btn join-item"
+          class="tab"
           routerLink="/wiki"
-          routerLinkActive="btn-active"
+          routerLinkActive="tab-active"
           ariaCurrentWhenActive="page"
         >
           Wiki
         </a>
         <a
-          class="btn join-item"
+          class="tab"
           routerLink="/board"
-          routerLinkActive="btn-active"
+          routerLinkActive="tab-active"
           ariaCurrentWhenActive="page"
         >
           Board
         </a>
         <a
-          class="btn join-item"
+          class="tab"
           routerLink="/graph"
-          routerLinkActive="btn-active"
+          routerLinkActive="tab-active"
           ariaCurrentWhenActive="page"
         >
           Graph
         </a>
       </nav>
 
+      <span class="font-mono text-sm font-medium tracking-wider text-base-content/50">mos</span>
       <button
         type="button"
         class="btn btn-circle btn-ghost"

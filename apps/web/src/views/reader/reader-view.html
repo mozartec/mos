@@ -13,12 +13,14 @@
       <p class="text-error">Failed to load the vault: {{ loadError() }}</p>
     }
     @default {
-      <h2 id="reader-heading" class="font-mono text-sm text-base-content/70">{{ path() }}</h2>
+      <h2 id="reader-heading" class="font-mono text-sm text-base-content/70">
+        {{ path() ?? 'No file selected' }}
+      </h2>
 
       @if (bodyError()) {
         <p role="alert" class="text-error">{{ bodyError() }}</p>
       } @else {
-        <section class="rounded-box bg-base-100 p-4 shadow-sm">
+        <section class="rounded-box border border-base-300 bg-base-100 p-4">
           <app-markdown-reader
             [body]="body()"
             [model]="model()"

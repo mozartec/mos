@@ -21,8 +21,26 @@ const TEST_CONFIG = JSON.stringify({
 
 const FILES: Record<string, string> = {
   '.mos/config.json': TEST_CONFIG,
-  'board/S-001.md': ['---', 'id: S-001', 'type: story', 'status: Todo', '---', '', '# Story one', '', 'See S-002.'].join('\n'),
-  'board/S-002.md': ['---', 'id: S-002', 'type: story', 'status: Todo', '---', '', '# Story two'].join('\n'),
+  'board/S-001.md': [
+    '---',
+    'id: S-001',
+    'type: story',
+    'status: Todo',
+    '---',
+    '',
+    '# Story one',
+    '',
+    'See S-002.',
+  ].join('\n'),
+  'board/S-002.md': [
+    '---',
+    'id: S-002',
+    'type: story',
+    'status: Todo',
+    '---',
+    '',
+    '# Story two',
+  ].join('\n'),
 };
 
 class TestVaultSource implements VaultSource {

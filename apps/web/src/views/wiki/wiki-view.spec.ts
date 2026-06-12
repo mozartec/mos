@@ -116,7 +116,7 @@ describe('WikiView', () => {
     expect(text).not.toContain('App readme');
   });
 
-  it('auto-expands the initial file\'s ancestor folders on load', async () => {
+  it("auto-expands the initial file's ancestor folders on load", async () => {
     const fixture = TestBed.createComponent(WikiView);
     await fixture.whenStable();
     fixture.detectChanges();
@@ -143,7 +143,7 @@ describe('WikiView', () => {
     fixture.detectChanges();
 
     // The file inside 'docs/' should now be visible
-    expect((host.textContent ?? '')).toContain('intro.md');
+    expect(host.textContent ?? '').toContain('intro.md');
   });
 
   it('marks the selected file treeitem as aria-selected="true"', async () => {

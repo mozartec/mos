@@ -2,12 +2,12 @@
 id: F-018
 type: feature
 title: Design system — Ink & Highlight visual refresh
-status: Draft
+status: Done
 priority: P1
 phase: Phase 3
 owner: mozart
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-11T23:00:00Z
+updated: 2026-06-12T12:58:27Z
 ---
 
 # F-018 — Design system — Ink & Highlight visual refresh
@@ -83,16 +83,16 @@ of the in-app theme toggle.
 
 ## Acceptance
 
-- [ ] `mos-paper`/`mos-carbon` are the only registered themes, token-identical to
+- [x] `mos-paper`/`mos-carbon` are the only registered themes, token-identical to
       `docs/13-DESIGN_SYSTEM.md`; OS preference picks the default, the toggle overrides,
       and a previously stored `wireframe`/`black` value migrates cleanly.
-- [ ] With OS light + app dark (and the reverse), card type/priority colors render for
+- [x] With OS light + app dark (and the reverse), card type/priority colors render for
       the **app** theme — a spec covers the re-keyed `dark:` variant.
-- [ ] Plex Sans/Mono and Newsreader load self-hosted; rendered markdown prose is
+- [x] Plex Sans/Mono and Newsreader load self-hosted; rendered markdown prose is
       Newsreader, UI chrome is Plex Sans, ids are Plex Mono.
-- [ ] The navbar shows the vault's configured name (this repo: "Markdown on Steroids";
+- [x] The navbar shows the vault's configured name (this repo: "Markdown on Steroids";
       recipe-box shows its own) — nothing hardcoded.
-- [ ] No raw Tailwind palette class outside `card-style.ts` (checked by grep/lint), and
+- [x] No raw Tailwind palette class outside `card-style.ts` (checked by grep/lint), and
       AXE passes on wiki, board, graph, and reader in both themes.
 
 ## Dependencies
