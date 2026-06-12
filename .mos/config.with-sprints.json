@@ -1,6 +1,6 @@
 {
   "_note": "Swap-in alternative to config.json that keeps the sprint scope (ADR-020). The app reads only config.json; to use this, replace config.json with it and re-add sprint values to cards (git history has the originals). F-023 migrates this file to the spec 0.4 scopeField form.",
-  "specVersion": "0.3",
+  "specVersion": "0.4",
   "vault": { "name": "Markdown on Steroids" },
 
   "meta": {
@@ -18,8 +18,25 @@
     "estimate": { "type": "enum", "values": ["XS", "S", "M", "L", "XL"], "label": "Estimate", "icon": "hourglass" },
     "parent": { "type": "id", "label": "Parent", "icon": "git-commit" },
     "dependsOn": { "type": "id", "list": true, "label": "Depends on", "icon": "git-commit" },
+    "touches": { "type": "enum", "source": "areas", "list": true, "label": "Touches", "icon": "stack" },
     "created": { "type": "datetime", "label": "Created", "icon": "clock" },
     "updated": { "type": "datetime", "label": "Updated", "icon": "clock" }
+  },
+
+  "areas": {
+    "core": ["packages/core/**"],
+    "server": ["packages/vault-server/**", "apps/dev-server/**"],
+    "cli": ["apps/cli/**"],
+    "web": ["apps/web/**"],
+    "desktop": ["apps/desktop/**"],
+    "mcp": ["apps/mcp/**"],
+    "vscode": ["apps/vscode/**"],
+    "skills": ["skills/**", ".agents/skills/**", "skills-lock.json"],
+    "docs": ["docs/**", "*.md"],
+    "board": ["board/**"],
+    "config": [".mos/**"],
+    "scripts": ["scripts/**"],
+    "ci": [".github/**"]
   },
 
   "wiki": {
@@ -51,7 +68,7 @@
         "Deferred": null,
         "Dropped": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     },
     "story": {
       "label": "Story",
@@ -64,7 +81,7 @@
         "Blocked": "In Progress",
         "Done": "Done"
       },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "touches", "created", "updated"] }
     },
     "task": {
       "label": "Task",
@@ -77,7 +94,7 @@
         "Done": "Done",
         "Deferred": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     }
   },
 

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T19:56:00Z
+updated: 2026-06-13T00:06:00Z
 ---
 
 # Vault spec
@@ -341,7 +341,7 @@ diffs is deliberately out of spec for now (ADR-021).
       "states": { "Draft": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done",
                   "Deferred": null, "Dropped": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     },
     "story": {
       "label": "Story",
@@ -349,7 +349,7 @@ diffs is deliberately out of spec for now (ADR-021).
       "color": "green",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Blocked": "In Progress", "Done": "Done" },
-      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "touches", "created", "updated"] }
     },
     "task": {
       "label": "Task",
@@ -357,7 +357,7 @@ diffs is deliberately out of spec for now (ADR-021).
       "color": "blue",
       "states": { "Todo": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done", "Deferred": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     }
   },
   "sprints": ["S1", "S2", "S3"]

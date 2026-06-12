@@ -306,7 +306,9 @@ function validate(config: VaultConfig, errors: string[]): void {
 
     const parent = type['parent'];
     if (parent != null) {
-      if (typeof parent !== 'string' || !(parent in types)) {
+      // hasOwn, not `in`: a parent like 'constructor' must not resolve via
+      // the prototype chain of a plain JSON object.
+      if (typeof parent !== 'string' || !Object.hasOwn(types, parent)) {
         errors.push(
           `type ${typeName}: parent type '${String(parent)}' is not defined`,
         );
@@ -380,8 +382,9 @@ function validate(config: VaultConfig, errors: string[]): void {
       const source = field['source'];
       // A source resolves to a config list (its entries are the values, e.g.
       // `sprints`) or a config map (its keys are the values, e.g. `areas`).
+      // Own keys only: '__proto__' or 'constructor' must not resolve.
       const resolved =
-        typeof source === 'string'
+        typeof source === 'string' && Object.hasOwn(config, source)
           ? (config as unknown as Record<string, unknown>)[source]
           : undefined;
       if (source === undefined) {

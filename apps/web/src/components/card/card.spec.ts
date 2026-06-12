@@ -201,6 +201,53 @@ describe('CardComponent', () => {
     expect(fixture.nativeElement.innerHTML).toContain('bg-red-100');
   });
 
+  it('renders a list enum as one chip per entry, each colored by its own value', async () => {
+    const fixture = await createComponent({
+      card: {
+        ...testCard,
+        fields: { ...testCard.fields, touches: ['core', 'web'] },
+      },
+      typeDef: {
+        ...testTypeDef,
+        card: { fields: ['touches'] },
+      },
+      fieldsRegistry: {
+        ...testFieldsRegistry,
+        touches: {
+          type: 'enum',
+          source: 'areas',
+          list: true,
+          label: 'Touches',
+          valueColors: { core: 'red' },
+        },
+      },
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const chips = [...host.querySelectorAll('.badge')].filter(
+      (el) => el.textContent?.trim() === 'core' || el.textContent?.trim() === 'web',
+    );
+    expect(chips.length).toBe(2); // separate chips, never one "core,web" chip
+    expect(host.textContent).not.toContain('core,web');
+    expect(chips[0].className).toContain('bg-red-100'); // per-value color, not whole-list lookup
+  });
+
+  it('omits a list field whose value is an empty list', async () => {
+    const fixture = await createComponent({
+      card: {
+        ...testCard,
+        fields: { ...testCard.fields, touches: [], dependsOn: [] },
+      },
+      typeDef: { ...testTypeDef, card: { fields: ['touches', 'dependsOn'] } },
+      fieldsRegistry: {
+        ...testFieldsRegistry,
+        touches: { type: 'enum', source: 'areas', list: true, label: 'Touches' },
+      },
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).not.toContain('Touches');
+    expect(host.textContent).not.toContain('Depends on');
+  });
+
   it('renders an icon for a field that declares one', async () => {
     const fixture = await createComponent({
       card: testCard,

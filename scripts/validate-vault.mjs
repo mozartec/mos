@@ -35,17 +35,33 @@ function walk(dir, acc = []) {
   return acc;
 }
 
+function unquote(v) {
+  return (v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))
+    ? v.slice(1, -1)
+    : v;
+}
+
 function parseFrontmatter(text) {
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
   if (!m) return null;
   const obj = {};
-  for (const line of m[1].split(/\r?\n/)) {
-    const mm = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(line);
+  const lines = m[1].split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const mm = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(lines[i]);
     if (!mm) continue;
-    let v = mm[2].trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
-      v = v.slice(1, -1);
-    obj[mm[1]] = v;
+    const v = mm[2].trim();
+    if (v === '') {
+      // A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
+      //   key:
+      //     - entry
+      const items = [];
+      for (let item; i + 1 < lines.length && (item = /^\s*-\s*(.*)$/.exec(lines[i + 1])); i++) {
+        items.push(unquote(item[1].trim()));
+      }
+      obj[mm[1]] = items.length > 0 ? items : v;
+    } else {
+      obj[mm[1]] = unquote(v);
+    }
   }
   return obj;
 }
@@ -56,11 +72,27 @@ const DEFAULT_FIELD_ORDER = [
   'parent', 'estimate', 'dependsOn', 'touches', 'created', 'updated',
 ];
 
-// A frontmatter list value: inline `[a, b]` or a bare single value; null when absent.
+// A frontmatter list value, deduped: a block list (already an array from
+// parseFrontmatter), an inline `[a, b]` — entries may be quoted, but a quoted
+// entry containing a comma is beyond this interim parser — or a bare single
+// value; null when absent.
 function parseList(raw) {
   if (raw == null || raw === '') return null;
+  if (Array.isArray(raw)) return [...new Set(raw)];
   const inline = /^\[(.*)\]$/.exec(raw);
-  return inline ? inline[1].split(',').map((s) => s.trim()).filter(Boolean) : [raw];
+  const items = inline
+    ? inline[1].split(',').map((s) => unquote(s.trim())).filter(Boolean)
+    : [raw];
+  return [...new Set(items)];
+}
+
+// Values an enum `source` supplies: a config list's entries, or a config map's keys.
+function sourceValues(cfg, source) {
+  if (typeof source !== 'string' || !Object.hasOwn(cfg, source)) return null;
+  const src = cfg[source];
+  if (Array.isArray(src)) return src;
+  if (src !== null && typeof src === 'object') return Object.keys(src);
+  return null;
 }
 
 function validateVault(root) {
@@ -129,10 +161,22 @@ function validateVault(root) {
         if (!cards[id]) errors.push(`${c.id}: ${fieldName} '${id}' does not resolve to a card`);
       }
     }
-    // Every declared touches entry must name a configured area (F-024, ADR-021).
-    for (const name of parseList(c.touches) ?? []) {
-      if (!Object.hasOwn(cfg.areas ?? {}, name))
-        errors.push(`${c.id}: touches '${name}' names no configured area`);
+    // Every value of a list-enum field must come from its declared values or
+    // source — the list analogue of the id check above (F-024, ADR-021; e.g.
+    // a `touches` entry that names no configured area).
+    for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
+      if (def?.type !== 'enum' || def?.list !== true) continue;
+      const allowed =
+        Array.isArray(def.values) && def.values.length > 0
+          ? def.values
+          : sourceValues(cfg, def.source);
+      if (allowed == null) continue; // unresolvable enum — a config problem, not the card's
+      for (const v of parseList(c[fieldName]) ?? []) {
+        if (!allowed.includes(v))
+          errors.push(
+            `${c.id}: ${fieldName} '${v}' is not a value of ${def.source !== undefined ? `config '${def.source}'` : 'its enum'}`,
+          );
+      }
     }
     // Frontmatter property order (F-013): a warning, never an error.
     const fieldOrder = Array.isArray(cfg.fieldOrder) ? cfg.fieldOrder : DEFAULT_FIELD_ORDER;
@@ -145,6 +189,8 @@ function validateVault(root) {
   // Two cards concurrently in flight — in the column before the last, the
   // counterpart of "last column is done" — that declare overlapping areas are
   // heading for the same files (F-024, ADR-021). A warning, never an error.
+  // `touches` is the spec's conventional surface field (VAULT_SPEC §5c),
+  // mirroring core's TOUCHES_FIELD, the way `dependsOn` is the deps convention.
   const inFlightCol = columns.length >= 3 ? columns[columns.length - 2] : null;
   if (inFlightCol != null) {
     const inFlight = Object.values(cards)

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T20:08:00Z
+updated: 2026-06-13T00:06:00Z
 ---
 
 # Conventions
@@ -82,23 +82,23 @@ skipped.
 `touches` declares the card's physical surface — the parts of the repo the work will
 change — as a list of area names from `areas` in
 [`.mos/config.json`](../.mos/config.json) (e.g. `touches: [core, docs]`). It is what
-makes "can these cards run in parallel?" checkable
-([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches),
-[`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §5c). The rules:
+makes "can these cards run in parallel?" checkable. The semantics — missing vs `[]`,
+batch math, what the validator checks — are spec, defined once in
+[`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §5c
+([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)
+has the rationale). The workflow rules:
 
-- **The writing agent fills it at planning time** — when the card is created or refined,
-  from the card's own Plan/Outcome, not from guesses. Like every frontmatter write, it's
-  the agent's job; the app only reads it (ADR-002).
+- **Fill it at planning time** — when the card is created or refined, from the card's
+  own Plan/Outcome, not from guesses.
 - **Keep it honest when scope changes.** If executing a card honestly touches an area it
   doesn't declare, update `touches` (and bump `updated`) as part of that change — a stale
   declaration silently poisons batch planning.
 - **Declare the work, not the bookkeeping.** Every shipped card flips its own status in
   `board/`; don't declare `board` for that — declare it only when the work itself edits
   cards (e.g. a backfill).
-- **An empty list is a claim** — `touches: []` means "touches nothing" and batches with
-  anything; omit the field only when the surface genuinely isn't known yet.
-- Every name must match a configured area — `bun run validate` flags unknown names, and
-  warns when two In Progress cards declare overlapping areas.
+- **Writing the field is a claim** — declare `[]` only for genuinely surface-free work,
+  and omit the field only while the surface isn't known yet (§5c defines how each is
+  treated). `bun run validate` is the cheap check that every declared name resolves.
 
 ## Timestamps
 

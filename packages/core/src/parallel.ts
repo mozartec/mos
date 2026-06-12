@@ -12,8 +12,8 @@
 
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
-import { buildDependencyGraph, readySet } from './graph.js';
-import { getPriorityRank } from './place-card.js';
+import { buildDependencyGraph, readySet, type DependencyGraph } from './graph.js';
+import { compareIdsByPriority } from './place-card.js';
 
 /** The conventional surface field name when the registry declares none. */
 export const TOUCHES_FIELD = 'touches';
@@ -26,12 +26,15 @@ export interface ResolvedTouches {
   globs: string[];
   /** Declared names that match no configured area (validator material). */
   unknown: string[];
+  /** Entries that are not names at all (non-string or empty), as declared. */
+  malformed: unknown[];
 }
 
 /**
  * Resolve one card's `touches` declaration against the config's `areas` map.
- * A missing or non-list value resolves to all-empty; the distinction between
- * "missing" and "declared empty" matters only to {@link parallelBatch}.
+ * A missing field resolves to all-empty; a scalar string is treated as a
+ * one-entry list. The distinction between "missing" and "declared empty"
+ * matters only to {@link parallelBatch}.
  */
 export function resolveTouches(
   card: Card,
@@ -42,8 +45,9 @@ export function resolveTouches(
   const globs: string[] = [];
   const unknown: string[] = [];
 
-  for (const name of declaredTouches(card, fieldName) ?? []) {
-    const areaGlobs = config.areas[name];
+  const declared = declaredTouches(card, fieldName);
+  for (const name of declared?.names ?? []) {
+    const areaGlobs = Object.hasOwn(config.areas, name) ? config.areas[name] : undefined;
     if (Array.isArray(areaGlobs)) {
       areas.push(name);
       for (const glob of areaGlobs) {
@@ -54,7 +58,7 @@ export function resolveTouches(
     }
   }
 
-  return { areas, globs, unknown };
+  return { areas, globs, unknown, malformed: declared?.malformed ?? [] };
 }
 
 /** One excluded pairing: `excluded` overlaps batch member `with` on `areas`. */
@@ -77,12 +81,17 @@ export interface ParallelBatchResult {
   /** Ready cards excluded for overlapping a batch member, one entry per pair. */
   conflicts: BatchConflict[];
   /**
-   * Ready cards with no `touches` declaration — their surface is unknown, so
-   * parallel safety can't be claimed. An explicit empty list is a declaration
-   * ("touches nothing") and batches; an absent field does not.
+   * Ready cards whose surface is unknown: no `touches` declaration, or a
+   * declaration with malformed (non-string) entries — parallel safety can't
+   * be claimed for either. An explicit empty list is a declaration ("touches
+   * nothing") and batches; an absent field does not.
    */
   undeclared: string[];
-  /** Diagnostics from dependency resolution (unresolved ids, cycles). */
+  /**
+   * Diagnostics: dependency resolution (unresolved ids — which do NOT block
+   * readiness; the edge is dropped and only reported here — and cycles) plus
+   * malformed `touches` entries. Batch consumers must surface these.
+   */
   errors: string[];
 }
 
@@ -98,25 +107,23 @@ export interface ParallelBatchResult {
  * config-driven priority rank, then id, so higher-priority work claims its
  * surface first. A vault that configures no `areas` plans no surfaces: the
  * batch is simply the ready set, nothing is excluded or undeclared.
+ *
+ * Pass `graph` when the caller already built the dependency graph (a lens
+ * rendering it, for example) so it isn't recomputed; by default one is built
+ * from the model.
  */
 export function parallelBatch(
   model: VaultModel,
   config: VaultConfig,
   fieldName: string = TOUCHES_FIELD,
+  graph: DependencyGraph = buildDependencyGraph(model, config),
 ): ParallelBatchResult {
-  const graph = buildDependencyGraph(model, config);
   const ready = readySet(graph);
-
-  const priorityRank = getPriorityRank(config);
-  const priorityIndex = new Map(priorityRank.map((p, i) => [p, i]));
-  const candidates = [...ready].sort((a, b) => {
-    const pa = priorityIndex.get(model.cards[a]?.priority ?? '') ?? priorityRank.length;
-    const pb = priorityIndex.get(model.cards[b]?.priority ?? '') ?? priorityRank.length;
-    return pa - pb || a.localeCompare(b);
-  });
+  const errors = [...graph.errors];
+  const candidates = [...ready].sort(compareIdsByPriority(model, config));
 
   if (Object.keys(config.areas).length === 0) {
-    return { batch: candidates, conflicts: [], undeclared: [], errors: graph.errors };
+    return { batch: candidates, conflicts: [], undeclared: [], errors };
   }
 
   const batch: string[] = [];
@@ -125,39 +132,51 @@ export function parallelBatch(
   const claimed = new Map<string, string[]>(); // batch member → its area names
 
   for (const id of candidates) {
-    const names = declaredTouches(model.cards[id], fieldName);
-    if (names === undefined) {
+    const declared = declaredTouches(model.cards[id], fieldName);
+    for (const entry of declared?.malformed ?? []) {
+      errors.push(`${id}: ${fieldName} entry is not an area name (${JSON.stringify(entry)})`);
+    }
+    if (declared === undefined || declared.malformed.length > 0) {
+      // No declaration, or one we can't fully read — the surface is unknown.
       undeclared.push(id);
       continue;
     }
     const overlaps: BatchConflict[] = [];
     for (const [member, memberNames] of claimed) {
-      const shared = names.filter((n) => memberNames.includes(n));
+      const shared = declared.names.filter((n) => memberNames.includes(n));
       if (shared.length > 0) overlaps.push({ excluded: id, with: member, areas: shared });
     }
     if (overlaps.length > 0) {
       conflicts.push(...overlaps);
     } else {
       batch.push(id);
-      claimed.set(id, names);
+      claimed.set(id, declared.names);
     }
   }
 
-  return { batch, conflicts, undeclared, errors: graph.errors };
+  return { batch, conflicts, undeclared, errors };
 }
 
 /**
- * A card's raw `touches` declaration as a string list, deduped; `undefined`
- * when the field is absent (or the card is), which is distinct from a
- * declared-empty list.
+ * A card's raw `touches` declaration: its string names, deduped, plus any
+ * entries that are not names at all. `undefined` when the field is absent
+ * (or the card is), which is distinct from a declared-empty list.
  */
-function declaredTouches(card: Card | undefined, fieldName: string): string[] | undefined {
+function declaredTouches(
+  card: Card | undefined,
+  fieldName: string,
+): { names: string[]; malformed: unknown[] } | undefined {
   const raw = card?.fields[fieldName];
   if (raw === undefined || raw === null) return undefined;
   const values = Array.isArray(raw) ? raw : [raw];
   const names: string[] = [];
+  const malformed: unknown[] = [];
   for (const value of values) {
-    if (typeof value === 'string' && value !== '' && !names.includes(value)) names.push(value);
+    if (typeof value === 'string' && value !== '') {
+      if (!names.includes(value)) names.push(value);
+    } else {
+      malformed.push(value);
+    }
   }
-  return names;
+  return { names, malformed };
 }

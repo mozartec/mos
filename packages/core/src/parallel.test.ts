@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
+import { buildDependencyGraph } from './graph.js';
 import { parallelBatch, resolveTouches } from './parallel.js';
 
 function makeConfig(areas: Record<string, string[]> = {}): VaultConfig {
@@ -76,8 +77,16 @@ describe('resolveTouches', () => {
     const m = model([{ id: 'T-001' }, { id: 'T-002', touches: [] }]);
     for (const id of ['T-001', 'T-002']) {
       const resolved = resolveTouches(m.cards[id], makeConfig(AREAS));
-      expect(resolved).toEqual({ areas: [], globs: [], unknown: [] });
+      expect(resolved).toEqual({ areas: [], globs: [], unknown: [], malformed: [] });
     }
+  });
+
+  it('reports non-string entries as malformed instead of dropping them', () => {
+    const m = model([{ id: 'T-001' }]);
+    m.cards['T-001'].fields['touches'] = ['core', 3, null];
+    const resolved = resolveTouches(m.cards['T-001'], makeConfig(AREAS));
+    expect(resolved.areas).toEqual(['core']);
+    expect(resolved.malformed).toEqual([3, null]);
   });
 });
 
@@ -171,6 +180,26 @@ describe('parallelBatch', () => {
     );
     expect(result.batch).toEqual(['T-001']);
     expect(result.conflicts).toEqual([{ excluded: 'T-002', with: 'T-001', areas: ['webz'] }]);
+  });
+
+  it('sets aside a card with a malformed touches entry and reports it', () => {
+    const m = model([{ id: 'T-001', touches: ['core'] }, { id: 'T-002' }]);
+    m.cards['T-002'].fields['touches'] = [3];
+    const result = parallelBatch(m, makeConfig(AREAS));
+    // A declaration we can't fully read is an unknown surface, not "touches nothing".
+    expect(result.batch).toEqual(['T-001']);
+    expect(result.undeclared).toEqual(['T-002']);
+    expect(result.errors).toContain('T-002: touches entry is not an area name (3)');
+  });
+
+  it('reuses a caller-provided dependency graph instead of rebuilding', () => {
+    const m = model([
+      { id: 'T-001', touches: ['core'] },
+      { id: 'T-002', touches: ['web'], dependsOn: ['T-001'] },
+    ]);
+    const config = makeConfig(AREAS);
+    const graph = buildDependencyGraph(m, config);
+    expect(parallelBatch(m, config, undefined, graph)).toEqual(parallelBatch(m, config));
   });
 
   it('degrades to the plain ready set when the vault configures no areas', () => {

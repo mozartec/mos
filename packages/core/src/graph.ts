@@ -12,7 +12,7 @@
 import type { VaultConfig } from './config.js';
 import type { VaultModel } from './models.js';
 import { buildEdges } from './edges.js';
-import { getPriorityRank } from './place-card.js';
+import { compareIdsByPriority } from './place-card.js';
 
 /** A positioned graph node: rendering needs nothing beyond this. */
 export interface GraphNode {
@@ -108,8 +108,7 @@ export function buildDependencyGraph(model: VaultModel, config: VaultConfig): De
   for (const id of allIds) rankOf(id);
 
   // Stable order within each rank: priority rank (config-driven) then id.
-  const priorityRank = getPriorityRank(config);
-  const priorityIndex = new Map(priorityRank.map((p, i) => [p, i]));
+  const byPriority = compareIdsByPriority(model, config);
   const byRank = new Map<number, string[]>();
   for (const id of allIds) {
     const list = byRank.get(ranks.get(id) ?? 0) ?? [];
@@ -120,11 +119,7 @@ export function buildDependencyGraph(model: VaultModel, config: VaultConfig): De
   const nodes: GraphNode[] = [];
   for (const rank of [...byRank.keys()].sort((a, b) => a - b)) {
     const ids = byRank.get(rank) ?? [];
-    ids.sort((a, b) => {
-      const pa = priorityIndex.get(model.cards[a].priority ?? '') ?? priorityRank.length;
-      const pb = priorityIndex.get(model.cards[b].priority ?? '') ?? priorityRank.length;
-      return pa - pb || a.localeCompare(b);
-    });
+    ids.sort(byPriority);
     ids.forEach((id, order) => {
       const card = model.cards[id];
       const lastColumn = config.board.columns[config.board.columns.length - 1];

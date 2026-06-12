@@ -181,6 +181,22 @@ describe('loadConfig', () => {
       expect(errors).toEqual([]);
     });
 
+    it('rejects an enum source that only resolves via the prototype chain', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        fields: { sneaky: { type: 'enum', source: '__proto__' } },
+      });
+      expect(errors.some((e) => /enum source '__proto__' does not resolve/.test(e))).toBe(true);
+    });
+
+    it('rejects a parent type that exists only on the prototype chain', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'] },
+        types: { story: { parent: 'constructor', states: { Done: 'Done' } } },
+      });
+      expect(errors.some((e) => /parent type 'constructor' is not defined/.test(e))).toBe(true);
+    });
+
     it('rejects an area whose value is not a list of glob strings', () => {
       const { errors } = loadConfig({
         board: { columns: ['Done'] },
