@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-11T12:07:00Z
+updated: 2026-06-12T22:36:00Z
 ---
 
 # Releasing: branching, commits, versioning, and pipelines
@@ -64,13 +64,31 @@ bumps. We reach **1.0.0** only when we're ready to promise stability — i.e., w
 the app or the vault format would meaningfully hurt users we don't want to hurt. There is
 no rush to 1.0.
 
-### Two things are versioned
+### Three things are versioned
 
-1. **The app** — normal SemVer, tagged `vX.Y.Z`.
+1. **The app** — normal SemVer, tagged `vX.Y.Z`, published to npm by the release PR.
 2. **The vault format (spec)** — versioned separately, because it's a contract other
    people's files depend on. The current spec version lives as `specVersion` in
    `.mos/config.json` and is noted at the top of [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md).
-   Bump it only when the format changes; the app states which spec versions it supports.
+   Bump it **when the format change merges**, not when the app releases: the spec's
+   consumers — this vault, adopter vaults, the skills — read `main`. What moves at app
+   release is the *support claim*: `mos init`'s starter config
+   ([`apps/cli/src/init.ts`](../apps/cli/src/init.ts)) stamps the spec version the
+   released app supports, so update it deliberately alongside the format change the app
+   ships.
+3. **The skills** ([`skills/`](../skills/README.md)) — `version` in each `SKILL.md`'s
+   metadata. They have no publish step: the skills CLI installs from GitHub `main`, so
+   **a merge is a release**. Bump the version in the same PR that changes a skill's
+   behavior.
+
+### Version bumps must be visible in the changelog
+
+release-please builds the changelog from squash-merge **titles**, and only `feat`/`fix`/
+breaking titles appear — `docs`/`chore`/`ci` are invisible and trigger no release. A PR
+that ships a live artifact bump is therefore never `docs:`: title it `feat(skills)` /
+`fix(cli)` / `feat(core)` and put the new version in the title (e.g.
+`feat(skills): ship-card 0.4.0 — self-review before finishing`). The changelog then
+records the bump with no hand-editing, which the release PR forbids anyway.
 
 ## Changelog
 
