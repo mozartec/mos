@@ -15,7 +15,7 @@ function isoNow(now: Date): string {
 
 function starterConfig(vaultName: string): string {
   const config = {
-    specVersion: '0.3',
+    specVersion: '0.4',
     vault: { name: vaultName },
     meta: { timestamps: { createdField: 'created', updatedField: 'updated' } },
     fields: {
