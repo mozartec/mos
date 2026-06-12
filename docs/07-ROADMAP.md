@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T10:33:00Z
+updated: 2026-06-11T23:00:00Z
 ---
 
 # Roadmap
@@ -32,6 +32,25 @@ Features `F-001`–`F-006`. See [`06-MVP.md`](06-MVP.md).
 - **`F-016` Vault scaffolding.** `mos init` turns any folder into a valid vault (starter
   config, example card, agent-guide stub) — the first mile of adopting mos elsewhere.
 
+## Phase 3 — the design refresh
+
+The functional app, made desirable: a real design system and a Linear-grade board, ahead
+of any write features. Direction and tokens: [`13-DESIGN_SYSTEM.md`](13-DESIGN_SYSTEM.md)
+(ADR-016); board semantics: ADR-017/018/019.
+
+- **`F-018` Design system — Ink & Highlight.** Custom `mos-paper`/`mos-carbon` themes,
+  IBM Plex + Newsreader typography, semantic-token-only color, theme-keyed dark variant
+  (fixes card colors following the OS instead of the toggle), vault name in the navbar.
+- **`F-019` Sprint board & backlog.** The board shows one sprint at a time (dated sprints
+  supported in config, spec 0.4 — ADR-017) with a config-driven filter bar; Backlog
+  becomes its own ranked list of sprint-less cards (ADR-018).
+- **`F-020` Cards lens.** A flat, filterable, sortable index of every card — the issues
+  view — sharing the board's filter bar.
+- **`F-021` Card page & peek.** A card opens two ways: a slide-over peek that keeps board
+  context, and a full page with structured fields, relations, and children.
+- **`F-022` Subcards on the board.** Containers leave the columns; leaf cards carry a
+  parent breadcrumb chip; lists show container progress (ADR-019).
+
 ## Future — the ecosystem
 
 - **`F-009` MCP write server.** A typed `createTask` / `setStatus` / `setSprint` / `assign`
@@ -44,6 +63,6 @@ Features `F-001`–`F-006`. See [`06-MVP.md`](06-MVP.md).
 
 ## Ideas, unscheduled
 
-Date-based scheduling and a calendar view; sub-card nesting on the board; manual drag
-ordering; multi-vault support; themes beyond light/dark. These
-live as `Draft`/`Deferred` cards or notes and graduate only with a concrete need.
+Date-based scheduling and a calendar view; manual drag ordering; multi-vault support;
+themes beyond light/dark. These live as `Draft`/`Deferred` cards or notes and graduate
+only with a concrete need.
