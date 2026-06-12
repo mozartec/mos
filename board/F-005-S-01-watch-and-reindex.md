@@ -5,12 +5,11 @@ title: Watch the vault and re-index changed files
 status: Done
 priority: P1
 owner: mozart
-sprint: S3
 parent: F-005
 estimate: M
 dependsOn: [T-004, T-002, F-001]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-005-S-01 — Watch the vault and re-index changed files

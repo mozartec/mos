@@ -1,4 +1,5 @@
 {
+  "_note": "Swap-in alternative to config.json that keeps the sprint scope (ADR-020). The app reads only config.json; to use this, replace config.json with it and re-add sprint values to cards (git history has the originals). F-023 migrates this file to the spec 0.4 scopeField form.",
   "specVersion": "0.3",
   "vault": { "name": "Markdown on Steroids" },
 
@@ -13,6 +14,7 @@
     "phase": { "type": "enum", "values": ["MVP", "Phase 2", "Phase 3", "Phase 4", "Future"], "label": "Phase", "icon": "tag" },
     "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority", "icon": "flag", "valueColors": { "P0": "red", "P1": "amber", "P2": "blue", "P3": "slate" } },
     "owner": { "type": "string", "label": "Owner", "icon": "user" },
+    "sprint": { "type": "enum", "source": "sprints", "label": "Sprint", "icon": "calendar" },
     "estimate": { "type": "enum", "values": ["XS", "S", "M", "L", "XL"], "label": "Estimate", "icon": "hourglass" },
     "parent": { "type": "id", "label": "Parent", "icon": "git-commit" },
     "dependsOn": { "type": "id", "list": true, "label": "Depends on", "icon": "git-commit" },
@@ -49,7 +51,7 @@
         "Deferred": null,
         "Dropped": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
     },
     "story": {
       "label": "Story",
@@ -62,7 +64,7 @@
         "Blocked": "In Progress",
         "Done": "Done"
       },
-      "card": { "fields": ["id", "parent", "priority", "owner", "estimate", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "sprint", "estimate", "dependsOn", "created", "updated"] }
     },
     "task": {
       "label": "Task",
@@ -75,7 +77,9 @@
         "Done": "Done",
         "Deferred": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "dependsOn", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "created", "updated"] }
     }
-  }
+  },
+
+  "sprints": ["S1", "S2", "S3"]
 }

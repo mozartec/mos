@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-11T23:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Roadmap
@@ -36,14 +36,18 @@ Features `F-001`–`F-006`. See [`06-MVP.md`](06-MVP.md).
 
 The functional app, made desirable: a real design system and a Linear-grade board, ahead
 of any write features. Direction and tokens: [`13-DESIGN_SYSTEM.md`](13-DESIGN_SYSTEM.md)
-(ADR-016); board semantics: ADR-017/018/019.
+(ADR-016); board semantics:
+[ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint)
+and [ADR-019](08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units).
 
 - **`F-018` Design system — Ink & Highlight.** Custom `mos-paper`/`mos-carbon` themes,
   IBM Plex + Newsreader typography, semantic-token-only color, theme-keyed dark variant
   (fixes card colors following the OS instead of the toggle), vault name in the navbar.
-- **`F-019` Sprint board & backlog.** The board shows one sprint at a time (dated sprints
-  supported in config, spec 0.4 — ADR-017) with a config-driven filter bar; Backlog
-  becomes its own ranked list of sprint-less cards (ADR-018).
+- **`F-023` Scoped board & backlog.** The board scoped by the vault's optional,
+  config-named scope field (dated values supported, spec 0.4 —
+  [ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint))
+  with a config-driven filter bar; Backlog becomes its own ranked list of unscoped cards.
+  Supersedes `F-019`, which assumed a built-in sprint.
 - **`F-020` Cards lens.** A flat, filterable, sortable index of every card — the issues
   view — sharing the board's filter bar.
 - **`F-021` Card page & peek.** A card opens two ways: a slide-over peek that keeps board
@@ -51,15 +55,30 @@ of any write features. Direction and tokens: [`13-DESIGN_SYSTEM.md`](13-DESIGN_S
 - **`F-022` Subcards on the board.** Containers leave the columns; leaf cards carry a
   parent breadcrumb chip; lists show container progress (ADR-019).
 
+## Phase 4 — AI-native planning
+
+Planning for parallel agent work: cards declare the files they'll touch, so "can these
+run at the same time?" is computed, not guessed
+([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).
+
+- **`F-024` Areas & touches.** Config-defined areas (named glob sets) and a `touches`
+  field cards use to declare their file surface; validator checks and pure-core
+  parallel-batch math.
+- **`F-025` Parallel-aware skills.** `next-card` recommends a conflict-free batch of
+  ready cards instead of just one; `ship-card` pre-flights a card's `touches` against
+  work already in flight.
+
 ## Future — the ecosystem
 
-- **`F-009` MCP write server.** A typed `createTask` / `setStatus` / `setSprint` / `assign`
+- **`F-009` MCP write server.** A typed `createTask` / `setStatus` / `setScope` / `assign`
   server so coding agents write through an API instead of prose conventions. Reuses the
   pure core.
 - **`F-010` VS Code extension.** The board and wiki as a webview, for developers who won't
   leave the editor.
 - **`F-011` In-app editing.** Optional write mode in the app itself, following the
   frontmatter-only discipline.
+- **`F-026` Parallel batches on the board.** Read-only collision badges on in-flight
+  cards and a "ready & parallel-safe" highlight, on the board and the graph lens.
 
 ## Ideas, unscheduled
 

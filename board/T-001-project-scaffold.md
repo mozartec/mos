@@ -6,9 +6,8 @@ status: Done
 priority: P0
 phase: MVP
 owner: mozart
-sprint: S1
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # T-001 — Monorepo scaffold

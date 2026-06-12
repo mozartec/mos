@@ -5,12 +5,11 @@ title: Parse a markdown file and its frontmatter
 status: Done
 priority: P0
 owner: mozart
-sprint: S1
 parent: F-001
 estimate: M
 dependsOn: [T-001]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-001-S-01 — Parse a markdown file and its frontmatter

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-11T23:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Decisions (ADRs)
@@ -377,7 +377,7 @@ service migrates the persisted value. The doc is normative: app and doc may not 
 
 ## ADR-017 — Sprints: names with optional dates
 
-**Status:** Accepted · **Date:** 2026-06-12
+**Status:** Superseded by [ADR-020](#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint) · **Date:** 2026-06-12
 
 **Context.** `config.sprints` is a flat ordered list of names. A board that shows one
 sprint at a time needs to know which sprint is *current*, and plain names can't say.
@@ -396,7 +396,7 @@ Linear-style cycles) remain a possible future ADR; nothing here precludes them.
 
 ## ADR-018 — Board scope: one sprint at a time; Backlog = no sprint
 
-**Status:** Accepted · **Date:** 2026-06-12
+**Status:** Amended by [ADR-020](#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint) · **Date:** 2026-06-12
 
 **Context.** The board renders every card at once with a sprint `<select>`, and "Backlog"
 ambiguously names both a board column (a status mapping) and the filter value for cards
@@ -431,3 +431,64 @@ skill already applies.
 **Consequences.** Board column counts mean shippable units. Containers never look stalled
 in a column they don't really occupy; their progress is computed, not asserted. Vaults
 without hierarchy see no change.
+
+## ADR-020 — Board scope is a config-named grouping, not a built-in sprint
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** The spec hardcodes one pacing vocabulary: a top-level `sprints` list and a
+`sprint` field. Trackers don't even agree on the word (Jira sprints, Linear cycles, Azure
+iterations), and vaults that pace work by parallel capacity rather than time-boxes carry
+a field they never set. A pacing concept the format imposes — instead of one the vault
+declares — contradicts
+[ADR-003](#adr-003--a-card-is-folder-scope--a-recognized-frontmatter-type).
+
+**Decision.** Spec 0.4 replaces the built-in sprint with an optional, vault-named
+**scope**: `board.scopeField` designates any enum field (a vault may call it `sprint`,
+`cycle`, `iteration`, …) as the board's scope. That field's values are strings or dated
+objects `{ "name", "starts"?, "ends"? }` —
+[ADR-017](#adr-017--sprints-names-with-optional-dates)'s dated form, generalized; value
+normalization and current-scope resolution stay pure core functions with the clock as an
+input. No `scopeField` means no scope UI and an unscoped board. The backlog of
+[ADR-018](#adr-018--board-scope-one-sprint-at-a-time-backlog--no-sprint) becomes
+scope-relative: *cards with an empty scope value and a non-done status*, defined
+only when a scope field exists. For compatibility, 0.4 readers treat a 0.3 `sprints` key
+as a `sprint` scope field; new configs use `scopeField`. This vault defines no scope
+field; a swap-in config that does is kept at
+[`.mos/config.with-sprints.json`](../.mos/config.with-sprints.json).
+
+Supersedes [ADR-017](#adr-017--sprints-names-with-optional-dates) (dated form survives
+as dated scope values) and amends
+[ADR-018](#adr-018--board-scope-one-sprint-at-a-time-backlog--no-sprint) (same
+board/backlog semantics, expressed over the scope field).
+
+**Consequences.** Naming follows the team, not the tool, and time-boxing becomes a choice
+instead of a default. F-023 builds the scoped board and backlog on this model and ships
+the spec text with the parser. Until it lands, 0.3 vaults behave exactly as today.
+
+## ADR-021 — Cards declare a physical surface; parallel work is planned as conflict-free batches
+
+**Status:** Accepted · **Date:** 2026-06-12
+
+**Context.** `dependsOn` captures logical order, and the graph lens
+([ADR-011](#adr-011--three-lenses-wiki-board-and-dependency-graph)) answers
+"what is unblocked" — but two unblocked cards can still rewrite the same files. The
+format says nothing about which files a card will change, so work declared parallel meets
+again as merge conflicts, and the cost lands at integration time when planning could have
+prevented it. In an AI-paced vault, parallel throughput is the capacity planning manages.
+
+**Decision.** Spec 0.4 adds **areas**: a config map of vault-defined names to glob lists
+(e.g. `"areas": { "web": ["apps/web/**"] }`), and a `touches` list field in which a card
+names the areas it expects to modify. The writing agent fills `touches` at planning time
+([ADR-002](#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer)). A
+**parallel batch** is a set of ready cards — dependencies done — whose
+`touches` are pairwise disjoint; batch computation is a pure core function. The validator
+flags a `touches` entry that names no configured area. Verifying declarations against
+actual diffs (git-computed overlap) is deliberately future work, recorded here so the
+declared model stays the floor it builds on.
+
+**Consequences.** "Can these run in parallel?" gets a checkable answer instead of a
+guess. F-024 ships the spec/core/validator pieces, F-025 teaches the skills to recommend
+batches and pre-flight overlaps, F-026 surfaces collisions on the board. Until git
+verification exists, a wrong declaration still slips through — declared truth bounds the
+plan, not the diff.

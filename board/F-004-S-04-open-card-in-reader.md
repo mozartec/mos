@@ -5,12 +5,11 @@ title: Open a card in the wiki reader
 status: Done
 priority: P1
 owner: mozart
-sprint: S3
 parent: F-004
 estimate: S
 dependsOn: [F-004-S-02, F-003-S-02, F-003-S-03]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-004-S-04 — Open a card in the wiki reader

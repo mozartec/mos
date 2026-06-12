@@ -1,6 +1,6 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-06-11T11:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Using mos in your project
@@ -26,7 +26,12 @@ Prefer hand-rolling? [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) is the contract, and
 [`examples/recipe-box`](../examples/recipe-box/) is a complete, copyable reference.
 
 Everything downstream is config-driven (ADR-003): the app and the skills learn your types
-from the config, so nothing here assumes this repo's `F-`/`T-` vocabulary.
+from the config, so nothing here assumes this repo's `F-`/`T-` vocabulary. That includes
+pacing: if your team time-boxes, designate any enum field — `sprint`, `cycle`,
+`iteration` — as the board's scope
+([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint));
+if it paces by parallel capacity instead, define none. This repo keeps a swap-in example
+of a scoped config at [`.mos/config.with-sprints.json`](../.mos/config.with-sprints.json).
 
 ## 2. Serve the board and wiki
 
@@ -54,7 +59,7 @@ PR. Install them with the skills CLI:
 npx skills add mozartec/mos
 ```
 
-Both are vault-agnostic: they read your types, states, columns, and sprints from
+Both are vault-agnostic: they read your types, states, columns, and scope from
 `.mos/config.json` at run time and refuse to start without it. Pair them with a short
 `AGENTS.md` in your repo (again, see the recipe-box example) so cold agents know your
 vault's write rules.

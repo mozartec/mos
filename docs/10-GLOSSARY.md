@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-07T13:00:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # Glossary
@@ -15,7 +15,14 @@ updated: 2026-06-07T13:00:00Z
 - **State / status** — where a card is in its lifecycle; maps to a board column (or to
   `null` = hidden).
 - **Column** — a board lane (e.g. Backlog, Planned, In Progress, Done).
-- **Sprint** — a short planning-period code on a card; no sprint = backlog.
+- **Scope** — an optional, vault-named board grouping (a team's `sprint`, `cycle`, or
+  `iteration`); an empty scope value = backlog
+  ([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint)).
+- **Area** — a config-named set of paths a card can declare in its `touches` field
+  ([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).
+- **Parallel batch** — ready cards whose declared areas don't overlap; safe to work
+  concurrently
+  ([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).
 - **Parent** — the feature a story belongs to; one nesting level only.
 - **VaultSource** — the I/O adapter the app uses to read and watch files, independent of
   the pure core.

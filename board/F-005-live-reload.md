@@ -6,10 +6,9 @@ status: Done
 priority: P1
 phase: MVP
 owner: mozart
-sprint: S3
 dependsOn: [T-004, T-002, F-001, F-003, F-004]
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-10T00:18:00Z
+updated: 2026-06-12T18:30:00Z
 ---
 
 # F-005 — Live reload on file change
