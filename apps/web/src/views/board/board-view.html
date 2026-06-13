@@ -9,61 +9,121 @@
       <p class="text-error">Failed to load the board: {{ loadError() }}</p>
     }
     @default {
-      @if (columns().length === 0) {
-        <p class="text-base-content/60">No columns configured.</p>
-      } @else {
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-sm text-base-content/60">
-            {{ totalCards() }} {{ totalCards() === 1 ? 'card' : 'cards' }} across
-            {{ columns().length }} columns
-          </p>
-
-          <!-- Sprint filter: options come from config.sprints (ADR-003) -->
-          <label class="flex items-center gap-2 text-sm">
-            <span class="text-base-content/70">Sprint</span>
-            <select
-              class="select select-ghost select-sm w-auto font-mono"
-              [value]="sprintFilterValue()"
-              (change)="onSprintFilterChange($event)"
-            >
-              <option [value]="ALL_VALUE">All</option>
-              @for (sprint of sprintOptions(); track sprint) {
-                <option [value]="sprint">{{ sprint }}</option>
-              }
-              <option [value]="BACKLOG_VALUE">Backlog</option>
-            </select>
-          </label>
-        </div>
-
-        @if (placementErrors().length > 0) {
-          <div role="alert" class="alert alert-warning">
-            <details>
-              <summary class="cursor-pointer text-sm font-medium">
-                {{ placementErrors().length }}
-                {{ placementErrors().length === 1 ? 'card' : 'cards' }} couldn't be placed on
-                the board
-              </summary>
-              <ul class="mt-1 list-inside list-disc text-xs">
-                @for (err of placementErrors(); track err) {
-                  <li>{{ err }}</li>
+      <!-- Controls: scope switcher (scoped vaults only) + config-driven filter bar -->
+      <div class="flex flex-col gap-3">
+        @if (isScoped()) {
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="join" role="group" aria-label="Scope">
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm join-item"
+                (click)="goPrev()"
+                [disabled]="atFirst()"
+                aria-label="Previous scope"
+              >
+                ‹
+              </button>
+              <select
+                class="select select-ghost select-sm join-item w-auto appearance-none font-mono"
+                (change)="onPickScope($event)"
+                aria-label="Select scope"
+              >
+                @for (value of scopeDef()?.values ?? []; track value.name) {
+                  <option [value]="value.name" [selected]="value.name === pickerValue()">
+                    {{ value.name }}
+                  </option>
                 }
-              </ul>
-            </details>
+                <option [value]="BACKLOG_SENTINEL" [selected]="pickerValue() === BACKLOG_SENTINEL">
+                  Backlog
+                </option>
+              </select>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm join-item"
+                (click)="goNext()"
+                [disabled]="atLast()"
+                aria-label="Next scope"
+              >
+                ›
+              </button>
+            </div>
+
+            @if (daysLeftLabel(); as label) {
+              <span class="badge badge-ghost badge-sm">{{ label }}</span>
+            }
           </div>
         }
 
+        <app-filter-bar
+          [facets]="facets()"
+          [value]="filterState()"
+          (valueChange)="onFilterChange($event)"
+        />
+      </div>
+
+      <p class="text-sm text-base-content/60">
+        {{ visibleCount() }} {{ visibleCount() === 1 ? 'card' : 'cards' }}
+        @if (isBacklog()) {
+          in the backlog
+        } @else if (isScoped()) {
+          in this scope
+        } @else {
+          across {{ columns().length }} columns
+        }
+      </p>
+
+      @if (!isBacklog() && placementErrors().length > 0) {
+        <div role="alert" class="alert alert-warning">
+          <details>
+            <summary class="cursor-pointer text-sm font-medium">
+              {{ placementErrors().length }}
+              {{ placementErrors().length === 1 ? 'card' : 'cards' }} couldn't be placed on the
+              board
+            </summary>
+            <ul class="mt-1 list-inside list-disc text-xs">
+              @for (err of placementErrors(); track err) {
+                <li>{{ err }}</li>
+              }
+            </ul>
+          </details>
+        </div>
+      }
+
+      @if (isBacklog()) {
+        <!-- Backlog: unscheduled, non-done cards ranked by priority then id -->
+        @if (backlogResults().length === 0) {
+          <p class="py-8 text-center text-sm text-base-content/40">No unscheduled cards.</p>
+        } @else {
+          <ul
+            role="list"
+            aria-label="Backlog"
+            class="flex flex-1 flex-col gap-2 overflow-y-auto pb-2"
+          >
+            @for (card of backlogResults(); track cardTrack($index, card)) {
+              @if (config(); as cfg) {
+                <li class="list-none">
+                  <app-card
+                    [card]="card"
+                    [typeDef]="cfg.types[card.type]"
+                    [fieldsRegistry]="cfg.fields"
+                    [blocked]="isCardBlocked(card, cfg)"
+                    (cardSelect)="onCardSelect($event)"
+                  />
+                </li>
+              }
+            }
+          </ul>
+        }
+      } @else if (columns().length === 0) {
+        <p class="text-base-content/60">No columns configured.</p>
+      } @else {
         <!-- Kanban columns: horizontally scrollable row -->
-        <div
-          role="list"
-          aria-label="Board columns"
-          class="flex flex-1 gap-4 overflow-x-auto pb-2"
-        >
+        <div role="list" aria-label="Board columns" class="flex flex-1 gap-4 overflow-x-auto pb-2">
           @for (col of columns(); track colTrack($index, col)) {
             <div
               role="listitem"
               class="flex w-72 shrink-0 flex-col gap-2 rounded-box bg-base-200 p-3"
             >
-              <!-- Column header -->
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/70">
                   {{ col.name }}
@@ -71,7 +131,6 @@
                 <span class="badge badge-ghost badge-sm font-mono">{{ col.cards.length }}</span>
               </div>
 
-              <!-- Cards -->
               @if (col.cards.length === 0) {
                 <p class="py-4 text-center text-xs text-base-content/40">No cards</p>
               } @else {

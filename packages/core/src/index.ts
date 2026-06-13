@@ -6,6 +6,7 @@ export { parseFile } from './parse-file.js';
 export type {
   FieldType,
   FieldDef,
+  ScopeValue,
   TypeDef,
   CardColor,
   CardIcon,
@@ -22,7 +23,23 @@ export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';
 export { resolveRelativeLink } from './resolve-link.js';
 export type { CardPlacement } from './place-card.js';
-export { placeCard, sortWithinColumn, compareIdsByPriority } from './place-card.js';
+export { placeCard, sortWithinColumn, compareIdsByPriority, isCardDone } from './place-card.js';
+export type { ScopeDef } from './scope.js';
+export {
+  normalizeScope,
+  cardScopeValue,
+  resolveCurrentScope,
+  scopeDaysLeft,
+  backlogCards,
+} from './scope.js';
+export type { Facet, FacetOption, FilterState } from './filters.js';
+export {
+  buildFacets,
+  matchesFilters,
+  applyFilters,
+  emptyFilterState,
+  isFilterEmpty,
+} from './filters.js';
 export type { DependencyEdge, BuildEdgesResult } from './edges.js';
 export { buildEdges, deriveBlocks, DEPENDS_ON_FIELD } from './edges.js';
 export type { GraphNode, GraphEdge, DependencyGraph } from './graph.js';

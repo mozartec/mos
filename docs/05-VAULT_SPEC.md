@@ -19,14 +19,18 @@ versions it supports. Bump this only when the format itself changes. See
 
 `0.2` adds an optional **field-types registry** (§5a) and **created/updated timestamps**
 (§4a). `0.3` adds an optional **card-color palette and icon set** (§5b): a type may set a
-`color`, and a field may set an `icon` or per-value `valueColors`. `0.4` adds optional
-**areas & touches** (§5c,
+`color`, and a field may set an `icon` or per-value `valueColors`. `0.4` adds two optional
+features. **Areas & touches** (§5c,
 [ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)):
 an `areas` config map of vault-defined names to glob lists, a `touches` list field in
 which a card declares the areas it expects to modify, and enum `source`s that may name a
-config map as well as a list (§5a). All of these are purely additive: a vault on an
-earlier version that declares none of them is still valid, and every new key is optional,
-so nothing breaks if it's absent.
+config map as well as a list (§5a). **Board scope** (§5d,
+[ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint)):
+a `board.scopeField` that scopes the board by a vault-named enum (sprint, cycle, …) whose
+values may carry dates, plus the backlog of unscheduled cards. All of these are purely
+additive: a vault on an earlier version that declares none of them is still valid, and
+every new key is optional, so nothing breaks if it's absent — a 0.3 vault's string
+`sprints` is even read as a `sprint` scope for compatibility (§5d).
 
 ## 1. Two lenses over one folder
 
@@ -294,6 +298,52 @@ vault with no `areas` and no `touches` validates and renders exactly as before, 
 computation degrades to the plain ready set. Verifying declarations against actual git
 diffs is deliberately out of spec for now (ADR-021).
 
+## 5d. Board scope (a config-named grouping)
+
+The board renders **one scope at a time** — a vault-named grouping such as a sprint,
+cycle, or iteration — rather than every card at once
+([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint)).
+Scope is opt-in and config-driven: a vault that declares none gets an unscoped board with
+no scope UI, exactly as before.
+
+- **`board.scopeField`** designates an **enum** field (§5a) as the scope, e.g.
+  `"scopeField": "sprint"`. The board shows that field's values one at a time, with a
+  switcher (a picker plus prev/next) in the header.
+- **Scope values** are that enum's values — plain strings, or **dated objects**
+  `{ "name", "starts"?, "ends"? }` (ISO `YYYY-MM-DD`, UTC), declared inline in the field's
+  `values` or supplied by a `source` list. With dates, the board opens on the value whose
+  window contains today and shows the days remaining; without, it falls back to the last
+  value with unfinished cards, then the user's last selection. The clock is never read
+  inside the core — current-scope resolution is a pure function with `now` as an input
+  ([ADR-001](08-DECISIONS.md#adr-001--the-markdown-folder-is-the-source-of-truth-no-database)).
+- **Backlog** is the scope's sibling view: the cards with an **empty scope value** that
+  are **not done** — unscheduled but live work — shown as a priority-ranked list reachable
+  from the header. It exists only for scoped vaults, and is *not* the same as a "Backlog"
+  *column* (which is a plain status mapping, §5).
+- **Filters** — a config-driven filter bar (the card type, the registry's enum and
+  card-face fields, and free text) sits above both the board and the backlog; selections
+  persist in the URL so a filtered view is bookmarkable.
+
+```jsonc
+"board": {
+  "include": ["board/**/*.md"],
+  "columns": ["Backlog", "Planned", "In Progress", "Done"],
+  "scopeField": "sprint"            // the enum field that scopes the board
+},
+"fields": {
+  "sprint": { "type": "enum", "source": "sprints", "icon": "calendar" }
+},
+"sprints": [                        // string or dated { name, starts?, ends? }
+  { "name": "S1", "starts": "2026-06-01", "ends": "2026-06-14" },
+  { "name": "S2", "starts": "2026-06-15", "ends": "2026-06-28" }
+]
+```
+
+**Backward compatible.** A 0.3 vault that lists string `sprints` and sets no `scopeField`
+is read as a `sprint`-scoped vault (the alias); new vaults use `scopeField`. The validator
+accepts strings and dated objects in either form, flags a malformed or inverted date, and
+warns on overlapping windows.
+
 ## 6. config.json
 
 ```jsonc
@@ -348,7 +398,9 @@ diffs is deliberately out of spec for now (ADR-021).
   "board": {
     "include": ["board/**/*.md"],
     "columns": ["Backlog", "Planned", "In Progress", "Done"],
-    "sortWithinColumn": ["priority", "id"]
+    "sortWithinColumn": ["priority", "id"],
+    // optional: scope the board by an enum field (§5d). Omit for an unscoped board.
+    "scopeField": "sprint"
   },
   "references": {
     "idPattern": "[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*"
@@ -380,7 +432,12 @@ diffs is deliberately out of spec for now (ADR-021).
       "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
     }
   },
-  "sprints": ["S1", "S2", "S3"]
+  // the scope vocabulary (§5d): plain strings, or dated { name, starts?, ends? }
+  "sprints": [
+    { "name": "S1", "starts": "2026-06-01", "ends": "2026-06-14" },
+    { "name": "S2", "starts": "2026-06-15", "ends": "2026-06-28" },
+    { "name": "S3", "starts": "2026-06-29", "ends": "2026-07-12" }
+  ]
 }
 ```
 

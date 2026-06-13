@@ -61,6 +61,18 @@ export const CARD_ICONS = [
 /** An icon name from the curated {@link CARD_ICONS} set. */
 export type CardIcon = (typeof CARD_ICONS)[number];
 
+/**
+ * A scope value: a name, optionally date-boxed (VAULT_SPEC §5d, ADR-020). The
+ * dated form generalizes ADR-017's sprint dates — `starts`/`ends` are ISO
+ * `YYYY-MM-DD` (UTC). An `enum` field used as the board scope may declare its
+ * `values` as plain strings or these objects; plain strings have no dates.
+ */
+export interface ScopeValue {
+  name: string;
+  starts?: string;
+  ends?: string;
+}
+
 /** A typed frontmatter field in the optional `fields` registry. */
 export interface FieldDef {
   /** Data type used to render, validate, and sort the field. */
@@ -69,8 +81,12 @@ export interface FieldDef {
   list?: boolean;
   /** Display name on the card face; falls back to the field key. */
   label?: string;
-  /** Allowed values for an `enum` declared inline. */
-  values?: string[];
+  /**
+   * Allowed values for an `enum` declared inline. Plain strings, except a
+   * field designated as the board scope (`board.scopeField`), whose values may
+   * be dated {@link ScopeValue} objects (§5d). Non-scope enums use strings.
+   */
+  values?: (string | ScopeValue)[];
   /** Config key (e.g. `sprints`) whose list supplies an `enum`'s values. */
   source?: string;
   /** Icon glyph shown beside this field on the card face (§5b). */
@@ -105,6 +121,13 @@ export interface BoardConfig {
   include: string[];
   columns: string[];
   sortWithinColumn: string[];
+  /**
+   * Name of the enum field that scopes the board (VAULT_SPEC §5d, ADR-020),
+   * e.g. `sprint`, `cycle`, `iteration`. Optional — absent means an unscoped
+   * board with no scope UI. A 0.3 vault with a `sprints` key is read as a
+   * `sprint` scope for compatibility; see {@link normalizeScope}.
+   */
+  scopeField?: string;
 }
 
 /** Reference parsing options (VAULT_SPEC §7). */
@@ -129,7 +152,12 @@ export interface VaultConfig {
   board: BoardConfig;
   references: ReferenceConfig;
   types: Record<string, TypeDef>;
-  sprints: string[];
+  /**
+   * The legacy/0.3 scope list. Entries are plain strings or dated
+   * {@link ScopeValue} objects (ADR-017) — a field sourced from `sprints`
+   * (or the 0.3 alias) draws its scope values here. See {@link normalizeScope}.
+   */
+  sprints: (string | ScopeValue)[];
   /**
    * Vault-defined file surfaces (VAULT_SPEC §5c, ADR-021): area name → glob
    * list, e.g. `{ "web": ["apps/web/**"] }`. Cards name areas in a `touches`
@@ -252,12 +280,15 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
         board['sortWithinColumn'] === undefined
           ? ['priority', 'id']
           : asStringArray(board['sortWithinColumn']),
+      ...(typeof board['scopeField'] === 'string'
+        ? { scopeField: board['scopeField'] }
+        : {}),
     },
     references: {
       idPattern: asString(references['idPattern'], DEFAULT_ID_PATTERN),
     },
     types: isObject(obj['types']) ? (obj['types'] as Record<string, TypeDef>) : {},
-    sprints: asStringArray(obj['sprints']),
+    sprints: asScopeValueArray(obj['sprints']),
     areas: isObject(obj['areas']) ? (obj['areas'] as Record<string, string[]>) : {},
     fieldOrder:
       obj['fieldOrder'] === undefined ? [...DEFAULT_FIELD_ORDER] : asStringArray(obj['fieldOrder']),
@@ -402,6 +433,20 @@ function validate(config: VaultConfig, errors: string[]): void {
       errors.push(`area ${areaName}: expected a list of glob strings`);
     }
   }
+
+  // The board scope field (§5d, ADR-020), when set, must name a registered
+  // enum field — its values are the scope vocabulary (resolved by
+  // normalizeScope). The 0.3 `sprints` alias sets no scopeField, so it skips
+  // this check.
+  const scopeField = config.board.scopeField;
+  if (scopeField !== undefined) {
+    const def = (fields as Record<string, unknown>)[scopeField];
+    if (!Object.hasOwn(fields, scopeField) || !isObject(def)) {
+      errors.push(`board.scopeField: '${scopeField}' is not a registered field`);
+    } else if (def['type'] !== 'enum') {
+      errors.push(`board.scopeField: field '${scopeField}' must be an enum`);
+    }
+  }
 }
 
 /** A non-null, non-array object. */
@@ -417,4 +462,47 @@ function asString(v: unknown, fallback: string): string {
 /** `v` as a string array, dropping non-string members; `[]` if not an array. */
 function asStringArray(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
+
+/**
+ * `v` as a scope-value array: keep plain strings and `{ name, ... }` objects
+ * (ADR-017's dated form), drop anything else. Unlike {@link asStringArray}, this
+ * preserves dated objects so a `sprints`-sourced scope keeps its dates through
+ * load; date *validity* is checked later, in `normalizeScope`/the validator.
+ */
+function asScopeValueArray(v: unknown): (string | ScopeValue)[] {
+  if (!Array.isArray(v)) return [];
+  const out: (string | ScopeValue)[] = [];
+  for (const entry of v) {
+    if (typeof entry === 'string') {
+      out.push(entry);
+    } else if (isObject(entry) && typeof entry['name'] === 'string') {
+      const value: ScopeValue = { name: entry['name'] };
+      if (typeof entry['starts'] === 'string') value.starts = entry['starts'];
+      if (typeof entry['ends'] === 'string') value.ends = entry['ends'];
+      out.push(value);
+    }
+  }
+  return out;
+}
+
+/**
+ * The raw values an enum field offers: its inline `values` if present, else the
+ * entries of its `source` config list (e.g. `sprints` — strings or dated
+ * objects), or the keys of a `source` config map (e.g. `areas`). The single
+ * source of the inline-vs-source precedence shared by scope resolution and the
+ * filter facets; callers map/normalize the entries as they need.
+ */
+export function enumValueEntries(
+  config: VaultConfig,
+  values: (string | ScopeValue)[] | undefined,
+  source: string | undefined,
+): unknown[] {
+  if (Array.isArray(values) && values.length > 0) return values;
+  if (typeof source === 'string' && Object.hasOwn(config, source)) {
+    const resolved = (config as unknown as Record<string, unknown>)[source];
+    if (Array.isArray(resolved)) return resolved;
+    if (resolved !== null && typeof resolved === 'object') return Object.keys(resolved);
+  }
+  return [];
 }

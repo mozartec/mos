@@ -1,5 +1,5 @@
 {
-  "_note": "Swap-in alternative to config.json that keeps the sprint scope (ADR-020). The app reads only config.json; to use this, replace config.json with it and re-add sprint values to cards (git history has the originals). F-023 migrates this file to the spec 0.4 scopeField form. Keep 'areas' and the 'fields' registry mirrored with config.json — cards carry 'touches', so a swap with a stale copy fails validation.",
+  "_note": "Swap-in alternative to config.json that scopes the board by sprint (spec 0.4 scopeField form, ADR-020). board.scopeField names the 'sprint' enum, whose values are dated objects in the 'sprints' list, so the board opens on the date-current sprint and a Backlog holds unscheduled cards. The app reads only config.json; to use this, replace config.json with it and re-add sprint values to cards (git history has the originals). Keep 'areas' and the 'fields' registry mirrored with config.json — cards carry 'touches', so a swap with a stale copy fails validation.",
   "specVersion": "0.4",
   "vault": { "name": "Markdown on Steroids" },
 
@@ -48,7 +48,8 @@
   "board": {
     "include": ["board/**/*.md"],
     "columns": ["Backlog", "Planned", "In Progress", "Done"],
-    "sortWithinColumn": ["priority", "id"]
+    "sortWithinColumn": ["priority", "id"],
+    "scopeField": "sprint"
   },
 
   "references": {
@@ -98,5 +99,9 @@
     }
   },
 
-  "sprints": ["S1", "S2", "S3"]
+  "sprints": [
+    { "name": "S1", "starts": "2026-06-01", "ends": "2026-06-14" },
+    { "name": "S2", "starts": "2026-06-15", "ends": "2026-06-28" },
+    { "name": "S3", "starts": "2026-06-29", "ends": "2026-07-12" }
+  ]
 }
