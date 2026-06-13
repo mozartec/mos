@@ -6,6 +6,7 @@ status: Queued
 priority: Now
 parent: EP-100
 dependsOn: [JB-101]
+touches: [prose]
 created: 2026-06-11T09:00:00Z
 updated: 2026-06-11T09:00:00Z
 ---

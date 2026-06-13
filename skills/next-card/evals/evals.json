@@ -50,6 +50,31 @@
         {"text": "Invents no cards or recommendations"}
       ],
       "files": []
+    },
+    {
+      "id": 4,
+      "name": "parallel-batch",
+      "prompt": "What can I pick up in parallel right now — a couple of cards I can work at the same time?",
+      "expected_output": "Runs the script in batch mode (--parallel). Returns a conflict-free batch — JB-102 (prose) and EP-106 (data), whose touches are disjoint — and explains that JB-104 is excluded because its surface collides (prose with JB-102, data with EP-106). Names the overlapping area, not just the exclusion. Suggests only; creates no branch and edits nothing.",
+      "assertions": [
+        {"text": "Returns JB-102 and EP-106 as a parallel batch (their touches are disjoint)"},
+        {"text": "Excludes JB-104 and names the colliding area(s) — prose with JB-102 and/or data with EP-106 — not a bare exclusion"},
+        {"text": "Uses the fixture's own vocabulary (epic/job, area names prose/layout/data) — no F-/T- ids or other foreign vocabulary"},
+        {"text": "Creates no branch and edits no files; ends awaiting confirmation"}
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "parallel-batch-no-areas",
+      "prompt": "What can I pick up in parallel right now?",
+      "expected_output": "Special setup: the top-level `areas` key has been removed from .mos/config.json, so the vault declares no surfaces. Batch mode degrades to the plain ready set (JB-102, EP-106, JB-104) with an explicit caveat that file overlap can't be checked — it does NOT claim the cards are proven safe to parallelize.",
+      "assertions": [
+        {"text": "Returns the ready set rather than refusing"},
+        {"text": "States plainly that overlap is unknown / unchecked because the vault declares no areas — does not assert the cards are collision-free"},
+        {"text": "Creates no branch and edits no files"}
+      ],
+      "files": []
     }
   ]
 }

@@ -4,10 +4,11 @@ description: >
   Recommend the next card to work on from a mos vault's board. Use when the user asks
   what to do next, what's ready, or to "grab the next task/story/card" in any repo
   with a `.mos/config.json`; requires that file and refuses to start without it. It
-  recommends one card with a short rationale plus alternatives — shipping the pick is
-  ship-card's job. Once a specific card is named, use ship-card instead.
+  recommends one card with a short rationale plus alternatives, and on request a
+  conflict-free batch of cards safe to run in parallel — shipping a pick is ship-card's
+  job. Once a specific card is named, use ship-card instead.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # next-card
@@ -27,6 +28,7 @@ is installed:
 
 ```bash
 python3 <skill-dir>/scripts/next_card.py [<vaultDir>] [--sprint <s>] [--json]
+python3 <skill-dir>/scripts/next_card.py [<vaultDir>] --parallel [N]   # batch mode
 ```
 
 It discovers the nearest vault, parses every card, resolves `Depends on:` ids, and prints
@@ -48,6 +50,26 @@ below by reading the config and cards yourself.
   enrich the card first instead of charging ahead.
 
 Read the nearest `AGENTS.md` too; it holds the vault's working rules.
+
+## 2b. When asked for parallel work
+
+If the ask is "what can I run *at the same time* / in parallel / as a batch," pass
+`--parallel [N]` (default 3). A **batch** is ready cards whose declared `touches` (the
+areas a card expects to modify, config `areas` → VAULT_SPEC §5c, ADR-021) are **pairwise
+disjoint** — unblocked *and* collision-free. Selection is greedy in the same rank order,
+so higher-priority work claims its surface first.
+
+Relay the whole result, not just the picks:
+
+- **Batch** — the disjoint set, each with the areas it claims.
+- **Excluded** — cards left out because they collide; name the overlapping area and the
+  member they hit ("F-027 collides with F-023 on `docs`"). This is the value, not noise.
+- **Undeclared** — ready cards with no `touches`: surface unknown, so parallel safety
+  can't be claimed (an explicit `touches: []` means "touches nothing" and batches).
+- **Diagnostics** — dropped/unresolved dependency edges; surface them, never swallow.
+
+**No `areas` configured?** Batch mode degrades to the plain ready set with an explicit
+caveat that file overlap is unknown — say so plainly; don't imply the cards are proven safe.
 
 ## 3. Recommend
 

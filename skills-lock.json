@@ -23,13 +23,13 @@
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/next-card/SKILL.md",
-      "computedHash": "7531ef50c64c6d7d331e77d50b6506c52d1e28819693075fdbcca929e12d75e1"
+      "computedHash": "e278c8868342a091d5ad15a75e18457cefe2e886db4ada2cd473dcd9d50bc920"
     },
     "ship-card": {
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/ship-card/SKILL.md",
-      "computedHash": "cb5fcb387f2f971254ec63f834852276e643330d38ed1dbc435b9c9f5903ffc9"
+      "computedHash": "9ac59cb4e822501d3231471b2b342011f04452f953c4f840ffb90be913379b1a"
     },
     "turborepo": {
       "source": "vercel/turborepo",

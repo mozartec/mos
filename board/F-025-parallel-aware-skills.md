@@ -2,14 +2,14 @@
 id: F-025
 type: feature
 title: Parallel-aware skills — batch picks and overlap pre-flight
-status: Draft
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-024]
 touches: [skills]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-13T00:08:00Z
+updated: 2026-06-13T21:26:40Z
 ---
 
 # F-025 — Parallel-aware skills — batch picks and overlap pre-flight
@@ -86,15 +86,15 @@ independently planned tasks meet again as merge conflicts.
 
 ## Acceptance
 
-- [ ] In this vault, asking next-card for 3 parallel cards returns ready,
+- [x] In this vault, asking next-card for 3 parallel cards returns ready,
       `touches`-disjoint picks and lists excluded conflicts with the overlapping area
       named.
-- [ ] In a fixture vault without `areas`, batch mode returns the ready set with an
+- [x] In a fixture vault without `areas`, batch mode returns the ready set with an
       explicit unknown-overlap caveat; single-pick output is byte-compatible with
       today's.
-- [ ] ship-card on a card whose `touches` overlap an In Progress card surfaces the
+- [x] ship-card on a card whose `touches` overlap an In Progress card surfaces the
       overlap before building; with no overlap, pre-flight adds no noise.
-- [ ] Installed copies under `.agents/skills/` are refreshed via the CLI and
+- [x] Installed copies under `.agents/skills/` are refreshed via the CLI and
       `skills-lock.json` reflects the new versions (T-009).
 
 ## Dependencies

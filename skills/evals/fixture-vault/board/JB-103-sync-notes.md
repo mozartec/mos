@@ -5,6 +5,7 @@ title: Sync notes between devices
 status: Blocked
 priority: Soon
 dependsOn: [JB-104]
+touches: [data]
 created: 2026-06-11T09:00:00Z
 updated: 2026-06-11T09:00:00Z
 ---
