@@ -1,6 +1,6 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-13T15:27:00Z
 ---
 
 # Using mos in your project
@@ -32,6 +32,14 @@ pacing: if your team time-boxes, designate any enum field — `sprint`, `cycle`,
 ([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint));
 if it paces by parallel capacity instead, define none. This repo keeps a swap-in example
 of a scoped config at [`.mos/config.with-sprints.json`](../.mos/config.with-sprints.json).
+
+If you run several agents at once, the other half of the planning model is parallel
+safety: define `areas` (named code surfaces) and let cards declare `touches`, so tooling
+can tell which ready cards are collision-free
+([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).
+The payoff hinges on *sizing* areas by merge risk — hub surfaces vs. per-feature modules,
+not one area per app or per layer — which is where a naive setup makes everything look
+like it conflicts; [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §5c covers how.
 
 ## 2. Serve the board and wiki
 

@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-024]
 touches: [skills, docs]
 created: 2026-06-12T19:10:00Z
-updated: 2026-06-12T20:08:00Z
+updated: 2026-06-13T15:27:00Z
 ---
 
 # F-027 — Refine-batch skill — shape the backlog for parallel work
@@ -42,7 +42,16 @@ plus parallel-safe leaves, under the write rules of
      with child cards
      ([ADR-019](../docs/08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units)),
      not a scatter of siblings; an enabler becomes a child when one parent owns the
-     surface, a standalone card when several share it.
+     surface, a standalone card when several share it. The reshape recognises the two
+     kinds of area from [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) §5c: **hub
+     areas** (trunk surfaces every card would otherwise touch — migration snapshots,
+     composition roots, catalogs, route manifests) are concentrated, not spread. The
+     pattern: per container, one **schema-and-wiring leaf** holds all the hub areas
+     once (the shared migration, the registrations, the route/nav stubs) so its
+     siblings stay hub-free and fan out; any sibling that genuinely must touch a hub is
+     serialised behind that leaf with a `dependsOn` edge and the reason stated on the
+     card. **Module areas** (one feature across all layers) leave siblings naturally
+     disjoint.
 - **Write rules enforced mechanically**
   ([ADR-022](../docs/08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state)):
   prose edits and splits only on cards still in their type's initial state; everything
@@ -88,8 +97,10 @@ plus parallel-safe leaves, under the write rules of
    mirroring `next_card.py`'s config loading): the three passes, the horizon argument,
    the ADR-022 status gate, and the proposed-batch output format.
 2. Build the reshape guidance into the skill text: detect overlap clusters from
-   `touches`, prefer extracting a shared enabler over serializing features, split along
-   the type hierarchy per
+   `touches`, distinguish hub areas from module areas
+   ([`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) §5c) and apply the
+   schema-and-wiring-leaf pattern, prefer extracting a shared enabler over serializing
+   features, split along the type hierarchy per
    [ADR-019](../docs/08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units)/[ADR-022](../docs/08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state),
    emit `dependsOn` edges, stop at acceptance-meeting scope (no gold-plating).
 3. Update [`docs/09-CONVENTIONS.md`](../docs/09-CONVENTIONS.md) and
@@ -107,6 +118,9 @@ plus parallel-safe leaves, under the write rules of
       not a serialized pick order.
 - [ ] When a split is proposed for a type that allows a parent, the result is a
       container with child cards (ADR-019), not unrelated siblings.
+- [ ] For a container whose children would all touch a hub area, the proposed split
+      yields one schema-and-wiring leaf holding the hub areas with hub-free siblings;
+      any sibling forced to touch a hub is serialised behind it with a stated reason.
 - [ ] It rewrites prose only on cards in their type's initial state; a card in any
       later status is left prose-untouched in the same run (frontmatter-only, ADR-002).
 - [ ] In a vault without `areas`, passes 1–2 complete and pass 3 states that overlap is

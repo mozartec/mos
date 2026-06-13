@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-06-13T15:27:00Z
 ---
 
 # Core concepts
@@ -51,7 +51,8 @@ simply don't define one
 
 ## Area
 
-A named set of paths declared in config (e.g. `"web"` → `apps/web/**`). A card lists the
-areas it expects to change in its `touches` field, which is what lets planning pick
-**parallel batches** — ready cards that won't collide in the same files
+A named set of paths declared in config (e.g. `"web"` → `apps/web/**`), sized so that two
+cards sharing an area really might conflict — by merge risk, not by app or layer (§5c). A
+card lists the areas it expects to change in its `touches` field, which is what lets
+planning pick **parallel batches** — ready cards that won't collide in the same files
 ([ADR-021](08-DECISIONS.md#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).
