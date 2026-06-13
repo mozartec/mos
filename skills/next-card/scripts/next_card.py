@@ -86,14 +86,15 @@ def parse_list(raw):
     if raw is None or raw == "":
         return None
     if isinstance(raw, list):
-        values = raw
+        values = raw  # block list: dedupe only, keep entries — mirrors the validator
     else:
         inline = re.match(r"^\[(.*)\]$", raw)
-        values = ([unquote(s.strip()) for s in inline.group(1).split(",")]
+        values = ([s for s in (unquote(x.strip()) for x in inline.group(1).split(","))
+                   if s]  # inline: drop empties, like the validator's filter(Boolean)
                   if inline else [raw])
     out = []
     for v in values:
-        if v and v not in out:
+        if v not in out:
             out.append(v)
     return out
 

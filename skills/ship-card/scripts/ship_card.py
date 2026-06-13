@@ -93,14 +93,15 @@ def parse_list(raw):
     if raw is None or raw == "":
         return None
     if isinstance(raw, list):
-        values = raw
+        values = raw  # block list: dedupe only, keep entries — mirrors the validator
     else:
         inline = re.match(r"^\[(.*)\]$", raw)
-        values = ([unquote(s.strip()) for s in inline.group(1).split(",")]
+        values = ([s for s in (unquote(x.strip()) for x in inline.group(1).split(","))
+                   if s]  # inline: drop empties, like the validator's filter(Boolean)
                   if inline else [raw])
     out = []
     for v in values:
-        if v and v not in out:
+        if v not in out:
             out.append(v)
     return out
 
@@ -132,7 +133,6 @@ def load(vault: Path):
     columns = cfg["board"]["columns"]
     includes = [glob_to_re(g) for g in cfg["board"].get("include", [])]
     types = cfg["types"]
-    areas = cfg.get("areas", {}) or {}  # vault-defined surfaces (ADR-021)
     cards = {}
     for f in walk(vault):
         rel = f.relative_to(vault).as_posix()
@@ -153,7 +153,7 @@ def load(vault: Path):
             "sections": [s for s in READINESS_SECTIONS if re.search(r"^#{1,6}\s.*" + s, body, re.M | re.I)],
             "path": f, "rel": rel, "stem": f.stem,
         }
-    return cfg, columns, types, areas, cards
+    return cfg, columns, types, cards
 
 
 def branch_name(card):
@@ -235,7 +235,7 @@ def main():
               "This skill requires one — refusing to start.", file=sys.stderr)
         sys.exit(2)
 
-    cfg, columns, types, areas, cards = load(vault)
+    cfg, columns, types, cards = load(vault)
     last = columns[-1] if columns else None
 
     # Resolve the requested id; allow a case-insensitive / exact match.
