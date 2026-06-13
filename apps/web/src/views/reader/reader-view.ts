@@ -30,8 +30,8 @@ type LoadState = 'loading' | 'loaded' | 'error';
  * Reader view: the shared markdown reader as its own routable lens entry point
  * (F-004-S-04, ADR-004). Renders the file named by the `path` query parameter
  * with the same {@link MarkdownReader} the wiki uses, so internal links stay
- * live. The optional `from`/`sprint` query parameters drive the back control —
- * returning to the board restores its sprint filter.
+ * live. The `from` query parameter drives the back control; when it is the
+ * board, the board's own params (scope + filters) ride along and are restored.
  *
  * Read-only: the view shows the card; there is no edit affordance (ADR-002).
  */
@@ -81,10 +81,21 @@ export class ReaderView {
     return 'Wiki';
   });
 
-  /** Round-trip the sprint filter so back lands on the same filtered board. */
+  /**
+   * Round-trip the board's state (scope + filters) so "back" lands on the same
+   * view it was opened from. The board forwards its query params when opening a
+   * card; here we hand them all back, minus the reader's own `path`/`from`.
+   */
   protected readonly backQueryParams = computed(() => {
-    const sprint = this.queryParams().get('sprint');
-    return this.from() === 'board' && sprint !== null ? { sprint } : {};
+    if (this.from() !== 'board') return {};
+    const params = this.queryParams();
+    const restored: Record<string, string> = {};
+    for (const key of params.keys) {
+      if (key === 'path' || key === 'from') continue;
+      const value = params.get(key);
+      if (value !== null) restored[key] = value;
+    }
+    return restored;
   });
 
   /** Body load is deferred until config + model are in place. */
@@ -198,7 +209,7 @@ export class ReaderView {
     }
   }
 
-  /** Internal link click: stay in the reader, swap the file, keep from/sprint. */
+  /** Internal link click: stay in the reader, swap the file, keep from + board state. */
   protected onNavigate(path: string): void {
     void this.router.navigate([], {
       relativeTo: this.route,

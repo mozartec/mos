@@ -27,11 +27,13 @@ Prefer hand-rolling? [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) is the contract, and
 
 Everything downstream is config-driven (ADR-003): the app and the skills learn your types
 from the config, so nothing here assumes this repo's `F-`/`T-` vocabulary. That includes
-pacing: if your team time-boxes, designate any enum field — `sprint`, `cycle`,
-`iteration` — as the board's scope
-([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint));
-if it paces by parallel capacity instead, define none. This repo keeps a swap-in example
-of a scoped config at [`.mos/config.with-sprints.json`](../.mos/config.with-sprints.json).
+pacing: if your team time-boxes, name any enum field — `sprint`, `cycle`,
+`iteration` — in `board.scopeField` to scope the board by it
+([ADR-020](08-DECISIONS.md#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint),
+[spec §5d](05-VAULT_SPEC.md)); give its values dates and the board opens on the current
+one and lists unscheduled work in a backlog. If your team paces by parallel capacity
+instead, define no scope. This repo keeps a swap-in example of a scoped config at
+[`.mos/config.with-sprints.json`](../.mos/config.with-sprints.json).
 
 If you run several agents at once, the other half of the planning model is parallel
 safety: define `areas` (named code surfaces) and let cards declare `touches`, so tooling

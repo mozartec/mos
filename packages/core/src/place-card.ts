@@ -64,6 +64,20 @@ export function placeCard(card: Card, config: VaultConfig): CardPlacement {
 }
 
 /**
+ * The config-driven notion of "done": a card whose status maps to the **last**
+ * board column (ADR-003). Unknown type/status, a hidden state (maps to `null`),
+ * or any non-last column is not done. Shared by the graph's `done` flag, the
+ * ready set, and the scope backlog so the definition lives in one place.
+ */
+export function isCardDone(card: Card, config: VaultConfig): boolean {
+  const columns = config.board.columns;
+  if (columns.length === 0) return false;
+  const lastColumn = columns[columns.length - 1];
+  const column = placeCard(card, config).column;
+  return column !== null && column === lastColumn;
+}
+
+/**
  * Priority field rank order fallback when not configured in fields.
  * This is the default priority ranking per VAULT_SPEC.
  */
@@ -79,7 +93,9 @@ const DEFAULT_PRIORITY_RANK: readonly string[] = ['P0', 'P1', 'P2', 'P3'];
 export function getPriorityRank(config: VaultConfig): readonly string[] {
   const priorityField = config.fields['priority'];
   if (priorityField?.type === 'enum' && priorityField?.values?.length) {
-    return priorityField.values;
+    // `values` may hold dated scope objects in general (§5d); priority is a
+    // plain string enum, so map each entry to its name defensively.
+    return priorityField.values.map((v) => (typeof v === 'string' ? v : v.name));
   }
   return DEFAULT_PRIORITY_RANK;
 }

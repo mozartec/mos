@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.3",
+  "specVersion": "0.4",
   "vault": { "name": "Recipe Box" },
 
   "meta": {
@@ -10,6 +10,11 @@
     "id": { "type": "id", "label": "ID" },
     "priority": { "type": "enum", "values": ["P0", "P1", "P2", "P3"], "label": "Priority", "icon": "flag", "valueColors": { "P0": "red", "P1": "amber", "P2": "blue", "P3": "slate" } },
     "owner": { "type": "string", "label": "Owner", "icon": "user" },
+    "week": { "type": "enum", "label": "Week", "icon": "calendar", "values": [
+      { "name": "W24", "starts": "2026-06-08", "ends": "2026-06-14" },
+      { "name": "W25", "starts": "2026-06-15", "ends": "2026-06-21" },
+      { "name": "W26", "starts": "2026-06-22", "ends": "2026-06-28" }
+    ] },
     "created": { "type": "datetime", "label": "Created", "icon": "clock" },
     "updated": { "type": "datetime", "label": "Updated", "icon": "clock" }
   },
@@ -19,7 +24,8 @@
   "board": {
     "include": ["board/**/*.md"],
     "columns": ["Inbox", "Doing", "Shipped"],
-    "sortWithinColumn": ["priority", "id"]
+    "sortWithinColumn": ["priority", "id"],
+    "scopeField": "week"
   },
 
   "types": {
@@ -28,16 +34,14 @@
       "parent": null,
       "color": "teal",
       "states": { "Idea": "Inbox", "Building": "Doing", "Done": "Shipped", "Parked": null },
-      "card": { "fields": ["id", "priority", "owner", "created", "updated"] }
+      "card": { "fields": ["id", "priority", "owner", "week", "created", "updated"] }
     },
     "bug": {
       "label": "Bug",
       "parent": null,
       "color": "red",
       "states": { "Reported": "Inbox", "Fixing": "Doing", "Fixed": "Shipped" },
-      "card": { "fields": ["id", "priority", "owner", "created", "updated"] }
+      "card": { "fields": ["id", "priority", "owner", "week", "created", "updated"] }
     }
-  },
-
-  "sprints": []
+  }
 }

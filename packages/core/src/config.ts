@@ -61,6 +61,18 @@ export const CARD_ICONS = [
 /** An icon name from the curated {@link CARD_ICONS} set. */
 export type CardIcon = (typeof CARD_ICONS)[number];
 
+/**
+ * A scope value: a name, optionally date-boxed (VAULT_SPEC §5d, ADR-020). The
+ * dated form generalizes ADR-017's sprint dates — `starts`/`ends` are ISO
+ * `YYYY-MM-DD` (UTC). An `enum` field used as the board scope may declare its
+ * `values` as plain strings or these objects; plain strings have no dates.
+ */
+export interface ScopeValue {
+  name: string;
+  starts?: string;
+  ends?: string;
+}
+
 /** A typed frontmatter field in the optional `fields` registry. */
 export interface FieldDef {
   /** Data type used to render, validate, and sort the field. */
@@ -69,8 +81,12 @@ export interface FieldDef {
   list?: boolean;
   /** Display name on the card face; falls back to the field key. */
   label?: string;
-  /** Allowed values for an `enum` declared inline. */
-  values?: string[];
+  /**
+   * Allowed values for an `enum` declared inline. Plain strings, except a
+   * field designated as the board scope (`board.scopeField`), whose values may
+   * be dated {@link ScopeValue} objects (§5d). Non-scope enums use strings.
+   */
+  values?: (string | ScopeValue)[];
   /** Config key (e.g. `sprints`) whose list supplies an `enum`'s values. */
   source?: string;
   /** Icon glyph shown beside this field on the card face (§5b). */
@@ -105,6 +121,13 @@ export interface BoardConfig {
   include: string[];
   columns: string[];
   sortWithinColumn: string[];
+  /**
+   * Name of the enum field that scopes the board (VAULT_SPEC §5d, ADR-020),
+   * e.g. `sprint`, `cycle`, `iteration`. Optional — absent means an unscoped
+   * board with no scope UI. A 0.3 vault with a `sprints` key is read as a
+   * `sprint` scope for compatibility; see {@link normalizeScope}.
+   */
+  scopeField?: string;
 }
 
 /** Reference parsing options (VAULT_SPEC §7). */
@@ -252,6 +275,9 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
         board['sortWithinColumn'] === undefined
           ? ['priority', 'id']
           : asStringArray(board['sortWithinColumn']),
+      ...(typeof board['scopeField'] === 'string'
+        ? { scopeField: board['scopeField'] }
+        : {}),
     },
     references: {
       idPattern: asString(references['idPattern'], DEFAULT_ID_PATTERN),
@@ -400,6 +426,20 @@ function validate(config: VaultConfig, errors: string[]): void {
   for (const [areaName, globs] of Object.entries(config.areas)) {
     if (!Array.isArray(globs) || globs.some((g) => typeof g !== 'string')) {
       errors.push(`area ${areaName}: expected a list of glob strings`);
+    }
+  }
+
+  // The board scope field (§5d, ADR-020), when set, must name a registered
+  // enum field — its values are the scope vocabulary (resolved by
+  // normalizeScope). The 0.3 `sprints` alias sets no scopeField, so it skips
+  // this check.
+  const scopeField = config.board.scopeField;
+  if (scopeField !== undefined) {
+    const def = (fields as Record<string, unknown>)[scopeField];
+    if (!Object.hasOwn(fields, scopeField) || !isObject(def)) {
+      errors.push(`board.scopeField: '${scopeField}' is not a registered field`);
+    } else if (def['type'] !== 'enum') {
+      errors.push(`board.scopeField: field '${scopeField}' must be an enum`);
     }
   }
 }

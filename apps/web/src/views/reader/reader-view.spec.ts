@@ -65,12 +65,15 @@ describe('ReaderView', () => {
     expect(el.textContent).toContain('Story one');
   });
 
-  it('back control returns to the board preserving the sprint filter', async () => {
-    const harness = await openReader('/reader?path=board/S-001.md&from=board&sprint=S1');
+  it('back control returns to the board preserving its scope and filters', async () => {
+    const harness = await openReader('/reader?path=board/S-001.md&from=board&scope=S2&priority=P0');
     const el = harness.routeNativeElement as HTMLElement;
     const back = el.querySelector('a.btn') as HTMLAnchorElement;
     expect(back.textContent).toContain('Back to Board');
-    expect(back.getAttribute('href')).toBe('/board?sprint=S1');
+    const href = back.getAttribute('href') ?? '';
+    expect(href.startsWith('/board?')).toBe(true);
+    expect(href).toContain('scope=S2');
+    expect(href).toContain('priority=P0');
   });
 
   it('back control defaults to the wiki when not opened from the board', async () => {
@@ -80,15 +83,16 @@ describe('ReaderView', () => {
     expect(back.getAttribute('href')).toBe('/wiki');
   });
 
-  it('internal navigation swaps the path query param and keeps from/sprint', async () => {
-    const harness = await openReader('/reader?path=board/S-001.md&from=board&sprint=S1');
+  it('internal navigation swaps the path query param and keeps from + board state', async () => {
+    const harness = await openReader('/reader?path=board/S-001.md&from=board&scope=S2&priority=P0');
     const component = harness.routeDebugElement!.componentInstance as ReaderView;
     component['onNavigate']('board/S-002.md');
     await settle(harness.fixture);
     const router = TestBed.inject(Router);
     expect(router.url).toContain('path=board%2FS-002.md');
     expect(router.url).toContain('from=board');
-    expect(router.url).toContain('sprint=S1');
+    expect(router.url).toContain('scope=S2');
+    expect(router.url).toContain('priority=P0');
     const el = harness.routeNativeElement as HTMLElement;
     expect(el.textContent).toContain('Story two');
   });

@@ -2,14 +2,14 @@
 id: F-023
 type: feature
 title: Scoped board & backlog — config-named scope
-status: Draft
+status: Done
 priority: P1
 phase: Phase 3
 owner: mozart
 dependsOn: [F-018]
 touches: [core, web, docs, scripts, config]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-12T20:08:00Z
+updated: 2026-06-13T21:27:03Z
 ---
 
 # F-023 — Scoped board & backlog — config-named scope
@@ -103,20 +103,20 @@ sprint.
 
 ## Acceptance
 
-- [ ] A vault whose scope field has dated values opens the board on the date-current
+- [x] A vault whose scope field has dated values opens the board on the date-current
       scope and shows days remaining; prev/next and the picker switch scope; the URL
       round-trips it.
-- [ ] This repo's vault (no scope config) renders an unscoped board with the filter bar
+- [x] This repo's vault (no scope config) renders an unscoped board with the filter bar
       and no scope UI; the legacy sprint `<select>` is gone.
-- [ ] A 0.3 vault with string `sprints` still validates and renders as a
+- [x] A 0.3 vault with string `sprints` still validates and renders as a
       `sprint`-scoped vault; current-scope fallback picks the last value with unfinished
       cards; no countdown shown.
-- [ ] Backlog lists exactly the non-done cards with an empty scope value, ranked by
+- [x] Backlog lists exactly the non-done cards with an empty scope value, ranked by
       priority then id — regardless of status column — and is absent for scope-less
       vaults.
-- [ ] Filters (type, priority, owner, text) compose, persist in the URL, and apply on
+- [x] Filters (type, priority, owner, text) compose, persist in the URL, and apply on
       both board and backlog; options come from config, not code.
-- [ ] [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) documents `scopeField`, dated
+- [x] [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) documents `scopeField`, dated
       values, and the 0.3 alias under spec 0.4; the validator accepts all forms and
       flags malformed dates; core functions are pure and unit-tested.
 

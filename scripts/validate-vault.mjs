@@ -95,6 +95,77 @@ function sourceValues(cfg, source) {
   return null;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// A real ISO YYYY-MM-DD calendar date (rejects shapes like 2026-13-99).
+function validIsoDate(s) {
+  return typeof s === 'string' && ISO_DATE.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));
+}
+
+// Raw board-scope values (§5d, ADR-020): an explicit board.scopeField (inline
+// `values`, else a `source` config list/map), or the 0.3 `sprints` alias.
+// `{ values: null }` means the vault is unscoped.
+function scopeRawValues(cfg) {
+  const field = cfg.board?.scopeField;
+  if (field !== undefined) {
+    const def = (cfg.fields ?? {})[field];
+    if (!def || typeof def !== 'object')
+      return { error: `board.scopeField: '${field}' is not a registered field` };
+    if (def.type !== 'enum') return { error: `board.scopeField: field '${field}' must be an enum` };
+    if (Array.isArray(def.values) && def.values.length) return { values: def.values };
+    if (typeof def.source === 'string' && Object.hasOwn(cfg, def.source)) {
+      const src = cfg[def.source];
+      if (Array.isArray(src)) return { values: src };
+      if (src !== null && typeof src === 'object') return { values: Object.keys(src) };
+    }
+    return { values: [] };
+  }
+  if (Array.isArray(cfg.sprints) && cfg.sprints.length) return { values: cfg.sprints };
+  return { values: null };
+}
+
+// Validate the board scope: accept string or dated { name, starts?, ends? }
+// values, flag malformed/inverted dates (errors), and warn on overlapping
+// windows. A scope-less vault is checked and left warning-free.
+function validateScope(cfg, errors, warnings) {
+  const { values, error } = scopeRawValues(cfg);
+  if (error) {
+    errors.push(error);
+    return;
+  }
+  if (values == null) return; // unscoped
+
+  const dated = [];
+  for (const entry of values) {
+    if (typeof entry === 'string') continue; // dateless value, fine
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      errors.push(`board scope: value ${JSON.stringify(entry)} must be a string or { name, starts?, ends? }`);
+      continue;
+    }
+    const name = entry.name;
+    if (typeof name !== 'string' || name === '') {
+      errors.push('board scope: a value is missing a name');
+      continue;
+    }
+    for (const key of ['starts', 'ends']) {
+      if (entry[key] != null && !validIsoDate(entry[key]))
+        errors.push(`board scope '${name}': ${key} '${entry[key]}' is not a valid ISO date (YYYY-MM-DD)`);
+    }
+    const s = validIsoDate(entry.starts) ? Date.parse(`${entry.starts}T00:00:00Z`) : null;
+    const e = validIsoDate(entry.ends) ? Date.parse(`${entry.ends}T00:00:00Z`) : null;
+    if (s != null && e != null) {
+      if (s > e) errors.push(`board scope '${name}': starts '${entry.starts}' is after ends '${entry.ends}'`);
+      else dated.push({ name, s, e });
+    }
+  }
+
+  dated.sort((a, b) => a.s - b.s);
+  for (let i = 0; i < dated.length; i++)
+    for (let j = i + 1; j < dated.length; j++)
+      if (dated[i].s <= dated[j].e && dated[j].s <= dated[i].e)
+        warnings.push(`board scope '${dated[i].name}' and '${dated[j].name}' have overlapping dates`);
+}
+
 function validateVault(root) {
   const errors = [];
   const warnings = [];
@@ -121,6 +192,9 @@ function validateVault(root) {
         errors.push(`type ${tn}: state '${st}' maps to unknown column '${col}'`);
     }
   }
+
+  // Board scope (§5d, ADR-020): scopeField / dated values / 0.3 sprints alias.
+  validateScope(cfg, errors, warnings);
 
   // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
   // declared `values` list, the resolved source, or — when the declared

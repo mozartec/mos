@@ -12,7 +12,7 @@
 import type { VaultConfig } from './config.js';
 import type { VaultModel } from './models.js';
 import { buildEdges } from './edges.js';
-import { compareIdsByPriority } from './place-card.js';
+import { compareIdsByPriority, isCardDone } from './place-card.js';
 
 /** A positioned graph node: rendering needs nothing beyond this. */
 export interface GraphNode {
@@ -122,15 +122,15 @@ export function buildDependencyGraph(model: VaultModel, config: VaultConfig): De
     ids.sort(byPriority);
     ids.forEach((id, order) => {
       const card = model.cards[id];
-      const lastColumn = config.board.columns[config.board.columns.length - 1];
-      const column = config.types[card.type]?.states[card.status];
       nodes.push({
         id,
         rank,
         order,
         status: card.status,
         title: card.title,
-        done: column !== undefined && column !== null && column === lastColumn,
+        // "done" is the config-driven last-column notion, shared with the board
+        // backlog and ready set via one helper (ADR-003).
+        done: isCardDone(card, config),
       });
     });
   }
