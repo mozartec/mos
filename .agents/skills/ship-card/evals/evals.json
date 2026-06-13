@@ -15,7 +15,8 @@
         {"text": "Creates docs/hello.md per the Plan and does not modify docs/outline.md (Out of scope is binding)"},
         {"text": "Closes the card via the script's --finish (status Shipped, Acceptance boxes ticked) folded into the final commit, not a trailing one"},
         {"text": "Commit message and PR title are Conventional Commits"},
-        {"text": "With gh unavailable, falls back gracefully (compare URL or clear note) and the PR body draft maps each Acceptance bullet to its proof, with a How to test section a stranger can follow"}
+        {"text": "With gh unavailable, falls back gracefully (compare URL or clear note) and the PR body draft maps each Acceptance bullet to its proof, with a How to test section a stranger can follow"},
+        {"text": "Raises no in-flight touches-overlap doubt — JB-102's surface (prose) collides with nothing in flight, so pre-flight adds no overlap noise"}
       ],
       "files": []
     },
@@ -62,6 +63,18 @@
       "assertions": [
         {"text": "Refuses, naming the missing .mos/config.json"},
         {"text": "Creates nothing and invents nothing"}
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "inflight-overlap-doubt",
+      "prompt": "/ship-card EP-106",
+      "expected_output": "Pre-flights a ready, well-formed card. The only soft spot is a touches overlap: EP-106 declares `data`, and JB-103 — in flight in the Doing column — also declares `data`, so the two would edit the same surface. The agent surfaces this as a doubt before building (name JB-103 and the shared `data` area), and treats it as a coordinate/sequence/proceed decision rather than an automatic refusal. It does NOT silently ignore the overlap, and does NOT treat it as a hard blocker.",
+      "assertions": [
+        {"text": "Surfaces the in-flight overlap before building: names JB-103 and the shared area `data`"},
+        {"text": "Treats it as a doubt to weigh (sequence, coordinate, or proceed deliberately) — not an automatic stop and not silently ignored"},
+        {"text": "Does not invent a dependency or refuse outright; EP-106 is otherwise ready (no unmet deps, has Acceptance)"}
       ],
       "files": []
     }

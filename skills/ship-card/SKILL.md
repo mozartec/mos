@@ -7,7 +7,7 @@ description: >
   defines; requires that file and refuses to start without it. When no card has been
   chosen yet, use next-card instead.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # ship-card
@@ -33,8 +33,10 @@ python3 <skill-dir>/scripts/ship_card.py <id> [--json]
 ```
 
 It locates the card, prints the branch name, resolves parent/dependencies/children with
-file paths, and flags soft spots. Then read the card file fully, the docs/ADRs it links,
-and the nearest `AGENTS.md` — it carries the vault's non-negotiable constraints.
+file paths, and flags soft spots — including any **in-flight `touches` overlap** (a card
+already in flight whose declared areas collide with this one; ADR-021). Then read the card
+file fully, the docs/ADRs it links, and the nearest `AGENTS.md` — it carries the vault's
+non-negotiable constraints.
 
 ## 2. Plan — and raise doubts before building
 
@@ -47,6 +49,10 @@ Write a short plan: what changes, which files, how each Acceptance bullet will b
 - the card contradicts a doc, an ADR, or the actual code;
 - the scope is ambiguous, or honestly doing it touches things the card doesn't mention;
 - real risk: schema/format breaks, destructive changes, security-sensitive paths.
+
+An **in-flight `touches` overlap** is a doubt to weigh, not an automatic stop: another card
+in flight will edit a shared area, so flag the likely merge conflict and either sequence the
+two, coordinate, or proceed deliberately — the call is the user's, but name it before building.
 
 A pause must carry a concrete, answerable question — scope, alternatives, and risk are
 the user's calls. If nothing bites, say "no blockers" and continue **without waiting**.

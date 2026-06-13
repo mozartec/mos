@@ -50,20 +50,59 @@ def glob_to_re(glob: str):
     return re.compile("^" + re_str + "$")
 
 
+def unquote(v: str):
+    if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+        return v[1:-1]
+    return v
+
+
 def parse_frontmatter(text: str):
     m = re.match(r"^---\r?\n([\s\S]*?)\r?\n---\r?\n?", text)
     if not m:
         return {}, text
     obj = {}
-    for line in m.group(1).split("\n"):
-        mm = re.match(r"^([A-Za-z0-9_]+):\s*(.*)$", line)
-        if not mm:
-            continue
-        v = mm.group(2).strip()
-        if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
-            v = v[1:-1]
-        obj[mm.group(1)] = v
+    lines = re.split(r"\r?\n", m.group(1))
+    i = 0
+    while i < len(lines):
+        mm = re.match(r"^([A-Za-z0-9_]+):\s*(.*)$", lines[i])
+        if mm:
+            v = mm.group(2).strip()
+            if v == "":
+                # A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
+                #   key:
+                #     - entry
+                items = []
+                while i + 1 < len(lines):
+                    im = re.match(r"^\s*-\s*(.*)$", lines[i + 1])
+                    if not im:
+                        break
+                    items.append(unquote(im.group(1).strip()))
+                    i += 1
+                obj[mm.group(1)] = items if items else v
+            else:
+                obj[mm.group(1)] = unquote(v)
+        i += 1
     return obj, text[m.end():]
+
+
+def parse_list(raw):
+    """A frontmatter list value, deduped (insertion order kept): a block list
+    (already a list from parse_frontmatter), an inline `[a, b]`, or a bare single
+    value; None when absent, [] when declared empty. Mirrors the validator's
+    parseList so a vault parses identically here and in `bun run validate`."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, list):
+        values = raw
+    else:
+        inline = re.match(r"^\[(.*)\]$", raw)
+        values = ([unquote(s.strip()) for s in inline.group(1).split(",")]
+                  if inline else [raw])
+    out = []
+    for v in values:
+        if v and v not in out:
+            out.append(v)
+    return out
 
 
 def walk(root: Path):
@@ -93,6 +132,7 @@ def load(vault: Path):
     columns = cfg["board"]["columns"]
     includes = [glob_to_re(g) for g in cfg["board"].get("include", [])]
     types = cfg["types"]
+    areas = cfg.get("areas", {}) or {}  # vault-defined surfaces (ADR-021)
     cards = {}
     for f in walk(vault):
         rel = f.relative_to(vault).as_posix()
@@ -109,10 +149,11 @@ def load(vault: Path):
             "column": t["states"].get(data.get("status", "")),
             "label": t.get("label", data["type"].capitalize()),
             "deps": depends_on(body),
+            "touches": parse_list(data.get("touches")),  # declared areas, [] or None
             "sections": [s for s in READINESS_SECTIONS if re.search(r"^#{1,6}\s.*" + s, body, re.M | re.I)],
             "path": f, "rel": rel, "stem": f.stem,
         }
-    return cfg, columns, types, cards
+    return cfg, columns, types, areas, cards
 
 
 def branch_name(card):
@@ -194,7 +235,7 @@ def main():
               "This skill requires one — refusing to start.", file=sys.stderr)
         sys.exit(2)
 
-    cfg, columns, types, cards = load(vault)
+    cfg, columns, types, areas, cards = load(vault)
     last = columns[-1] if columns else None
 
     # Resolve the requested id; allow a case-insensitive / exact match.
@@ -225,6 +266,22 @@ def main():
     branch = branch_name(card)
     missing_sections = [s for s in READINESS_SECTIONS if s not in card["sections"]]
     parent_file = cards[card["parent"]]["rel"] if card["parent"] in cards else None
+
+    # Surface overlap (ADR-021): cards already in flight — in the column before the
+    # last, the counterpart of "last column is done" — whose declared `touches`
+    # share an area with this card. Compared by name, like the validator; a card
+    # with no `touches` (or `touches: []`) raises nothing, so vaults that declare no
+    # surfaces stay silent. This is a doubt, not a gate — the agent decides.
+    inflight_col = columns[len(columns) - 2] if len(columns) >= 3 else None
+    inflight_overlaps = []
+    if inflight_col is not None and card["touches"]:
+        for c in cards.values():
+            if c["id"] == card["id"] or c["column"] != inflight_col:
+                continue
+            shared = [a for a in card["touches"] if a in (c["touches"] or [])]
+            if shared:
+                inflight_overlaps.append({"id": c["id"], "areas": shared, "file": c["rel"]})
+        inflight_overlaps.sort(key=lambda o: o["id"])
     deps_detail = [
         {"id": d, "file": cards[d]["rel"] if d in cards else None,
          "status": cards[d]["status"] if d in cards else None,
@@ -246,6 +303,7 @@ def main():
             "deps": deps_detail, "unmet_deps": unmet, "missing_deps": missing,
             "has_acceptance": "Acceptance" in card["sections"],
             "missing_sections": missing_sections,
+            "touches": card["touches"], "inflight_overlaps": inflight_overlaps,
         }, indent=2))
         return
 
@@ -285,6 +343,10 @@ def main():
         flags.append("no ## Acceptance section — card may be too thin to execute from alone")
     elif missing_sections:
         flags.append("missing helpful sections: " + ", ".join(missing_sections))
+    for o in inflight_overlaps:
+        flags.append(f"touches overlap: {o['id']} is in flight (in '{inflight_col}') and also "
+                     f"declares area(s) {', '.join(o['areas'])} — coordinate or sequence the two "
+                     "to avoid a merge conflict")
 
     if open_children:
         print(f"\n  ℹ Container card: shipping it includes its {len(open_children)} "

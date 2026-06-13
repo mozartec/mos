@@ -4,6 +4,7 @@ type: epic
 title: Field guide pages
 status: Rolling
 priority: Now
+touches: [layout]
 created: 2026-06-11T09:00:00Z
 updated: 2026-06-11T09:00:00Z
 ---

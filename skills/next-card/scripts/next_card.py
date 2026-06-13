@@ -3,6 +3,8 @@
 
 Zero dependencies. Run with Python 3:
     python3 next_card.py [<vaultDir>] [--sprint S1] [--json]
+    python3 next_card.py [<vaultDir>] --parallel [N]   # a conflict-free batch of
+                                                       # up to N ready cards (ADR-021)
 
 A "vault" is any directory containing .mos/config.json. With no path, the script
 discovers the nearest vault at or above the current directory; without one it refuses
@@ -41,20 +43,59 @@ def glob_to_re(glob: str):
     return re.compile("^" + re_str + "$")
 
 
+def unquote(v: str):
+    if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+        return v[1:-1]
+    return v
+
+
 def parse_frontmatter(text: str):
     m = re.match(r"^---\r?\n([\s\S]*?)\r?\n---\r?\n?", text)
     if not m:
         return {}, text
     obj = {}
-    for line in m.group(1).split("\n"):
-        mm = re.match(r"^([A-Za-z0-9_]+):\s*(.*)$", line)
-        if not mm:
-            continue
-        v = mm.group(2).strip()
-        if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
-            v = v[1:-1]
-        obj[mm.group(1)] = v
+    lines = re.split(r"\r?\n", m.group(1))
+    i = 0
+    while i < len(lines):
+        mm = re.match(r"^([A-Za-z0-9_]+):\s*(.*)$", lines[i])
+        if mm:
+            v = mm.group(2).strip()
+            if v == "":
+                # A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
+                #   key:
+                #     - entry
+                items = []
+                while i + 1 < len(lines):
+                    im = re.match(r"^\s*-\s*(.*)$", lines[i + 1])
+                    if not im:
+                        break
+                    items.append(unquote(im.group(1).strip()))
+                    i += 1
+                obj[mm.group(1)] = items if items else v
+            else:
+                obj[mm.group(1)] = unquote(v)
+        i += 1
     return obj, text[m.end():]
+
+
+def parse_list(raw):
+    """A frontmatter list value, deduped (insertion order kept): a block list
+    (already a list from parse_frontmatter), an inline `[a, b]`, or a bare single
+    value; None when absent, [] when declared empty. Mirrors the validator's
+    parseList so a vault parses identically here and in `bun run validate`."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, list):
+        values = raw
+    else:
+        inline = re.match(r"^\[(.*)\]$", raw)
+        values = ([unquote(s.strip()) for s in inline.group(1).split(",")]
+                  if inline else [raw])
+    out = []
+    for v in values:
+        if v and v not in out:
+            out.append(v)
+    return out
 
 
 def walk(root: Path):
@@ -93,8 +134,10 @@ def load(vault: Path):
     includes = [glob_to_re(g) for g in cfg["board"].get("include", [])]
     sprints = cfg.get("sprints", []) or []
     types = cfg["types"]
+    areas = cfg.get("areas", {}) or {}  # vault-defined surfaces (ADR-021); {} => unscoped
 
     cards = {}
+    touches = {}  # id -> declared area names (list, maybe []), or None when undeclared
     for f in walk(vault):
         rel = f.relative_to(vault).as_posix()
         if not any(rx.match(rel) for rx in includes):
@@ -113,7 +156,9 @@ def load(vault: Path):
             "ready_doc": "## Acceptance" in body,  # proxy for card-readiness
             "rel": rel,
         }
-    return cfg, columns, sprints, cards
+        # Kept out of the card dict so single-pick output stays byte-identical.
+        touches[cid] = parse_list(data.get("touches"))
+    return cfg, columns, sprints, cards, areas, touches
 
 
 def classify(columns, cards):
@@ -152,6 +197,96 @@ def rank_key(columns, sprints, prio_rank):
     return key
 
 
+def parallel_batch(candidates, touches, areas, n):
+    """Greedy, deterministic conflict-free batch (ADR-021). `candidates` are the
+    ready cards already in pick order; `touches[id]` is a card's declared area
+    names (possibly []), or None when undeclared. Visiting in rank order, a card
+    joins the batch when its areas are disjoint from every member already in it;
+    otherwise it's an excluded conflict (one entry per colliding pair, the area
+    named). A card with no `touches` is set aside as undeclared — its surface is
+    unknown, so parallel safety can't be claimed (an explicit `[]` declares
+    "touches nothing" and batches). With no `areas` configured the vault plans no
+    surfaces: the batch is simply the next n ready cards, overlap unknown."""
+    if not areas:
+        return {"no_areas": True, "batch": [c["id"] for c in candidates[:n]],
+                "conflicts": [], "undeclared": [], "deferred": []}
+    batch, claimed = [], {}  # claimed: batch member id -> its area names
+    conflicts, undeclared, deferred = [], [], []
+    for c in candidates:
+        cid = c["id"]
+        names = touches.get(cid)
+        if names is None:
+            undeclared.append(cid)
+            continue
+        clashed = False
+        for member, member_names in claimed.items():
+            shared = [a for a in names if a in member_names]
+            if shared:
+                conflicts.append({"excluded": cid, "with": member, "areas": shared})
+                clashed = True
+        if clashed:
+            continue
+        if len(batch) < n:
+            batch.append(cid)
+            claimed[cid] = names
+        else:
+            deferred.append(cid)  # disjoint, but the requested n is already full
+    return {"no_areas": False, "batch": batch, "conflicts": conflicts,
+            "undeclared": undeclared, "deferred": deferred}
+
+
+def print_batch(name, n, result, cards, touches, diagnostics):
+    print(f"\n=== Parallel batch in: {name} — up to {n} ===\n")
+    if result["no_areas"]:
+        print("  ⚠ This vault declares no `areas`, so file overlap can't be checked.")
+        print("    These are just the next ready cards in rank order — confirm they")
+        print("    don't collide before running them in parallel.\n")
+        print("  Ready (overlap unknown):")
+        for idx, cid in enumerate(result["batch"], 1):
+            c = cards[cid]
+            print(f"    {idx}. {c['id']:<12} {c['priority'] or '--'} {c['title']}  · [{c['column']}]")
+        if not result["batch"]:
+            print("    (nothing ready)")
+        print()
+        return
+
+    print("  Batch — ready and touches-disjoint, in pick order:")
+    if result["batch"]:
+        for idx, cid in enumerate(result["batch"], 1):
+            c = cards[cid]
+            ts = touches.get(cid)
+            ts_str = ", ".join(ts) if ts else "∅ touches nothing"
+            print(f"    {idx}. {c['id']:<12} {c['priority'] or '--'} {c['title']}"
+                  f"  · [{c['column']}] · touches: {ts_str}")
+    else:
+        print("    (nothing ready to batch)")
+
+    if result["conflicts"]:
+        by_excluded = {}
+        for cf in result["conflicts"]:
+            by_excluded.setdefault(cf["excluded"], []).append(cf)
+        print("\n  Excluded — would collide with a batch member:")
+        for cid, cfs in by_excluded.items():
+            parts = "; ".join(f"{cf['with']} on {', '.join(cf['areas'])}" for cf in cfs)
+            print(f"    {cid:<12} conflicts with {parts}")
+
+    if result["undeclared"]:
+        print("\n  Undeclared surface (no `touches` — parallel safety unknown):")
+        for cid in result["undeclared"]:
+            print(f"    {cid:<12} {cards[cid]['title']}")
+
+    if result["deferred"]:
+        print(f"\n  Also ready & disjoint, beyond the requested {n} (raise --parallel):")
+        for cid in result["deferred"]:
+            print(f"    {cid:<12} {cards[cid]['title']}")
+
+    if diagnostics:
+        print("\n  Diagnostics (surfaced, not swallowed — ADR-021):")
+        for d in diagnostics:
+            print(f"    - {d}")
+    print()
+
+
 def main():
     args = [a for a in sys.argv[1:]]
     as_json = "--json" in args
@@ -161,6 +296,16 @@ def main():
         i = args.index("--sprint")
         sprint_filter = args[i + 1]
         del args[i:i + 2]
+    parallel_n = None
+    if "--parallel" in args:
+        i = args.index("--parallel")
+        n = 3  # an optional count may follow; default to a 3-card batch
+        if i + 1 < len(args) and re.fullmatch(r"\d+", args[i + 1]):
+            n = int(args[i + 1])
+            del args[i:i + 2]
+        else:
+            del args[i:i + 1]
+        parallel_n = max(1, n)
     start = Path(args[0]) if args else Path.cwd()
 
     vault = find_vault(start)
@@ -169,7 +314,7 @@ def main():
               "This skill requires one — refusing to start.", file=sys.stderr)
         sys.exit(2)
 
-    cfg, columns, sprints, cards = load(vault)
+    cfg, columns, sprints, cards, areas, touches = load(vault)
     classify(columns, cards)
     prio_rank = priority_rank(cfg)
 
@@ -179,6 +324,27 @@ def main():
 
     ready = sorted([c for c in pool if is_ready(c)], key=rank_key(columns, sprints, prio_rank))
     blocked = [c for c in pool if c["is_blocked_status"] or c["unmet_deps"] or c["missing_deps"]]
+    name = cfg.get("vault", {}).get("name", str(vault))
+
+    if parallel_n is not None:
+        result = parallel_batch(ready, touches, areas, parallel_n)
+        # Unresolved dependency ids drop their edge (they don't block readiness)
+        # but must be surfaced, not swallowed (ADR-021).
+        diagnostics = [
+            f"{c['id']}: unresolved dependency {', '.join(c['missing_deps'])} "
+            "(edge dropped — does not block readiness)"
+            for c in ready if c["missing_deps"]
+        ]
+        if as_json:
+            print(json.dumps({
+                "vault": name, "parallel": parallel_n, "areasDeclared": bool(areas),
+                "batch": result["batch"], "conflicts": result["conflicts"],
+                "undeclared": result["undeclared"], "deferred": result["deferred"],
+                "diagnostics": diagnostics,
+            }, indent=2))
+        else:
+            print_batch(name, parallel_n, result, cards, touches, diagnostics)
+        return
 
     if as_json:
         out = {"vault": cfg.get("vault", {}).get("name", str(vault)),
@@ -187,7 +353,6 @@ def main():
         print(json.dumps(out, indent=2))
         return
 
-    name = cfg.get("vault", {}).get("name", str(vault))
     print(f"\n=== Next in: {name} ===\n")
     if not ready:
         print("  Nothing is ready to start. Check the blocked/waiting list below.")
