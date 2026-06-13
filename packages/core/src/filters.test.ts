@@ -81,6 +81,16 @@ describe('buildFacets', () => {
     expect(fields).not.toContain('id');
     expect(fields).not.toContain('status');
   });
+
+  it('excludes the scope field even when it is resolved via the 0.3 sprints alias', () => {
+    // No board.scopeField — `sprint` is the scope only through normalizeScope's alias.
+    const alias: VaultConfig = {
+      ...config,
+      board: { ...config.board, scopeField: undefined },
+      sprints: ['S1', 'S2'],
+    };
+    expect(buildFacets(alias, cards).map((f) => f.field)).not.toContain('sprint');
+  });
 });
 
 describe('matchesFilters / applyFilters', () => {

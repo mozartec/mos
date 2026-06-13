@@ -63,6 +63,17 @@ describe('loadConfig', () => {
       const { errors } = loadConfig(validConfig());
       expect(errors).toEqual([]); // sprint -> source: "sprints"
     });
+
+    it('preserves dated sprint objects through normalization (not just strings)', () => {
+      const { config } = loadConfig({
+        ...validConfig(),
+        sprints: [{ name: 'S1', starts: '2026-06-01', ends: '2026-06-14' }, 'S2'],
+      });
+      expect(config.sprints).toEqual([
+        { name: 'S1', starts: '2026-06-01', ends: '2026-06-14' },
+        'S2',
+      ]);
+    });
   });
 
   // ── defaults ─────────────────────────────────────────────────────────────

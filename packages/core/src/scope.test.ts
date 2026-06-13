@@ -172,8 +172,11 @@ describe('scopeDaysLeft', () => {
   it('is null with no end date', () => {
     expect(scopeDaysLeft({ name: 'S2' }, NOW)).toBeNull();
   });
-  it('is 0 once the end day has passed', () => {
-    expect(scopeDaysLeft({ name: 'past', ends: '2026-06-01' }, NOW)).toBe(0);
+  it('is 0 on the last day', () => {
+    expect(scopeDaysLeft({ name: 'today', ends: '2026-06-13' }, NOW)).toBe(0);
+  });
+  it('is negative once the end day has passed (ended, not "last day")', () => {
+    expect(scopeDaysLeft({ name: 'past', ends: '2026-06-01' }, NOW)).toBe(-12);
   });
 });
 

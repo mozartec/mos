@@ -108,8 +108,24 @@ describe('BoardView', () => {
     return { harness, component, host: harness.routeNativeElement as HTMLElement };
   }
 
+  beforeEach(() => {
+    // The node test env has no localStorage; provide a minimal in-memory stub
+    // so the scope-persistence path (which the component guards in try/catch) is
+    // exercisable.
+    const store = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+      clear: () => store.clear(),
+      key: () => null,
+      length: 0,
+    });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     TestBed.resetTestingModule();
   });
 
@@ -330,6 +346,53 @@ describe('BoardView', () => {
       },
     });
     expect(component['columns']().flatMap((c) => c.cards).map((c) => c.id)).toEqual(['A']);
+  });
+
+  it('does not offer the scope field as a filter facet, even via the 0.3 alias', async () => {
+    const { component } = await createBoard({
+      config: ALIAS,
+      files: { 'board/A.md': makeCard('A', 'story', 'Todo', { sprint: 'S1' }) },
+    });
+    expect(component['isScoped']()).toBe(true);
+    expect(component['facets']().map((f) => f.field)).not.toContain('sprint');
+  });
+
+  it('drops a facet whose field name collides with a reserved URL key', async () => {
+    const reservedFieldConfig = JSON.stringify({
+      specVersion: '0.4',
+      wiki: { include: ['**/*.md'], exclude: [] },
+      board: BOARD,
+      fields: { ...FIELDS, q: { type: 'enum', values: ['a', 'b'], label: 'Q' } },
+      types: {
+        story: { label: 'Story', parent: null, states: { Todo: 'Backlog' }, card: { fields: ['priority', 'q'] } },
+      },
+    });
+    const { component } = await createBoard({
+      config: reservedFieldConfig,
+      files: { 'board/A.md': makeCard('A', 'story', 'Todo', { q: 'a' }) },
+    });
+    expect(component['facets']().map((f) => f.field)).not.toContain('q');
+  });
+
+  it('labels an ended dated scope "ended" (not "last day")', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    const { component } = await createBoard({ config: SCOPED_DATED, url: '/board?scope=S1' });
+    expect(component['daysLeftLabel']()).toBe('ended'); // S1 ended 2026-06-07
+  });
+
+  // ── Acceptance 3 (cont.) / F-023: remembered scope selection ────────────────
+
+  it('restores the last selected scope from localStorage when the URL carries none', async () => {
+    localStorage.setItem('mos:scope::sprint', 'S1'); // ALIAS has no vault.name → ''
+    const { component } = await createBoard({ config: ALIAS }); // no dates, no cards
+    expect(component['currentScopeName']()).toBe('S1'); // would default to S2 otherwise
+  });
+
+  it('persists an explicit scope selection to localStorage', async () => {
+    const { harness, component } = await createBoard({ config: ALIAS });
+    component['setScope']('S2');
+    await settle(harness.fixture);
+    expect(localStorage.getItem('mos:scope::sprint')).toBe('S2');
   });
 
   // ── Reader round-trip ───────────────────────────────────────────────────────

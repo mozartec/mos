@@ -43,6 +43,14 @@ export interface BoardColumn {
 }
 
 /**
+ * URL query keys this view owns (scope switcher + reader plumbing). A facet
+ * whose field name collides with one of these is dropped, so an oddly-named
+ * vault field can't hijack `?scope=`/`?q=`/etc. These are a web/URL concern, so
+ * the guard lives here rather than in the (URL-agnostic) core `buildFacets`.
+ */
+const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from']);
+
+/**
  * Board view. Loads the vault config and all board-scope files, builds the
  * {@link VaultModel}, and renders one config-named **scope** at a time (its
  * cards in columns) with a **Backlog** sibling for unscheduled work, plus a
@@ -88,6 +96,13 @@ export class BoardView {
   /** Picker `<option>` value for the Backlog scope (can't collide with a name). */
   protected readonly BACKLOG_SENTINEL = '__backlog__';
 
+  /**
+   * The user's last explicit scope pick, remembered across sessions
+   * (localStorage). Feeds the final tier of {@link resolveCurrentScope} when the
+   * URL carries no scope and neither dates nor unfinished cards decide one.
+   */
+  private readonly lastSelection = signal<string | null>(null);
+
   /** Every card in the model. */
   private readonly allCards = computed(() => Object.values(this.model().cards));
 
@@ -116,7 +131,7 @@ export class BoardView {
     if (config === null || scope === null || this.isBacklog()) return null;
     const raw = this.scopeRaw();
     if (raw !== null && raw !== '' && scope.values.some((v) => v.name === raw)) return raw;
-    return resolveCurrentScope(scope, this.allCards(), config, this.now);
+    return resolveCurrentScope(scope, this.allCards(), config, this.now, this.lastSelection() ?? undefined);
   });
 
   /** The current scope value object (for its dates), or `null`. */
@@ -133,6 +148,14 @@ export class BoardView {
     return value ? scopeDaysLeft(value, this.now) : null;
   });
 
+  /** Countdown badge text: "n days left" / "last day" / "ended", or `null`. */
+  protected readonly daysLeftLabel = computed<string | null>(() => {
+    const days = this.daysLeft();
+    if (days === null) return null;
+    if (days > 0) return `${days} ${days === 1 ? 'day left' : 'days left'}`;
+    return days === 0 ? 'last day' : 'ended';
+  });
+
   /** The picker's bound value: the Backlog sentinel, or the current value name. */
   protected readonly pickerValue = computed(() =>
     this.isBacklog() ? this.BACKLOG_SENTINEL : (this.currentScopeName() ?? ''),
@@ -145,7 +168,10 @@ export class BoardView {
   /** Filter facets, built from config + cards (nothing hardcoded; ADR-003). */
   protected readonly facets = computed<Facet[]>(() => {
     const config = this.config();
-    return config ? buildFacets(config, this.allCards()) : [];
+    if (config === null) return [];
+    return buildFacets(config, this.allCards()).filter(
+      (facet) => !RESERVED_URL_KEYS.has(facet.field),
+    );
   });
 
   /**
@@ -265,6 +291,7 @@ export class BoardView {
 
       const { config } = loadConfig(configText);
       this.config.set(config);
+      this.restoreLastSelection();
 
       // Pre-filter to board-scope paths before reading, so we don't fetch every
       // wiki/doc file — each readFile is a round-trip on a remote/HTTP source.
@@ -349,7 +376,40 @@ export class BoardView {
 
   /** Write the scope into the URL (`''` = Backlog, `null` = default). */
   protected setScope(value: string | null): void {
+    // Remember a concrete value pick (not Backlog/default) for next session.
+    if (value !== null && value !== '') this.rememberSelection(value);
     this.mergeParams({ scope: value });
+  }
+
+  /** Per-vault, per-scope-field localStorage key, or `null` when unscoped. */
+  private scopeStorageKey(): string | null {
+    const config = this.config();
+    const scope = this.scopeDef();
+    if (config === null || scope === null) return null;
+    return `mos:scope:${config.vault.name}:${scope.field}`;
+  }
+
+  /** Load the remembered scope pick into {@link lastSelection} (best-effort). */
+  private restoreLastSelection(): void {
+    const key = this.scopeStorageKey();
+    if (key === null) return;
+    try {
+      this.lastSelection.set(localStorage.getItem(key));
+    } catch {
+      /* localStorage unavailable (private mode / non-browser) — skip */
+    }
+  }
+
+  /** Persist the scope pick so a later visit re-opens on it (best-effort). */
+  private rememberSelection(value: string): void {
+    this.lastSelection.set(value);
+    const key = this.scopeStorageKey();
+    if (key === null) return;
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* localStorage unavailable — keep the in-memory value only */
+    }
   }
 
   // ── Filters ─────────────────────────────────────────────────────────────────

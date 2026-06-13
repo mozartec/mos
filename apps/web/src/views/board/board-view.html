@@ -48,14 +48,8 @@
               </button>
             </div>
 
-            @if (daysLeft() !== null) {
-              <span class="badge badge-ghost badge-sm">
-                @if (daysLeft() === 0) {
-                  last day
-                } @else {
-                  {{ daysLeft() }} {{ daysLeft() === 1 ? 'day left' : 'days left' }}
-                }
-              </span>
+            @if (daysLeftLabel(); as label) {
+              <span class="badge badge-ghost badge-sm">{{ label }}</span>
             }
           </div>
         }

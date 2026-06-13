@@ -13,6 +13,7 @@
 
 import type { Card } from './models.js';
 import type { ScopeValue, VaultConfig } from './config.js';
+import { enumValueEntries } from './config.js';
 import { isCardDone, placeCard, sortWithinColumn } from './place-card.js';
 
 /** A resolved board scope: the field name and its ordered values. */
@@ -43,7 +44,7 @@ export function normalizeScope(config: VaultConfig): ScopeDef | null {
     const def = config.fields[explicit];
     if (def === undefined || def.type !== 'enum') return null;
     field = explicit;
-    raw = scopeValueSource(config, def.values, def.source);
+    raw = enumValueEntries(config, def.values, def.source);
   } else if (config.sprints.length > 0) {
     // 0.3 alias: a `sprints` key is read as a `sprint` scope field.
     field = 'sprint';
@@ -101,15 +102,17 @@ export function resolveCurrentScope(
 }
 
 /**
- * Whole days remaining until a dated value's end (inclusive of the end day),
- * or `null` when the value has no `ends` date. `0` once the end day has passed.
+ * Whole days from today to a dated value's end day (inclusive): positive while
+ * the scope is live, `0` on the last day, **negative once it has ended**, and
+ * `null` when the value has no `ends` date. Signed so callers can tell "last
+ * day" from "ended" rather than conflating both as `0`.
  */
 export function scopeDaysLeft(value: ScopeValue, now: number): number | null {
   if (value.ends === undefined) return null;
   const end = dateMs(value.ends);
   if (end === null) return null;
   const nowMidnight = Math.floor(now / DAY_MS) * DAY_MS;
-  return Math.max(0, Math.round((end - nowMidnight) / DAY_MS));
+  return Math.round((end - nowMidnight) / DAY_MS);
 }
 
 /**
@@ -120,31 +123,19 @@ export function scopeDaysLeft(value: ScopeValue, now: number): number | null {
  * vaults, so the caller passes a resolved {@link ScopeDef}.
  */
 export function backlogCards(cards: Card[], config: VaultConfig, scope: ScopeDef): Card[] {
+  const lastColumn = config.board.columns[config.board.columns.length - 1];
   const live = cards.filter((card) => {
     if (cardScopeValue(card, scope) !== '') return false;
-    // Hidden states (Deferred/Dropped, mapped to null) stay off the board lens.
-    if (placeCard(card, config).column === null) return false;
-    return !isCardDone(card, config);
+    // One placement per card: keep it if it's on the board (not a hidden
+    // Deferred/Dropped state) and not in the last column — the same
+    // "last column = done" rule as isCardDone (ADR-003).
+    const column = placeCard(card, config).column;
+    return column !== null && column !== lastColumn;
   });
   return sortWithinColumn(live, config);
 }
 
 // ── internals ──────────────────────────────────────────────────────────────
-
-/** Raw scope values: inline `values` if present, else a `source` config list. */
-function scopeValueSource(
-  config: VaultConfig,
-  values: (string | ScopeValue)[] | undefined,
-  source: string | undefined,
-): unknown[] {
-  if (Array.isArray(values) && values.length > 0) return values;
-  if (typeof source === 'string' && Object.hasOwn(config, source)) {
-    const resolved = (config as unknown as Record<string, unknown>)[source];
-    if (Array.isArray(resolved)) return resolved; // e.g. `sprints`
-    if (resolved !== null && typeof resolved === 'object') return Object.keys(resolved); // e.g. `areas`
-  }
-  return [];
-}
 
 /** Normalize raw entries to {@link ScopeValue}s, dropping nameless/malformed ones. */
 function normalizeValues(raw: unknown[]): ScopeValue[] {

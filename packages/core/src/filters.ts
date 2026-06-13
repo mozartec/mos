@@ -11,6 +11,8 @@
 
 import type { Card } from './models.js';
 import type { ScopeValue, VaultConfig } from './config.js';
+import { enumValueEntries } from './config.js';
+import { normalizeScope } from './scope.js';
 
 /** One selectable option in a facet. */
 export interface FacetOption {
@@ -63,7 +65,9 @@ export function buildFacets(config: VaultConfig, cards: Card[]): Facet[] {
     facets.push({ field: 'type', label: 'Type', options: typeOptions });
   }
 
-  const scopeField = config.board.scopeField;
+  // Exclude the *resolved* scope field (the switcher owns it), which for a 0.3
+  // alias vault is derived by normalizeScope rather than set in board.scopeField.
+  const scopeField = normalizeScope(config)?.field;
   const face = cardFaceFields(config);
   const reserved = new Set<string>([
     'id',
@@ -78,7 +82,9 @@ export function buildFacets(config: VaultConfig, cards: Card[]): Facet[] {
     if (name === scopeField || reserved.has(name)) continue;
 
     if (def.type === 'enum' && def.list !== true) {
-      const values = resolveEnumValues(config, def.values, def.source);
+      const values = enumValueEntries(config, def.values, def.source).map((v) =>
+        typeof v === 'string' ? v : (v as ScopeValue).name,
+      );
       if (values.length > 0) {
         facets.push({
           field: name,
@@ -134,25 +140,6 @@ function cardFaceFields(config: VaultConfig): Set<string> {
     for (const field of type.card?.fields ?? []) names.add(field);
   }
   return names;
-}
-
-/** An enum field's option names: inline `values`, else a `source` config list/map. */
-function resolveEnumValues(
-  config: VaultConfig,
-  values: (string | ScopeValue)[] | undefined,
-  source: string | undefined,
-): string[] {
-  if (Array.isArray(values) && values.length > 0) {
-    return values.map((v) => (typeof v === 'string' ? v : v.name));
-  }
-  if (typeof source === 'string' && Object.hasOwn(config, source)) {
-    const resolved = (config as unknown as Record<string, unknown>)[source];
-    if (Array.isArray(resolved)) {
-      return resolved.map((v) => (typeof v === 'string' ? v : (v as ScopeValue).name));
-    }
-    if (resolved !== null && typeof resolved === 'object') return Object.keys(resolved);
-  }
-  return [];
 }
 
 /** Lower-cased searchable text for a card: id, title, and string field values. */
