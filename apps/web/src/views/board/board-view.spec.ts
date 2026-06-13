@@ -69,8 +69,20 @@ const SCOPED_DATED = JSON.stringify({
   types: TYPES,
 });
 
-/** A 0.3 vault: string `sprints`, no scopeField (the compat alias). */
+/** A 0.3 vault: string `sprints`, no scopeField (the compat alias). Named, so
+ * scope persistence (keyed by vault name) is exercisable. */
 const ALIAS = JSON.stringify({
+  specVersion: '0.3',
+  vault: { name: 'demo' },
+  wiki: { include: ['**/*.md'], exclude: [] },
+  board: BOARD,
+  fields: { ...FIELDS, sprint: { type: 'enum', source: 'sprints', label: 'Sprint' } },
+  sprints: ['S1', 'S2'],
+  types: TYPES,
+});
+
+/** Same alias vault but unnamed — persistence must be skipped (no name to key on). */
+const ALIAS_UNNAMED = JSON.stringify({
   specVersion: '0.3',
   wiki: { include: ['**/*.md'], exclude: [] },
   board: BOARD,
@@ -383,7 +395,7 @@ describe('BoardView', () => {
   // ── Acceptance 3 (cont.) / F-023: remembered scope selection ────────────────
 
   it('restores the last selected scope from localStorage when the URL carries none', async () => {
-    localStorage.setItem('mos:scope::sprint', 'S1'); // ALIAS has no vault.name → ''
+    localStorage.setItem('mos:scope:demo:sprint', 'S1');
     const { component } = await createBoard({ config: ALIAS }); // no dates, no cards
     expect(component['currentScopeName']()).toBe('S1'); // would default to S2 otherwise
   });
@@ -392,7 +404,15 @@ describe('BoardView', () => {
     const { harness, component } = await createBoard({ config: ALIAS });
     component['setScope']('S2');
     await settle(harness.fixture);
-    expect(localStorage.getItem('mos:scope::sprint')).toBe('S2');
+    expect(localStorage.getItem('mos:scope:demo:sprint')).toBe('S2');
+  });
+
+  it('skips scope persistence for an unnamed vault (no cross-vault collision)', async () => {
+    const { harness, component } = await createBoard({ config: ALIAS_UNNAMED });
+    component['setScope']('S2');
+    await settle(harness.fixture);
+    // Nothing written under the empty-name key — the feature is simply off here.
+    expect(localStorage.getItem('mos:scope::sprint')).toBeNull();
   });
 
   // ── Reader round-trip ───────────────────────────────────────────────────────

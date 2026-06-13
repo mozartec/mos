@@ -381,11 +381,15 @@ export class BoardView {
     this.mergeParams({ scope: value });
   }
 
-  /** Per-vault, per-scope-field localStorage key, or `null` when unscoped. */
+  /** Per-vault, per-scope-field localStorage key, or `null` when unscoped/unnamed. */
   private scopeStorageKey(): string | null {
     const config = this.config();
     const scope = this.scopeDef();
     if (config === null || scope === null) return null;
+    // localStorage is shared per origin and `vault.name` is the only client-side
+    // discriminator. An empty name can't tell two vaults apart, so skip
+    // persistence rather than have them clobber each other's remembered scope.
+    if (config.vault.name === '') return null;
     return `mos:scope:${config.vault.name}:${scope.field}`;
   }
 
