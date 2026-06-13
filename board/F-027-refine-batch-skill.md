@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-024]
 touches: [skills, docs]
 created: 2026-06-12T19:10:00Z
-updated: 2026-06-13T15:27:00Z
+updated: 2026-06-13T17:50:00Z
 ---
 
 # F-027 — Refine-batch skill — shape the backlog for parallel work
@@ -51,7 +51,13 @@ plus parallel-safe leaves, under the write rules of
      siblings stay hub-free and fan out; any sibling that genuinely must touch a hub is
      serialised behind that leaf with a `dependsOn` edge and the reason stated on the
      card. **Module areas** (one feature across all layers) leave siblings naturally
-     disjoint.
+     disjoint. The split is a project-specific judgment, not a fixed formula — it reads
+     the repo, it never decides by layer. Two signals identify a hub: the **forced-file
+     test** — *which single file must every feature edit to register itself?* (ORM
+     migration snapshot, DI / composition root, route manifest, permission or command
+     catalog — each framework has its own), and **git co-occurrence** — files co-edited
+     across otherwise-unrelated changes. Everything else groups as feature × all its
+     layers.
 - **Write rules enforced mechanically**
   ([ADR-022](../docs/08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state)):
   prose edits and splits only on cards still in their type's initial state; everything
