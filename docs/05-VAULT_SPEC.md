@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-13T00:06:00Z
+updated: 2026-06-13T15:27:00Z
 ---
 
 # Vault spec
@@ -251,9 +251,29 @@ counterpart
   }
   ```
 
-  The names are the vocabulary; the globs say what each name means in this vault. Define
-  areas as non-overlapping surfaces — tooling compares declarations by *name*, so two
-  differently-named areas whose globs overlap defeat the point.
+  The names are the vocabulary; the globs say what each name means in this vault. Two
+  rules keep areas useful rather than decorative:
+
+  - **Non-overlapping globs.** Tooling compares declarations by *name*, so two
+    differently-named areas whose globs match the same file defeat the point.
+  - **Size by merge risk.** An area should be the unit at which "two cards share it"
+    means "their edits might actually conflict." This is the rule that gets missed:
+    areas that are too coarse — one per app, or one per *layer* (`domain`, `ui`) — make
+    independent work look collinear and collapse every batch to a single card, so the
+    feature quietly does nothing; areas that are too fine add bookkeeping without buying
+    parallelism. A small repo is often fine with one area per package (`core`, `web`,
+    `docs`, as above). Larger repos converge on two kinds:
+      - **hub areas** — narrow, whole-file or regenerated *trunk* surfaces where any two
+        concurrent edits conflict by construction: an ORM migration snapshot, the DI /
+        composition root, a permission or command catalog, a route manifest. Each is
+        effectively exclusive — at most one card in a batch should hold it.
+      - **module areas** — one per feature, spanning that feature across *all* layers
+        (domain, service, API, UI, tests), not one layer across all features. Two
+        different modules are then genuinely disjoint and batch freely.
+
+    Carve hub files out of any module glob that would otherwise swallow them — a hub
+    area is the more specific claim and wins. (A larger app might pair hub areas like
+    `db-migrations`, `di-root`, `routes` with module areas like `billing`, `inventory`.)
 
 - **`touches`** — a list field in which a card names the areas it expects to modify
   (`touches: [core, docs]`). Register it as a list `enum` sourced from `areas` (§5a) so
