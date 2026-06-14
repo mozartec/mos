@@ -18,7 +18,11 @@ function makeConfig(over: Partial<VaultConfig> = {}): VaultConfig {
     meta: { timestamps: { createdField: 'created', updatedField: 'updated' } },
     fields: {},
     wiki: { include: [], exclude: [], fields: [] },
-    board: { include: ['board/**'], columns: ['Backlog', 'In Progress', 'Done'], sortWithinColumn: ['priority', 'id'] },
+    board: {
+      include: ['board/**'],
+      columns: ['Backlog', 'In Progress', 'Done'],
+      sortWithinColumn: ['priority', 'id'],
+    },
     references: { idPattern: '[A-Z][A-Z0-9]*-[0-9]+' },
     types: {
       story: {
@@ -33,7 +37,12 @@ function makeConfig(over: Partial<VaultConfig> = {}): VaultConfig {
   };
 }
 
-function card(id: string, status: string, fields: Record<string, unknown> = {}, priority?: string): Card {
+function card(
+  id: string,
+  status: string,
+  fields: Record<string, unknown> = {},
+  priority?: string,
+): Card {
   return { id, type: 'story', title: id, status, path: `board/${id}.md`, priority, fields };
 }
 
@@ -43,7 +52,10 @@ describe('normalizeScope', () => {
       board: { ...makeConfig().board, scopeField: 'cycle' },
       fields: { cycle: { type: 'enum', values: ['C1', 'C2'] } },
     });
-    expect(normalizeScope(config)).toEqual({ field: 'cycle', values: [{ name: 'C1' }, { name: 'C2' }] });
+    expect(normalizeScope(config)).toEqual({
+      field: 'cycle',
+      values: [{ name: 'C1' }, { name: 'C2' }],
+    });
   });
 
   it('reads inline dated values, keeping starts/ends', () => {
@@ -73,7 +85,10 @@ describe('normalizeScope', () => {
 
   it('reads a 0.3 `sprints` key as a `sprint` scope when no scopeField is set', () => {
     const config = makeConfig({ sprints: ['S1', 'S2'] });
-    expect(normalizeScope(config)).toEqual({ field: 'sprint', values: [{ name: 'S1' }, { name: 'S2' }] });
+    expect(normalizeScope(config)).toEqual({
+      field: 'sprint',
+      values: [{ name: 'S1' }, { name: 'S2' }],
+    });
   });
 
   it('is null for a vault with no scopeField and no sprints (unscoped)', () => {
@@ -101,7 +116,12 @@ describe('normalizeScope', () => {
   it('drops malformed dates during normalization, keeping the name', () => {
     const config = makeConfig({
       board: { ...makeConfig().board, scopeField: 'sprint' },
-      fields: { sprint: { type: 'enum', values: [{ name: 'S1', starts: 'not-a-date', ends: '2026-13-99' }] } },
+      fields: {
+        sprint: {
+          type: 'enum',
+          values: [{ name: 'S1', starts: 'not-a-date', ends: '2026-13-99' }],
+        },
+      },
     });
     expect(normalizeScope(config)).toEqual({ field: 'sprint', values: [{ name: 'S1' }] });
   });

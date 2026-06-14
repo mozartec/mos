@@ -10,13 +10,7 @@
 /** A frontmatter field's declared data type (VAULT_SPEC §5a). */
 export type FieldType = 'string' | 'enum' | 'id' | 'date' | 'datetime';
 
-const KNOWN_FIELD_TYPES: readonly FieldType[] = [
-  'string',
-  'enum',
-  'id',
-  'date',
-  'datetime',
-];
+const KNOWN_FIELD_TYPES: readonly FieldType[] = ['string', 'enum', 'id', 'date', 'datetime'];
 
 /**
  * The curated card-color palette (VAULT_SPEC §5b). mos owns this list rather
@@ -215,9 +209,7 @@ export function loadConfig(input: string | object): LoadConfigResult {
     try {
       raw = JSON.parse(input);
     } catch (e) {
-      errors.push(
-        `config: invalid JSON — ${e instanceof Error ? e.message : 'parse error'}`,
-      );
+      errors.push(`config: invalid JSON — ${e instanceof Error ? e.message : 'parse error'}`);
       return { config: defaultConfig(), errors };
     }
   }
@@ -280,9 +272,7 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
         board['sortWithinColumn'] === undefined
           ? ['priority', 'id']
           : asStringArray(board['sortWithinColumn']),
-      ...(typeof board['scopeField'] === 'string'
-        ? { scopeField: board['scopeField'] }
-        : {}),
+      ...(typeof board['scopeField'] === 'string' ? { scopeField: board['scopeField'] } : {}),
     },
     references: {
       idPattern: asString(references['idPattern'], DEFAULT_ID_PATTERN),
@@ -340,15 +330,11 @@ function validate(config: VaultConfig, errors: string[]): void {
       // hasOwn, not `in`: a parent like 'constructor' must not resolve via
       // the prototype chain of a plain JSON object.
       if (typeof parent !== 'string' || !Object.hasOwn(types, parent)) {
-        errors.push(
-          `type ${typeName}: parent type '${String(parent)}' is not defined`,
-        );
+        errors.push(`type ${typeName}: parent type '${String(parent)}' is not defined`);
       } else {
         const parentDef = types[parent];
         if (isObject(parentDef) && parentDef['parent'] != null) {
-          errors.push(
-            `type ${typeName}: parent '${parent}' itself has a parent (nesting > 1)`,
-          );
+          errors.push(`type ${typeName}: parent '${parent}' itself has a parent (nesting > 1)`);
         }
       }
     }
@@ -356,17 +342,12 @@ function validate(config: VaultConfig, errors: string[]): void {
     const states = isObject(type['states']) ? type['states'] : {};
     for (const [state, col] of Object.entries(states)) {
       if (col != null && (typeof col !== 'string' || !columns.includes(col))) {
-        errors.push(
-          `type ${typeName}: state '${state}' maps to unknown column '${String(col)}'`,
-        );
+        errors.push(`type ${typeName}: state '${state}' maps to unknown column '${String(col)}'`);
       }
     }
 
     const color = type['color'];
-    if (
-      color != null &&
-      !(CARD_COLORS as readonly string[]).includes(color as string)
-    ) {
+    if (color != null && !(CARD_COLORS as readonly string[]).includes(color as string)) {
       errors.push(`type ${typeName}: unknown color '${String(color)}'`);
     }
   }
@@ -375,18 +356,12 @@ function validate(config: VaultConfig, errors: string[]): void {
   for (const [fieldName, fieldRaw] of Object.entries(fields)) {
     const field = isObject(fieldRaw) ? fieldRaw : {};
     const fieldType = field['type'];
-    if (
-      typeof fieldType !== 'string' ||
-      !KNOWN_FIELD_TYPES.includes(fieldType as FieldType)
-    ) {
+    if (typeof fieldType !== 'string' || !KNOWN_FIELD_TYPES.includes(fieldType as FieldType)) {
       errors.push(`field ${fieldName}: unknown type '${String(fieldType)}'`);
       continue;
     }
     const icon = field['icon'];
-    if (
-      icon != null &&
-      !(CARD_ICONS as readonly string[]).includes(icon as string)
-    ) {
+    if (icon != null && !(CARD_ICONS as readonly string[]).includes(icon as string)) {
       errors.push(`field ${fieldName}: unknown icon '${String(icon)}'`);
     }
     const list = field['list'];
@@ -400,9 +375,7 @@ function validate(config: VaultConfig, errors: string[]): void {
       } else {
         for (const [val, c] of Object.entries(valueColors)) {
           if (!(CARD_COLORS as readonly string[]).includes(c as string)) {
-            errors.push(
-              `field ${fieldName}: value '${val}' has unknown color '${String(c)}'`,
-            );
+            errors.push(`field ${fieldName}: value '${val}' has unknown color '${String(c)}'`);
           }
         }
       }

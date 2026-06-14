@@ -10,5 +10,21 @@
     "pnpm-lock.yaml",
     ".claude/skills/**"
   ],
-  "words": ["agentic", "anthropics", "bunx", "CodeQL", "daisyui", "dogfood", "frontmatter", "rebuildable", "reqs", "tailwindStylesheet", "turborepo", "underspecified", "vitest", "worktree", "worktrees"]
+  "words": [
+    "agentic",
+    "anthropics",
+    "bunx",
+    "CodeQL",
+    "daisyui",
+    "dogfood",
+    "frontmatter",
+    "rebuildable",
+    "reqs",
+    "tailwindStylesheet",
+    "turborepo",
+    "underspecified",
+    "vitest",
+    "worktree",
+    "worktrees"
+  ]
 }

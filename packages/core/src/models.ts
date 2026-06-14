@@ -55,10 +55,7 @@ export interface BuildModelResult {
  * recognized frontmatter `type` (ADR-003). Board-scope files without a
  * recognized type are reported as "not a card", not silently dropped.
  */
-export function buildModel(
-  files: ParsedFile[],
-  config: VaultConfig,
-): BuildModelResult {
+export function buildModel(files: ParsedFile[], config: VaultConfig): BuildModelResult {
   const model = createEmptyVaultModel();
   const diagnostics: string[] = [];
   const wikiIncludeMatchers = config.wiki.include.map(globToRegExp);

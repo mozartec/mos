@@ -33,11 +33,7 @@ describe('watchPathsFromConfig', () => {
   it('defaults to board + docs (plus the config file) when the key is absent or invalid', () => {
     expect(watchPathsFromConfig({})).toEqual(['board', 'docs', '.mos/config.json']);
     expect(watchPathsFromConfig(null)).toEqual(['board', 'docs', '.mos/config.json']);
-    expect(watchPathsFromConfig({ watch: 'board' })).toEqual([
-      'board',
-      'docs',
-      '.mos/config.json',
-    ]);
+    expect(watchPathsFromConfig({ watch: 'board' })).toEqual(['board', 'docs', '.mos/config.json']);
     expect(watchPathsFromConfig({ watch: ['board', 42] })).toEqual([
       'board',
       'docs',

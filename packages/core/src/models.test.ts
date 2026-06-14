@@ -156,7 +156,14 @@ describe('buildModel', () => {
     const files: ParsedFile[] = [
       {
         path: 'board/task-1.md',
-        data: { id: 'T-1', type: 'task', title: 'Task 1', status: 'Todo', custom_field: 'hello', count: 5 },
+        data: {
+          id: 'T-1',
+          type: 'task',
+          title: 'Task 1',
+          status: 'Todo',
+          custom_field: 'hello',
+          count: 5,
+        },
         body: '',
         errors: [],
       },

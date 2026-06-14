@@ -24,7 +24,9 @@ function ok(message) {
 }
 
 if (!existsSync(join(cliDir, 'dist/main.js')) || !existsSync(join(cliDir, 'dist/web/index.html'))) {
-  fail('dist/ is missing or incomplete — build first: bunx turbo run build --filter=@mozartec/mos-cli');
+  fail(
+    'dist/ is missing or incomplete — build first: bunx turbo run build --filter=@mozartec/mos-cli',
+  );
 }
 
 const workDir = mkdtempSync(join(tmpdir(), 'mos-smoke-'));
@@ -48,7 +50,10 @@ ok(`packed ${tarball}`);
 
 // 2. Install it in a clean consumer project (no workspace, no repo).
 const consumerDir = join(workDir, 'consumer');
-writeFileSync(join(workDir, 'package.json'), JSON.stringify({ name: 'mos-smoke-consumer', private: true }));
+writeFileSync(
+  join(workDir, 'package.json'),
+  JSON.stringify({ name: 'mos-smoke-consumer', private: true }),
+);
 execFileSync('npm', ['install', tarball], { cwd: workDir, encoding: 'utf-8', timeout: 180_000 });
 const mosBin = join(workDir, 'node_modules', '.bin', 'mos');
 if (!existsSync(mosBin)) fail('installed package exposes no `mos` bin');
@@ -56,7 +61,8 @@ ok('tarball installed, `mos` bin present');
 
 // 3. `mos init` scaffolds a vault.
 const initOutput = execFileSync('node', [mosBin, 'init', consumerDir], { encoding: 'utf-8' });
-if (!existsSync(join(consumerDir, '.mos/config.json'))) fail('mos init created no .mos/config.json');
+if (!existsSync(join(consumerDir, '.mos/config.json')))
+  fail('mos init created no .mos/config.json');
 if (!initOutput.includes('vault scaffolded')) fail('mos init did not report success');
 ok('mos init scaffolded a vault');
 
@@ -66,7 +72,10 @@ server = spawn('node', [mosBin, 'serve', consumerDir, '--port', '0'], {
 });
 const port = await new Promise((resolve, reject) => {
   let out = '';
-  const timer = setTimeout(() => reject(new Error(`mos serve never reported a port:\n${out}`)), 15000);
+  const timer = setTimeout(
+    () => reject(new Error(`mos serve never reported a port:\n${out}`)),
+    15000,
+  );
   server.stdout.on('data', (chunk) => {
     out += String(chunk);
     const match = out.match(/http:\/\/127\.0\.0\.1:(\d+)/);
@@ -104,7 +113,8 @@ ok('non-GET is rejected with 405');
 
 // 6. SSE: a vault edit must reach a connected watcher.
 const sse = await fetch(`${base}/vault/watch`);
-if (sse.headers.get('content-type') !== 'text/event-stream') fail('/vault/watch is not an SSE stream');
+if (sse.headers.get('content-type') !== 'text/event-stream')
+  fail('/vault/watch is not an SSE stream');
 const reader = sse.body.getReader();
 await reader.read(); // ': connected'
 const cardPath = join(consumerDir, 'board/T-001-explore-the-board.md');
@@ -113,7 +123,10 @@ let sseTimer;
 const sseEvent = await Promise.race([
   reader.read().then(({ value }) => new TextDecoder().decode(value)),
   new Promise((_, reject) => {
-    sseTimer = setTimeout(() => reject(new Error('no SSE event within 10s of a vault edit')), 10000);
+    sseTimer = setTimeout(
+      () => reject(new Error('no SSE event within 10s of a vault edit')),
+      10000,
+    );
   }),
 ]).catch((err) => fail(err.message));
 clearTimeout(sseTimer);
