@@ -94,14 +94,16 @@ Turbo, caching, and internal-package questions (e.g. before editing `turbo.json`
 package's `exports`). Angular and daisyUI skills live in [`apps/web`](apps/web/AGENTS.md).
 
 First-party **mos** skills — for operating this (or any) mos vault — are **authored** in
-[`skills/`](skills/README.md) at the repo root (`next-card`, `ship-card`) in the standard
-installable layout, so any project can `npx skills add mozartec/mos` them (F-014). This
-repo consumes them the same way: CLI-installed copies live under `.agents/skills/` with
-`skills-lock.json` entries, like any third-party skill — never hand-edit the installed
-copies; change `skills/` and reinstall (T-009). Use
+[`skills/`](skills/README.md) at the repo root (`next-card`, `ship-card`, `refine-batch`)
+in the standard installable layout, so any project can `npx skills add mozartec/mos` them
+(F-014). This repo consumes them the same way: CLI-installed copies live under
+`.agents/skills/` with `skills-lock.json` entries, like any third-party skill — never
+hand-edit the installed copies; change `skills/` and reinstall (T-009). Use
 [`next-card`](.agents/skills/next-card/SKILL.md) when asked what to work on next — it
-recommends a pick; shipping is ship-card's job — and
-[`ship-card`](.agents/skills/ship-card/SKILL.md) to take a named card to an open PR.
+recommends a pick; shipping is ship-card's job — [`ship-card`](.agents/skills/ship-card/SKILL.md)
+to take a named card to an open PR, and [`refine-batch`](.agents/skills/refine-batch/SKILL.md)
+when asked to groom or reshape the backlog so parallel-safe work exists (it rewrites only
+not-yet-started cards — ADR-022).
 
 ## Nested guidance (scoped instructions)
 
@@ -121,8 +123,10 @@ in addition to this file:
 
 Because this repo is also a vault, you may be asked to add or update **cards** in
 `board/`. The rules (frontmatter only, never rewrite prose — except ticking a shipping card's
-own `## Acceptance` boxes, ADR-002 — and allowed types/states) are in
-[`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md). When you **create** a card or doc set its
+own `## Acceptance` boxes, ADR-002, and **refinement** of cards still in their initial
+state, ADR-022 — and allowed types/states) are in
+[`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md) (§Refinement covers the initial-state
+boundary). When you **create** a card or doc set its
 `created` and `updated` timestamps; when you **edit** frontmatter, bump `updated` (the app
 never writes these — see [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md) §Timestamps and
 ADR-010). Emit frontmatter properties in the vault's canonical order — `fieldOrder` in

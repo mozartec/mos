@@ -1,0 +1,62 @@
+{
+  "skill_name": "refine-batch",
+  "fixture": "skills/evals/refine-fixture-vault",
+  "setup": "Copy the refine fixture vault to a scratch dir outside the repo, `git init -b main` it, commit everything, and copy skills/refine-batch into <scratch>/.agents/skills/. Run the eval agent with cwd=<scratch>, no network, and `gh` unavailable. The fixture's foreign vocabulary (track/leg/errand, Sketch/Lined Up/Underway/Landed, Hot/Warm/Cool, areas registry/flights/hotels/cars/guide) makes any hardcoded mos-repo vocabulary fail loudly. `registry` is the hub (single file app/registry.ts); the rest are module/prose areas. Initial state per type is `Sketch`; anything past it is decided (frontmatter-only). See skills/evals/README.md.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "enabler-extraction-over-hub",
+      "prompt": "The three search tracks (TR-200 flights, TR-201 hotels, TR-202 cars) are all still rough and they all seem to step on the same wiring. Refine them so they can run in parallel, and go ahead and apply the changes.",
+      "expected_output": "Pre-computes with the script, raises each track to the cold-start standard (the bodies are thin — missing Outcome/Context/Constraints/Plan/Acceptance/Out of scope), and recognizes that all three declare the `registry` hub (app/registry.ts), so as written they cannot run in parallel. Instead of serializing them, it extracts a standalone enabler card that does the registry wiring once, makes the three searches `dependsOn` that enabler, and leaves them touching only their own module area (flights/hotels/cars) — a conflict-free batch. New cards get fresh ids, created/updated, and frontmatter in the config's fieldOrder. The decided card TR-220 (Underway) is left prose-untouched.",
+      "assertions": [
+        {"text": "Runs the refine_batch.py script (or reproduces its analysis) before editing"},
+        {"text": "Identifies `registry` as the shared hub the three tracks collide on (names app/registry.ts or the registry area)"},
+        {"text": "Extracts a single enabler card for the registry wiring rather than serializing the three tracks into a do-one-at-a-time order"},
+        {"text": "The three search tracks end up depending on the enabler (dependsOn edge) and each touches only its own module area (flights / hotels / cars), so their touches are pairwise disjoint"},
+        {"text": "Raises the three thin tracks toward readiness (adds the missing cold-start sections, including ## Acceptance)"},
+        {"text": "New cards carry a fresh id (no reused ids), created and updated timestamps (UTC), and frontmatter in the fieldOrder from config"},
+        {"text": "Leaves TR-220 (Underway, decided) prose-untouched — at most a frontmatter edit"},
+        {"text": "Uses the fixture's own vocabulary (track/leg/errand, Sketch, registry/flights/hotels/cars) — no F-/T- ids, P0 priorities, Draft/Done, or other foreign vocabulary"}
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "container-split-with-hub-leaf",
+      "prompt": "TR-210 (unified checkout) is way too big to pick up as one card. Refine it so it's ready and parallel-friendly, and apply the changes.",
+      "expected_output": "Recognizes TR-210 is oversized (spans the registry hub plus all three modules) and that `track` allows children, so it splits TR-210 into a container track with child legs (ADR-019) rather than a scatter of unrelated cards. One schema-and-wiring leg holds the `registry` area once (the shared checkout registration); the other legs are per-module checkout adapters that stay hub-free (flights / hotels / cars) and can run in parallel. Any leg that genuinely must touch the registry is sequenced behind the wiring leg with a `dependsOn` edge and a stated reason. Children carry parent: TR-210; new cards get fresh ids and timestamps.",
+      "assertions": [
+        {"text": "Splits TR-210 into a container with child cards (legs carrying parent: TR-210), not unrelated sibling tracks"},
+        {"text": "Creates one schema-and-wiring leg that holds the registry hub area, and per-module legs that do NOT touch registry (so siblings are hub-free and disjoint)"},
+        {"text": "Any child forced to touch the registry is serialized behind the wiring leg via dependsOn, with the reason stated on the card"},
+        {"text": "Child legs use the child type the config allows under track (leg), in the fixture's vocabulary — no foreign type names"},
+        {"text": "New cards carry fresh ids, created/updated (UTC), parent: TR-210, and frontmatter in fieldOrder"}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "no-areas-degrade",
+      "prompt": "Refine the backlog so it's ready to work.",
+      "expected_output": "Special setup: the top-level `areas` key is removed from .mos/config.json AND the '## Areas' section is removed from the fixture's AGENTS.md, so the vault declares no surfaces anywhere — config is the only place areas could come from, and there are none. The readiness pass still runs (the thin Sketch cards get their missing sections), but the shape pass has no surface map to reason over: the agent states plainly that overlap is UNKNOWN, does NOT reshape for overlap (no enabler extraction, no hub concentration) and does NOT claim any cards are parallel-safe. It still respects the initial-state boundary (TR-220 prose untouched).",
+      "assertions": [
+        {"text": "Still does the readiness pass (raises thin Sketch cards toward the cold-start standard) rather than refusing"},
+        {"text": "States plainly that surface overlap is unknown / unchecked because the vault declares no areas — does not assert any cards are collision-free or safe to parallelize"},
+        {"text": "Does NOT reshape for overlap: with no declared areas it does not extract enablers or concentrate hub areas from an inferred surface map"},
+        {"text": "Leaves the decided card TR-220 prose-untouched"}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "not-a-vault-refusal",
+      "prompt": "Refine the backlog for parallel work.",
+      "expected_output": "Run from a directory with no .mos/config.json at or above it: states this isn't a mos vault and stops. No cards invented, no files written.",
+      "assertions": [
+        {"text": "Refuses, naming the missing .mos/config.json"},
+        {"text": "Invents no cards and writes no files"}
+      ],
+      "files": []
+    }
+  ]
+}

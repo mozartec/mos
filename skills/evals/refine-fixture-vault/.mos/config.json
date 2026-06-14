@@ -1,0 +1,60 @@
+{
+  "specVersion": "0.4",
+  "vault": { "name": "Wander (refine eval fixture)" },
+
+  "meta": {
+    "timestamps": { "createdField": "created", "updatedField": "updated" }
+  },
+
+  "fields": {
+    "id": { "type": "id", "label": "ID" },
+    "title": { "type": "string", "label": "Title" },
+    "status": { "type": "string", "label": "Status" },
+    "priority": { "type": "enum", "values": ["Hot", "Warm", "Cool"], "label": "Priority" },
+    "parent": { "type": "id", "label": "Parent" },
+    "dependsOn": { "type": "id", "list": true, "label": "Depends on" },
+    "touches": { "type": "enum", "source": "areas", "list": true, "label": "Touches" },
+    "created": { "type": "datetime", "label": "Created" },
+    "updated": { "type": "datetime", "label": "Updated" }
+  },
+
+  "areas": {
+    "registry": ["app/registry.ts"],
+    "flights": ["src/flights/**"],
+    "hotels": ["src/hotels/**"],
+    "cars": ["src/cars/**"],
+    "guide": ["guide/**"]
+  },
+
+  "fieldOrder": ["id", "type", "title", "status", "priority", "parent",
+                 "dependsOn", "touches", "created", "updated"],
+
+  "wiki": { "include": ["**/*.md"], "exclude": [".mos/**", "AGENTS.md"], "fields": ["created", "updated"] },
+
+  "board": {
+    "include": ["board/**/*.md"],
+    "columns": ["Sketch", "Lined Up", "Underway", "Landed"],
+    "sortWithinColumn": ["priority", "id"]
+  },
+
+  "types": {
+    "track": {
+      "label": "Track",
+      "parent": null,
+      "color": "purple",
+      "states": { "Sketch": "Sketch", "Lined Up": "Lined Up", "Underway": "Underway", "Landed": "Landed", "Parked": null }
+    },
+    "leg": {
+      "label": "Leg",
+      "parent": "track",
+      "color": "green",
+      "states": { "Sketch": "Sketch", "Underway": "Underway", "Landed": "Landed" }
+    },
+    "errand": {
+      "label": "Errand",
+      "parent": null,
+      "color": "blue",
+      "states": { "Sketch": "Sketch", "Underway": "Underway", "Landed": "Landed" }
+    }
+  }
+}

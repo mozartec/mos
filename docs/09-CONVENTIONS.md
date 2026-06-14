@@ -68,9 +68,32 @@ on every frontmatter edit — the app never writes these (see §Timestamps below
   Progress with a badge).
 
 When an agent finishes a card it sets `status` to Done **and** ticks the card's own `##
-Acceptance` boxes — the one prose edit the read-only rule allows (ADR-002). The ship-card skill's
-`ship_card.py <id> --finish` does both (and bumps `updated`) deterministically, so it isn't
-skipped.
+Acceptance` boxes — the only prose edit allowed once a card has **left its initial state**
+(ADR-002; before then, see §Refinement). The ship-card skill's `ship_card.py <id> --finish`
+does both (and bumps `updated`) deterministically, so it isn't skipped.
+
+## Refinement (reshaping cards before they start)
+
+The read-only rule (ADR-002) protects *decided* work from drift, but it would also forbid
+the one upstream activity parallel planning needs: reshaping not-yet-started cards so
+conflict-free batches exist to be picked. So there is a single, explicit exception
+([ADR-022](08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state)):
+
+- **Refinement** is an explicitly invoked stage that applies **only to cards still in
+  their type's *initial* state** — the first state the type declares in config (this
+  vault: `Draft` for features/tasks, `Todo` for stories). For such a card an agent may
+  rewrite prose, split it, create enabler cards, and set `touches`/`dependsOn`.
+- The goal is two-fold: raise each card to the cold-start standard (§Card readiness)
+  *and* reshape overlap clusters — cards that all pile onto one surface (§Areas & touches)
+  — into a sequenced enabler plus disjoint leaves, so a real parallel batch exists.
+- **The moment a card leaves its initial state it is decided**, and ADR-002 applies
+  unchanged: frontmatter only, never rewrite its prose (the sole exception is ticking its
+  own `## Acceptance` on ship, above). The boundary is a status check, so it's mechanical.
+- Splits follow the hierarchy where the type allows children: an oversized card becomes a
+  container with child cards ([ADR-019](08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units)),
+  not a scatter of siblings.
+- Refinement **never** runs as a side effect of picking or shipping — only when asked. The
+  packaged form is the [`refine-batch`](../skills/refine-batch/SKILL.md) skill.
 
 ## Priority and phase
 
