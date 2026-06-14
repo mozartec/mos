@@ -10,18 +10,18 @@ jobs:
     name: Build · Lint · Test · Validate
     runs-on: ubuntu-latest
     env:
-      NODE_OPTIONS: "--disable-warning=DEP0205"
+      NODE_OPTIONS: '--disable-warning=DEP0205'
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.14"
+          bun-version: '1.3.14'
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "26"
+          node-version: '26'
 
       - name: Cache Bun install
         uses: actions/cache@v4
@@ -42,6 +42,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Format
+        run: bun run format
 
       - name: Test
         run: bun run test

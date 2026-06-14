@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { Card, VaultConfig } from './index.js';
-import { placeCard, sortWithinColumn, inFlightColumn, parallelOverlaysActive } from './place-card.js';
+import {
+  placeCard,
+  sortWithinColumn,
+  inFlightColumn,
+  parallelOverlaysActive,
+} from './place-card.js';
 
 // Minimal valid config for testing
 const testConfig: VaultConfig = {

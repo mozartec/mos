@@ -9,6 +9,9 @@ out-tsc
 bun.lock
 skills-lock.json
 
+# Generated code — owned by its generator, not hand-formatted (e.g. icons:generate)
+*.generated.ts
+
 # Hand-authored vault content & docs — prettier must not reformat prose
 *.md
 docs

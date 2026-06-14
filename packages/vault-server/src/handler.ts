@@ -131,7 +131,7 @@ export function createVaultServer({ vaultDir }: { vaultDir: string }): VaultServ
           headers: {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
+            Connection: 'keep-alive',
           },
         });
       }

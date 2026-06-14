@@ -32,8 +32,7 @@ async function walk(dir: string, base: string, out: string[]): Promise<void> {
     // Skip hidden directories (except .mos) and node_modules
     if (
       entry.isDirectory() &&
-      (entry.name === 'node_modules' ||
-        (entry.name.startsWith('.') && entry.name !== '.mos'))
+      (entry.name === 'node_modules' || (entry.name.startsWith('.') && entry.name !== '.mos'))
     ) {
       continue;
     }

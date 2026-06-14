@@ -88,9 +88,7 @@ function constName(name) {
 
 function main() {
   const root = tablerIconsRoot();
-  const version = JSON.parse(
-    readFileSync(join(root, 'package.json'), 'utf8'),
-  ).version;
+  const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 
   const header = `// AUTO-GENERATED — do not edit by hand.
 // Source: @tabler/icons v${version} (outline). Regenerate: \`bun run icons:generate\`.
