@@ -313,6 +313,71 @@ test('a two-column vault produces no overlap warnings (no in-flight column exist
   assert.deepEqual(validateVault(root).warnings, []);
 });
 
+// --- area glob overlap (§5c) --------------------------------------------------
+
+// A config whose areas are given verbatim (each value a glob list), with touches
+// registered as a list-enum sourced from them — the §5c setup, but with control
+// over the globs so a test can make two areas collide.
+function withAreaGlobs(areas) {
+  return baseConfig({
+    fields: {
+      id: { type: 'id' },
+      title: { type: 'string' },
+      status: { type: 'string' },
+      touches: { type: 'enum', source: 'areas', list: true },
+    },
+    areas,
+  });
+}
+
+test('two areas matching a shared file: one warning names both areas and a sample path', () => {
+  const root = makeVault(withAreaGlobs({ web: ['apps/**'], app: ['apps/web/**'] }), {
+    // Both files are matched by web (apps/**) and app (apps/web/**): a many-file
+    // overlap that must collapse to a single line, not one per file.
+    'apps/web/a.ts': 'a',
+    'apps/web/b.ts': 'b',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors, warnings } = validateVault(root);
+  assert.deepEqual(errors, [], errors.join('\n'));
+  const overlap = warnings.filter((w) => w.includes('have overlapping globs'));
+  assert.equal(overlap.length, 1, overlap.join('\n'));
+  assert.ok(overlap[0].includes("'app'") && overlap[0].includes("'web'"), overlap[0]);
+  assert.ok(overlap[0].includes('apps/web/a.ts'), overlap[0]); // smallest matched path
+});
+
+test('disjoint areas: no overlap warning', () => {
+  const root = makeVault(withAreaGlobs({ core: ['core/**'], web: ['web/**'] }), {
+    'core/a.ts': 'a',
+    'web/b.ts': 'b',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { warnings } = validateVault(root);
+  assert.ok(!has(warnings, 'overlapping globs'), warnings.join('\n'));
+});
+
+test('a single area cannot overlap: no warning even when it matches many files', () => {
+  const root = makeVault(withAreaGlobs({ web: ['apps/**', 'apps/web/**'] }), {
+    'apps/web/a.ts': 'a',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { warnings } = validateVault(root);
+  assert.ok(!has(warnings, 'overlapping globs'), warnings.join('\n'));
+});
+
+test('empty areas map, and a vault with no areas: no overlap warning', () => {
+  const empty = makeVault(withAreaGlobs({}), {
+    'apps/web/a.ts': 'a',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  assert.ok(!has(validateVault(empty).warnings, 'overlapping globs'));
+  const none = makeVault(baseConfig(), {
+    'apps/web/a.ts': 'a',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  assert.ok(!has(validateVault(none).warnings, 'overlapping globs'));
+});
+
 // --- ids, timestamps, ordering ------------------------------------------------
 
 test('unresolved dependsOn id: error', () => {

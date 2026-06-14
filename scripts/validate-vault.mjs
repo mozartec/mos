@@ -190,6 +190,47 @@ function validateScope(cfg, errors, warnings) {
         );
 }
 
+// Area glob overlap (§5c, ADR-021): "two differently-named areas whose globs
+// match the same file defeat the point," because batch math compares `touches`
+// by name. This flags *demonstrable* overlap only — a file actually matched by
+// two areas in the vault's file list — not a guess about whether two globs could
+// ever collide; that keeps it cheap and honest (a false "too coarse" is worse
+// than none). One warning per overlapping pair, with a sample shared path, so a
+// many-file overlap collapses to one line. A warning, never an error — overlap is
+// a design smell, like the in-flight overlap below. Granularity ("is this area
+// too coarse?") is a planning call, not statically decidable, and stays out (§5c).
+function validateAreaOverlap(areas, relFiles, warnings) {
+  if (areas == null || typeof areas !== 'object' || Array.isArray(areas)) return;
+  const compiled = Object.entries(areas).map(([name, globs]) => ({
+    name,
+    res: (Array.isArray(globs) ? globs : [globs])
+      .filter((g) => typeof g === 'string')
+      .map(globToRegExp),
+  }));
+  if (compiled.length < 2) return;
+  // One sample path per overlapping pair, keyed 'a b' with a < b; keep the
+  // lexicographically smallest matching path so the message is deterministic
+  // regardless of filesystem walk order.
+  const samples = new Map();
+  for (const rel of relFiles) {
+    const hit = compiled.filter((a) => a.res.some((re) => re.test(rel))).map((a) => a.name);
+    if (hit.length < 2) continue;
+    hit.sort();
+    for (let i = 0; i < hit.length; i++)
+      for (let j = i + 1; j < hit.length; j++) {
+        const key = `${hit[i]}\u0000${hit[j]}`;
+        const prev = samples.get(key);
+        if (prev === undefined || rel < prev) samples.set(key, rel);
+      }
+  }
+  for (const key of [...samples.keys()].sort()) {
+    const [a, b] = key.split('\u0000');
+    warnings.push(
+      `areas '${a}' and '${b}' have overlapping globs (both match '${samples.get(key)}')`,
+    );
+  }
+}
+
 export function validateVault(root) {
   const errors = [];
   const warnings = [];
@@ -220,6 +261,14 @@ export function validateVault(root) {
   // Board scope (§5d, ADR-020): scopeField / dated values / 0.3 sprints alias.
   validateScope(cfg, errors, warnings);
 
+  // Walk the tree once: the area-overlap check below and the card scan further
+  // down both need the vault's file list.
+  const files = walk(root);
+  const relFiles = files.map((f) => relative(root, f).split(sep).join('/'));
+
+  // Area glob overlap (§5c): areas whose globs match a common file.
+  validateAreaOverlap(cfg.areas, relFiles, warnings);
+
   // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
   // declared `values` list, the resolved source, or — when the declared
   // source names no config key — the empty set, so every declared value is
@@ -238,7 +287,8 @@ export function validateVault(root) {
   }
 
   const cards = {};
-  for (const f of walk(root).filter((f) => f.endsWith('.md'))) {
+  for (const f of files) {
+    if (!f.endsWith('.md')) continue;
     const rel = relative(root, f).split(sep).join('/');
     if (!includes.some((re) => re.test(rel))) continue;
     const data = parseFrontmatter(readFileSync(f, 'utf8'));
