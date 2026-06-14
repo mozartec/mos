@@ -199,7 +199,7 @@ function validateScope(cfg, errors, warnings) {
 // many-file overlap collapses to one line. A warning, never an error — overlap is
 // a design smell, like the in-flight overlap below. Granularity ("is this area
 // too coarse?") is a planning call, not statically decidable, and stays out (§5c).
-function validateAreaOverlap(areas, relFiles, warnings) {
+function validateAreaOverlap(areas, files, root, warnings) {
   if (areas == null || typeof areas !== 'object' || Array.isArray(areas)) return;
   const compiled = Object.entries(areas).map(([name, globs]) => ({
     name,
@@ -207,8 +207,10 @@ function validateAreaOverlap(areas, relFiles, warnings) {
       .filter((g) => typeof g === 'string')
       .map(globToRegExp),
   }));
-  if (compiled.length < 2) return;
-  // One sample path per overlapping pair, keyed 'a b' with a < b; keep the
+  if (compiled.length < 2) return; // 0 or 1 area can't overlap — skip before mapping paths
+  const relFiles = files.map((f) => relative(root, f).split(sep).join('/'));
+  // One sample path per overlapping pair, keyed by the two area names joined with a
+  // NUL (so any character is safe inside a name), smaller name first; keep the
   // lexicographically smallest matching path so the message is deterministic
   // regardless of filesystem walk order.
   const samples = new Map();
@@ -261,13 +263,11 @@ export function validateVault(root) {
   // Board scope (§5d, ADR-020): scopeField / dated values / 0.3 sprints alias.
   validateScope(cfg, errors, warnings);
 
-  // Walk the tree once: the area-overlap check below and the card scan further
-  // down both need the vault's file list.
+  // Walk the tree once — shared by the area-overlap check and the card scan below.
   const files = walk(root);
-  const relFiles = files.map((f) => relative(root, f).split(sep).join('/'));
 
   // Area glob overlap (§5c): areas whose globs match a common file.
-  validateAreaOverlap(cfg.areas, relFiles, warnings);
+  validateAreaOverlap(cfg.areas, files, root, warnings);
 
   // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
   // declared `values` list, the resolved source, or — when the declared
