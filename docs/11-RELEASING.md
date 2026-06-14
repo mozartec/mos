@@ -87,7 +87,7 @@ release-please builds the changelog from squash-merge **titles**, and only `feat
 breaking titles appear — `docs`/`chore`/`ci` are invisible and trigger no release. A PR
 that ships a live artifact bump is therefore never `docs:`: title it `feat(skills)` /
 `fix(cli)` / `feat(core)` and put the new version in the title (e.g.
-`feat(skills): ship-card 0.4.0 — self-review before finishing`). The changelog then
+`feat(skills): mos-ship-card 0.6.0 — namespace first-party skills`). The changelog then
 records the bump with no hand-editing, which the release PR forbids anyway.
 
 ## Changelog

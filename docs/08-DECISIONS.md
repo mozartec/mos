@@ -425,7 +425,7 @@ invisible, and a container card in a column says nothing about where its childre
 board columns; the board's units are **leaf cards**, each carrying a small parent
 breadcrumb chip linking to its container. Containers surface in list views (Backlog,
 Cards) with a children-progress chip (*n/m done*), and a card's page/peek shows its
-children with statuses. This matches the agent-side "prefer leaves" rule the next-card
+children with statuses. This matches the agent-side "prefer leaves" rule the mos-next-card
 skill already applies.
 
 **Consequences.** Board column counts mean shippable units. Containers never look stalled
@@ -521,7 +521,7 @@ cold-start standard
 *and* reshaping overlap clusters into sequenced enablers plus disjoint leaves. Once a
 card leaves its initial state, ADR-002 applies unchanged (the sole prose edit remains
 ticking `## Acceptance` on ship). Refinement never happens as a side effect of picking
-or shipping; it runs only when asked. The packaged form is the refine-batch skill
+or shipping; it runs only when asked. The packaged form is the mos-refine-batch skill
 (F-027), and the conventions text updates ship with it.
 
 **Consequences.** Backlog *shape* becomes an explicit work product: a refinement pass

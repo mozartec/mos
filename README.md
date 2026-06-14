@@ -103,9 +103,9 @@ a non-mos project, to show the format isn't tied to this codebase.
 This repo ships first-party agent skills for working a mos board, authored in
 [`skills/`](skills/README.md) in the standard installable layout:
 
-- **`next-card`** — ask your agent what to work on next; it ranks the board (priority,
+- **`mos-next-card`** — ask your agent what to work on next; it ranks the board (priority,
   sprint, dependencies, in-progress first) and recommends one card with reasoning.
-- **`ship-card`** — point it at a card id (any type your config defines — feature, story,
+- **`mos-ship-card`** — point it at a card id (any type your config defines — feature, story,
   task, …) and it takes that card to an open PR: plan, raise doubts, branch, build, commit,
   push.
 

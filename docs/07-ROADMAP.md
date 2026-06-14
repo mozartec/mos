@@ -24,7 +24,7 @@ Features `F-001`–`F-006`. See [`06-MVP.md`](06-MVP.md).
   DAG, with critical-path and ready-set highlighting — the structural view that answers "what
   can I start in parallel right now." Makes `dependsOn` first-class frontmatter the future MCP
   (F-009) can read.
-- **`F-014` Portable agent skills.** The mos skills (`ship-card`, `next-card`) authored in a
+- **`F-014` Portable agent skills.** The mos skills (`mos-ship-card`, `mos-next-card`) authored in a
   root `skills/` folder in the standard installable layout — config-driven, vault-agnostic,
   usable in any project that has a `.mos/config.json`.
 - **`F-015` Standalone CLI.** `npx mos serve` renders any vault's board and wiki without
@@ -64,8 +64,8 @@ run at the same time?" is computed, not guessed
 - **`F-024` Areas & touches.** Config-defined areas (named glob sets) and a `touches`
   field cards use to declare their file surface; validator checks and pure-core
   parallel-batch math.
-- **`F-025` Parallel-aware skills.** `next-card` recommends a conflict-free batch of
-  ready cards instead of just one; `ship-card` pre-flights a card's `touches` against
+- **`F-025` Parallel-aware skills.** `mos-next-card` recommends a conflict-free batch of
+  ready cards instead of just one; `mos-ship-card` pre-flights a card's `touches` against
   work already in flight.
 - **`F-027` Refine-batch skill.** Explicitly invoked backlog refinement
   ([ADR-022](08-DECISIONS.md#adr-022--backlog-refinement-may-reshape-cards-that-havent-left-their-initial-state)):

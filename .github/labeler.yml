@@ -1,5 +1,5 @@
 # Auto-labeling rules (actions/labeler): areas from changed paths, types from
-# the branch-name conventions in docs/11-RELEASING.md / the ship-card skill.
+# the branch-name conventions in docs/11-RELEASING.md / the mos-ship-card skill.
 'area:web':
   - changed-files:
       - any-glob-to-any-file: 'apps/web/**'

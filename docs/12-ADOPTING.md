@@ -62,7 +62,7 @@ never the app.
 ## 3. Install the agent skills
 
 The installable skills live in [`skills/`](../skills/README.md) at this repo's root
-(F-014): `next-card` recommends what to work on; `ship-card` takes a named card to an open
+(F-014): `mos-next-card` recommends what to work on; `mos-ship-card` takes a named card to an open
 PR. Install them with the skills CLI:
 
 ```bash

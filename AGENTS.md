@@ -94,14 +94,15 @@ Turbo, caching, and internal-package questions (e.g. before editing `turbo.json`
 package's `exports`). Angular and daisyUI skills live in [`apps/web`](apps/web/AGENTS.md).
 
 First-party **mos** skills — for operating this (or any) mos vault — are **authored** in
-[`skills/`](skills/README.md) at the repo root (`next-card`, `ship-card`, `refine-batch`)
-in the standard installable layout, so any project can `npx skills add mozartec/mos` them
-(F-014). This repo consumes them the same way: CLI-installed copies live under
-`.agents/skills/` with `skills-lock.json` entries, like any third-party skill — never
-hand-edit the installed copies; change `skills/` and reinstall (T-009). Use
-[`next-card`](.agents/skills/next-card/SKILL.md) when asked what to work on next — it
-recommends a pick; shipping is ship-card's job — [`ship-card`](.agents/skills/ship-card/SKILL.md)
-to take a named card to an open PR, and [`refine-batch`](.agents/skills/refine-batch/SKILL.md)
+[`skills/`](skills/README.md) at the repo root (`mos-next-card`, `mos-ship-card`,
+`mos-refine-batch`) in the standard installable layout, so any project can
+`npx skills add mozartec/mos` them (F-014). This repo consumes them the same way:
+CLI-installed copies live under `.agents/skills/` with `skills-lock.json` entries, like any
+third-party skill — never hand-edit the installed copies; change `skills/` and reinstall
+(T-009). Use
+[`mos-next-card`](.agents/skills/mos-next-card/SKILL.md) when asked what to work on next — it
+recommends a pick; shipping is mos-ship-card's job — [`mos-ship-card`](.agents/skills/mos-ship-card/SKILL.md)
+to take a named card to an open PR, and [`mos-refine-batch`](.agents/skills/mos-refine-batch/SKILL.md)
 when asked to groom or reshape the backlog so parallel-safe work exists (it rewrites only
 not-yet-started cards — ADR-022).
 
