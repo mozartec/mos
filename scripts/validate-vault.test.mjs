@@ -57,18 +57,10 @@ function baseConfig(overrides = {}) {
 }
 
 // Config whose `touches` is registered as a list-enum sourced from `areas`, with
-// the given area names defined. The common "areas are configured" setup.
+// the given area names defined (each glob conventionally `<name>/**`). The common
+// "areas are configured" setup; delegates to withAreaGlobs for the shared wiring.
 function withAreas(areaNames, extra = {}) {
-  return baseConfig({
-    fields: {
-      id: { type: 'id' },
-      title: { type: 'string' },
-      status: { type: 'string' },
-      touches: { type: 'enum', source: 'areas', list: true },
-    },
-    areas: Object.fromEntries(areaNames.map((n) => [n, [`${n}/**`]])),
-    ...extra,
-  });
+  return withAreaGlobs(Object.fromEntries(areaNames.map((n) => [n, [`${n}/**`]])), extra);
 }
 
 // Wrap frontmatter lines into a card body. Lines are written verbatim, so a test
@@ -317,8 +309,8 @@ test('a two-column vault produces no overlap warnings (no in-flight column exist
 
 // A config whose areas are given verbatim (each value a glob list), with touches
 // registered as a list-enum sourced from them — the §5c setup, but with control
-// over the globs so a test can make two areas collide.
-function withAreaGlobs(areas) {
+// over the globs so a test can make two areas collide. The base for withAreas.
+function withAreaGlobs(areas, extra = {}) {
   return baseConfig({
     fields: {
       id: { type: 'id' },
@@ -327,6 +319,7 @@ function withAreaGlobs(areas) {
       touches: { type: 'enum', source: 'areas', list: true },
     },
     areas,
+    ...extra,
   });
 }
 

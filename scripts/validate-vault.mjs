@@ -14,8 +14,8 @@
 // lands (F-002), this logic graduates into core with a real parser and tests.
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
-import { globToRegExp } from '../packages/core/src/path-glob.js';
+import { join, relative } from 'node:path';
+import { globToRegExp, toPosixPath } from '../packages/core/src/path-glob.js';
 
 const IGNORE = new Set(['node_modules', '.git', '.angular', '.turbo', 'dist', '.cache']);
 
@@ -208,11 +208,11 @@ function validateAreaOverlap(areas, files, root, warnings) {
       .map(globToRegExp),
   }));
   if (compiled.length < 2) return; // 0 or 1 area can't overlap — skip before mapping paths
-  const relFiles = files.map((f) => relative(root, f).split(sep).join('/'));
-  // One sample path per overlapping pair, keyed by the two area names joined with a
-  // NUL (so any character is safe inside a name), smaller name first; keep the
-  // lexicographically smallest matching path so the message is deterministic
-  // regardless of filesystem walk order.
+  const relFiles = files.map((f) => toPosixPath(relative(root, f)));
+  // Per overlapping pair keep the lexicographically smallest matching path, so a
+  // many-file overlap collapses to one deterministic line regardless of walk order.
+  // A nested Map<a, Map<b, sample>> (smaller name first) holds the pair directly,
+  // without packing the two names into one string key.
   const samples = new Map();
   for (const rel of relFiles) {
     const hit = compiled.filter((a) => a.res.some((re) => re.test(rel))).map((a) => a.name);
@@ -220,17 +220,17 @@ function validateAreaOverlap(areas, files, root, warnings) {
     hit.sort();
     for (let i = 0; i < hit.length; i++)
       for (let j = i + 1; j < hit.length; j++) {
-        const key = `${hit[i]}\u0000${hit[j]}`;
-        const prev = samples.get(key);
-        if (prev === undefined || rel < prev) samples.set(key, rel);
+        let byB = samples.get(hit[i]);
+        if (byB === undefined) samples.set(hit[i], (byB = new Map()));
+        const prev = byB.get(hit[j]);
+        if (prev === undefined || rel < prev) byB.set(hit[j], rel);
       }
   }
-  for (const key of [...samples.keys()].sort()) {
-    const [a, b] = key.split('\u0000');
-    warnings.push(
-      `areas '${a}' and '${b}' have overlapping globs (both match '${samples.get(key)}')`,
-    );
-  }
+  for (const a of [...samples.keys()].sort())
+    for (const b of [...samples.get(a).keys()].sort())
+      warnings.push(
+        `areas '${a}' and '${b}' have overlapping globs (both match '${samples.get(a).get(b)}')`,
+      );
 }
 
 export function validateVault(root) {
@@ -289,7 +289,7 @@ export function validateVault(root) {
   const cards = {};
   for (const f of files) {
     if (!f.endsWith('.md')) continue;
-    const rel = relative(root, f).split(sep).join('/');
+    const rel = toPosixPath(relative(root, f));
     if (!includes.some((re) => re.test(rel))) continue;
     const data = parseFrontmatter(readFileSync(f, 'utf8'));
     if (!data || !types[data.type]) continue; // not a card
