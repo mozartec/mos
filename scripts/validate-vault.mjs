@@ -166,7 +166,7 @@ function validateScope(cfg, errors, warnings) {
         warnings.push(`board scope '${dated[i].name}' and '${dated[j].name}' have overlapping dates`);
 }
 
-function validateVault(root) {
+export function validateVault(root) {
   const errors = [];
   const warnings = [];
   const cfg = JSON.parse(readFileSync(join(root, '.mos', 'config.json'), 'utf8'));
@@ -317,9 +317,25 @@ function validateVault(root) {
       (a, b) => (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9) || a.id.localeCompare(b.id),
     );
 
-  const name = cfg.vault?.name ?? root;
+  return {
+    errors,
+    warnings,
+    name: cfg.vault?.name ?? root,
+    specVersion: cfg.specVersion,
+    cardCount: Object.keys(cards).length,
+    columns,
+    board,
+    hidden,
+  };
+}
+
+// Print one vault's report exactly as the CLI always has — the output is part of
+// the validator's contract, so this stays byte-for-byte what validateVault used
+// to log (T-011). The importable validateVault is side-effect free; only the CLI
+// path prints, by calling this.
+function printReport({ name, specVersion, cardCount, columns, board, hidden, warnings, errors }) {
   console.log(
-    `\n${'='.repeat(60)}\nVAULT: ${name}  (specVersion ${cfg.specVersion ?? '?'}, ${Object.keys(cards).length} cards)\n${'='.repeat(60)}`,
+    `\n${'='.repeat(60)}\nVAULT: ${name}  (specVersion ${specVersion ?? '?'}, ${cardCount} cards)\n${'='.repeat(60)}`,
   );
   for (const col of columns) {
     console.log(`\n  [${col}] (${board[col].length})`);
@@ -340,7 +356,6 @@ function validateVault(root) {
   }
   console.log(errors.length ? `\n  ERRORS (${errors.length}):` : `\n  OK — valid`);
   for (const e of errors) console.log(`    x ${e}`);
-  return errors.length;
 }
 
 function discover(start) {
@@ -367,13 +382,21 @@ function discover(start) {
   return found;
 }
 
-const args = process.argv.slice(2);
-const roots = args.length ? args : discover(process.cwd());
-if (!roots.length) {
-  console.error('No vault found (no .mos/config.json under cwd).');
-  process.exit(2);
+// CLI entry — gated on import.meta.main so importing this module (e.g. the
+// test suite) runs no discovery, printing, or process.exit (T-011).
+if (import.meta.main) {
+  const args = process.argv.slice(2);
+  const roots = args.length ? args : discover(process.cwd());
+  if (!roots.length) {
+    console.error('No vault found (no .mos/config.json under cwd).');
+    process.exit(2);
+  }
+  let total = 0;
+  for (const r of roots) {
+    const result = validateVault(r);
+    printReport(result);
+    total += result.errors.length;
+  }
+  console.log(`\n${total === 0 ? 'ALL VAULTS VALID' : total + ' ERROR(S)'}\n`);
+  process.exit(total === 0 ? 0 : 1);
 }
-let total = 0;
-for (const r of roots) total += validateVault(r);
-console.log(`\n${total === 0 ? 'ALL VAULTS VALID' : total + ' ERROR(S)'}\n`);
-process.exit(total === 0 ? 0 : 1);
