@@ -68,8 +68,20 @@ function parseFrontmatter(text) {
 
 // The shipped default frontmatter order (F-013); config `fieldOrder` overrides it.
 const DEFAULT_FIELD_ORDER = [
-  'id', 'type', 'title', 'status', 'priority', 'phase', 'owner', 'sprint',
-  'parent', 'estimate', 'dependsOn', 'touches', 'created', 'updated',
+  'id',
+  'type',
+  'title',
+  'status',
+  'priority',
+  'phase',
+  'owner',
+  'sprint',
+  'parent',
+  'estimate',
+  'dependsOn',
+  'touches',
+  'created',
+  'updated',
 ];
 
 // A frontmatter list value, deduped: a block list (already an array from
@@ -81,7 +93,10 @@ function parseList(raw) {
   if (Array.isArray(raw)) return [...new Set(raw)];
   const inline = /^\[(.*)\]$/.exec(raw);
   const items = inline
-    ? inline[1].split(',').map((s) => unquote(s.trim())).filter(Boolean)
+    ? inline[1]
+        .split(',')
+        .map((s) => unquote(s.trim()))
+        .filter(Boolean)
     : [raw];
   return [...new Set(items)];
 }
@@ -139,7 +154,9 @@ function validateScope(cfg, errors, warnings) {
   for (const entry of values) {
     if (typeof entry === 'string') continue; // dateless value, fine
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-      errors.push(`board scope: value ${JSON.stringify(entry)} must be a string or { name, starts?, ends? }`);
+      errors.push(
+        `board scope: value ${JSON.stringify(entry)} must be a string or { name, starts?, ends? }`,
+      );
       continue;
     }
     const name = entry.name;
@@ -149,12 +166,17 @@ function validateScope(cfg, errors, warnings) {
     }
     for (const key of ['starts', 'ends']) {
       if (entry[key] != null && !validIsoDate(entry[key]))
-        errors.push(`board scope '${name}': ${key} '${entry[key]}' is not a valid ISO date (YYYY-MM-DD)`);
+        errors.push(
+          `board scope '${name}': ${key} '${entry[key]}' is not a valid ISO date (YYYY-MM-DD)`,
+        );
     }
     const s = validIsoDate(entry.starts) ? Date.parse(`${entry.starts}T00:00:00Z`) : null;
     const e = validIsoDate(entry.ends) ? Date.parse(`${entry.ends}T00:00:00Z`) : null;
     if (s != null && e != null) {
-      if (s > e) errors.push(`board scope '${name}': starts '${entry.starts}' is after ends '${entry.ends}'`);
+      if (s > e)
+        errors.push(
+          `board scope '${name}': starts '${entry.starts}' is after ends '${entry.ends}'`,
+        );
       else dated.push({ name, s, e });
     }
   }
@@ -163,7 +185,9 @@ function validateScope(cfg, errors, warnings) {
   for (let i = 0; i < dated.length; i++)
     for (let j = i + 1; j < dated.length; j++)
       if (dated[i].s <= dated[j].e && dated[j].s <= dated[i].e)
-        warnings.push(`board scope '${dated[i].name}' and '${dated[j].name}' have overlapping dates`);
+        warnings.push(
+          `board scope '${dated[i].name}' and '${dated[j].name}' have overlapping dates`,
+        );
 }
 
 export function validateVault(root) {
@@ -232,8 +256,7 @@ export function validateVault(root) {
     if (!(c.status in t.states))
       errors.push(`${c.id}: status '${c.status}' not allowed for type '${c.type}'`);
     if (c.parent != null) {
-      if (typeof c.parent !== 'string')
-        errors.push(`${c.id}: parent is not a single id`);
+      if (typeof c.parent !== 'string') errors.push(`${c.id}: parent is not a single id`);
       else if (t.parent == null) errors.push(`${c.id}: type '${c.type}' may not have a parent`);
       else if (!cards[c.parent]) errors.push(`${c.id}: parent '${c.parent}' not found`);
       else if (cards[c.parent].type !== t.parent)
@@ -245,7 +268,9 @@ export function validateVault(root) {
       const v = c[field];
       if (v == null || v === '') continue; // timestamps are optional
       if (typeof v !== 'string' || !UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
-        errors.push(`${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`);
+        errors.push(
+          `${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`,
+        );
     }
     // Every id in a list-of-id field (e.g. dependsOn, F-012-S-01) must resolve to a card.
     for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {

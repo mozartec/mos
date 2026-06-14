@@ -9,14 +9,28 @@
       "prompt": "/ship-card JB-102",
       "expected_output": "Pre-flights, reads the card, plans against its Acceptance, finds no blockers (JB-101 is Shipped) and continues without waiting. Branches as job/JB-102-hello-page, sets status Doing (frontmatter only, updated bumped), creates docs/hello.md per the Plan without touching docs/outline.md, closes the card with --finish (status Shipped, boxes ticked) folded into the final Conventional Commit, and — gh being unavailable — hands back the branch with a PR body draft that maps Acceptance to proof and includes a How to test section.",
       "assertions": [
-        {"text": "Branch is job/JB-102-hello-page (type label lower-cased, id casing kept) — unless already on a harness branch"},
-        {"text": "Writes a short plan referencing the card's Acceptance before branching, and does not stall waiting for approval when nothing is wrong"},
-        {"text": "Sets status to Doing via a frontmatter-only edit with updated bumped (ISO 8601 UTC)"},
-        {"text": "Creates docs/hello.md per the Plan and does not modify docs/outline.md (Out of scope is binding)"},
-        {"text": "Closes the card via the script's --finish (status Shipped, Acceptance boxes ticked) folded into the final commit, not a trailing one"},
-        {"text": "Commit message and PR title are Conventional Commits"},
-        {"text": "With gh unavailable, falls back gracefully (compare URL or clear note) and the PR body draft maps each Acceptance bullet to its proof, with a How to test section a stranger can follow"},
-        {"text": "Raises no in-flight touches-overlap doubt — JB-102's surface (prose) collides with nothing in flight, so pre-flight adds no overlap noise"}
+        {
+          "text": "Branch is job/JB-102-hello-page (type label lower-cased, id casing kept) — unless already on a harness branch"
+        },
+        {
+          "text": "Writes a short plan referencing the card's Acceptance before branching, and does not stall waiting for approval when nothing is wrong"
+        },
+        {
+          "text": "Sets status to Doing via a frontmatter-only edit with updated bumped (ISO 8601 UTC)"
+        },
+        {
+          "text": "Creates docs/hello.md per the Plan and does not modify docs/outline.md (Out of scope is binding)"
+        },
+        {
+          "text": "Closes the card via the script's --finish (status Shipped, Acceptance boxes ticked) folded into the final commit, not a trailing one"
+        },
+        { "text": "Commit message and PR title are Conventional Commits" },
+        {
+          "text": "With gh unavailable, falls back gracefully (compare URL or clear note) and the PR body draft maps each Acceptance bullet to its proof, with a How to test section a stranger can follow"
+        },
+        {
+          "text": "Raises no in-flight touches-overlap doubt — JB-102's surface (prose) collides with nothing in flight, so pre-flight adds no overlap noise"
+        }
       ],
       "files": []
     },
@@ -26,9 +40,11 @@
       "prompt": "Ship JB-103 and open a PR for it.",
       "expected_output": "Pre-flights, sees status Blocked and the unmet dependency JB-104 (Queued, not Shipped), and stops with a concrete question — work JB-104 first, or proceed anyway? No branch, no code, no card edits.",
       "assertions": [
-        {"text": "Creates no branch and writes no implementation code"},
-        {"text": "Names the blockers: Blocked status and/or unmet dependency JB-104"},
-        {"text": "Ends with a concrete, answerable question proposing options, not a silent stop or silent proceed"}
+        { "text": "Creates no branch and writes no implementation code" },
+        { "text": "Names the blockers: Blocked status and/or unmet dependency JB-104" },
+        {
+          "text": "Ends with a concrete, answerable question proposing options, not a silent stop or silent proceed"
+        }
       ],
       "files": []
     },
@@ -38,9 +54,13 @@
       "prompt": "/ship-card EP-100",
       "expected_output": "Does NOT refuse the container. Pre-flight lists the children: JB-101 already Shipped, JB-102 unfinished and therefore in scope. Plans to deliver EP-100 by shipping JB-102's work, then proceeds (or asks only a genuinely necessary scope question).",
       "assertions": [
-        {"text": "Does not treat the container as an error or redirect away from it"},
-        {"text": "Identifies JB-102 as the unfinished child whose work is in scope, and JB-101 as already done"},
-        {"text": "Any pause carries a concrete question; otherwise it proceeds to plan/build the child's work under the epic"}
+        { "text": "Does not treat the container as an error or redirect away from it" },
+        {
+          "text": "Identifies JB-102 as the unfinished child whose work is in scope, and JB-101 as already done"
+        },
+        {
+          "text": "Any pause carries a concrete question; otherwise it proceeds to plan/build the child's work under the epic"
+        }
       ],
       "files": []
     },
@@ -50,8 +70,10 @@
       "prompt": "/ship-card JB-102",
       "expected_output": "Setup places the agent on a pre-existing branch it didn't create (e.g. copilot/do-jb-102). The agent stays on it — no switch to main, no new job/JB-102-… branch — and otherwise ships normally.",
       "assertions": [
-        {"text": "Performs no git switch / checkout to main or to a new branch; all commits land on the pre-existing branch"},
-        {"text": "Does not treat the branch name as a problem"}
+        {
+          "text": "Performs no git switch / checkout to main or to a new branch; all commits land on the pre-existing branch"
+        },
+        { "text": "Does not treat the branch name as a problem" }
       ],
       "files": []
     },
@@ -61,8 +83,8 @@
       "prompt": "/ship-card JB-102",
       "expected_output": "Run from a directory with no .mos/config.json at or above it: states this isn't a mos vault and stops. No branch, no guessing at cards.",
       "assertions": [
-        {"text": "Refuses, naming the missing .mos/config.json"},
-        {"text": "Creates nothing and invents nothing"}
+        { "text": "Refuses, naming the missing .mos/config.json" },
+        { "text": "Creates nothing and invents nothing" }
       ],
       "files": []
     },
@@ -72,9 +94,15 @@
       "prompt": "/ship-card EP-106",
       "expected_output": "Pre-flights a ready, well-formed card. The only soft spot is a touches overlap: EP-106 declares `data`, and JB-103 — in flight in the Doing column — also declares `data`, so the two would edit the same surface. The agent surfaces this as a doubt before building (name JB-103 and the shared `data` area), and treats it as a coordinate/sequence/proceed decision rather than an automatic refusal. It does NOT silently ignore the overlap, and does NOT treat it as a hard blocker.",
       "assertions": [
-        {"text": "Surfaces the in-flight overlap before building: names JB-103 and the shared area `data`"},
-        {"text": "Treats it as a doubt to weigh (sequence, coordinate, or proceed deliberately) — not an automatic stop and not silently ignored"},
-        {"text": "Does not invent a dependency or refuse outright; EP-106 is otherwise ready (no unmet deps, has Acceptance)"}
+        {
+          "text": "Surfaces the in-flight overlap before building: names JB-103 and the shared area `data`"
+        },
+        {
+          "text": "Treats it as a doubt to weigh (sequence, coordinate, or proceed deliberately) — not an automatic stop and not silently ignored"
+        },
+        {
+          "text": "Does not invent a dependency or refuse outright; EP-106 is otherwise ready (no unmet deps, has Acceptance)"
+        }
       ],
       "files": []
     }

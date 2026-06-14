@@ -3,8 +3,22 @@ import type { Facet, FilterState } from '@mos/core';
 import { FilterBar } from './filter-bar';
 
 const FACETS: Facet[] = [
-  { field: 'type', label: 'Type', options: [{ value: 'story', label: 'Story' }, { value: 'task', label: 'Task' }] },
-  { field: 'priority', label: 'Priority', options: [{ value: 'P0', label: 'P0' }, { value: 'P1', label: 'P1' }] },
+  {
+    field: 'type',
+    label: 'Type',
+    options: [
+      { value: 'story', label: 'Story' },
+      { value: 'task', label: 'Task' },
+    ],
+  },
+  {
+    field: 'priority',
+    label: 'Priority',
+    options: [
+      { value: 'P0', label: 'P0' },
+      { value: 'P1', label: 'P1' },
+    ],
+  },
 ];
 
 function create(value: FilterState = { q: '', values: {} }) {
@@ -21,14 +35,18 @@ describe('FilterBar', () => {
   it('renders a search input and one select per facet', () => {
     const host = create().nativeElement as HTMLElement;
     expect(host.querySelector('input[type="search"]')).not.toBeNull();
-    const labels = Array.from(host.querySelectorAll('select')).map((s) => s.getAttribute('aria-label'));
+    const labels = Array.from(host.querySelectorAll('select')).map((s) =>
+      s.getAttribute('aria-label'),
+    );
     expect(labels).toEqual(['Filter by Type', 'Filter by Priority']);
   });
 
   it('reflects the current selection in each select', () => {
     const fixture = create({ q: '', values: { priority: 'P1' } });
     const host = fixture.nativeElement as HTMLElement;
-    const prioritySelect = host.querySelector('[aria-label="Filter by Priority"]') as HTMLSelectElement;
+    const prioritySelect = host.querySelector(
+      '[aria-label="Filter by Priority"]',
+    ) as HTMLSelectElement;
     expect(prioritySelect.value).toBe('P1');
   });
 
@@ -46,7 +64,9 @@ describe('FilterBar', () => {
     const fixture = create();
     let emitted: FilterState | undefined;
     fixture.componentInstance.valueChange.subscribe((v) => (emitted = v));
-    const select = fixture.nativeElement.querySelector('[aria-label="Filter by Type"]') as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelector(
+      '[aria-label="Filter by Type"]',
+    ) as HTMLSelectElement;
     select.value = 'task';
     select.dispatchEvent(new Event('change'));
     expect(emitted).toEqual({ q: '', values: { type: 'task' } });
@@ -56,7 +76,9 @@ describe('FilterBar', () => {
     const fixture = create({ q: '', values: { type: 'task' } });
     let emitted: FilterState | undefined;
     fixture.componentInstance.valueChange.subscribe((v) => (emitted = v));
-    const select = fixture.nativeElement.querySelector('[aria-label="Filter by Type"]') as HTMLSelectElement;
+    const select = fixture.nativeElement.querySelector(
+      '[aria-label="Filter by Type"]',
+    ) as HTMLSelectElement;
     select.value = '';
     select.dispatchEvent(new Event('change'));
     expect(emitted).toEqual({ q: '', values: {} });

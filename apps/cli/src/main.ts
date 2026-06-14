@@ -61,9 +61,7 @@ if (args.command === 'help') {
     console.log(`[mos] board + wiki at http://127.0.0.1:${port}`);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
-      console.error(
-        `mos: port ${args.port} is already in use — pass a free one with --port <n>.`,
-      );
+      console.error(`mos: port ${args.port} is already in use — pass a free one with --port <n>.`);
       process.exit(1);
     }
     throw err;

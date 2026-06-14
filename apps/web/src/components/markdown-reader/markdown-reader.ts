@@ -85,7 +85,8 @@ export class MarkdownReader {
 
       const textNodes: Text[] = [];
       const walk = (node: Node) => {
-        if (node.nodeType === 3) { // TEXT_NODE
+        if (node.nodeType === 3) {
+          // TEXT_NODE
           let parent: Node | null = node.parentNode;
           let insideSkipped = false;
           while (parent && parent !== containerEl) {

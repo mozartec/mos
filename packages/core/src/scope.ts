@@ -149,7 +149,8 @@ function normalizeValues(raw: unknown[]): ScopeValue[] {
     const obj = entry as Record<string, unknown>;
     if (typeof obj['name'] !== 'string' || obj['name'] === '') continue;
     const value: ScopeValue = { name: obj['name'] };
-    if (typeof obj['starts'] === 'string' && isValidIsoDate(obj['starts'])) value.starts = obj['starts'];
+    if (typeof obj['starts'] === 'string' && isValidIsoDate(obj['starts']))
+      value.starts = obj['starts'];
     if (typeof obj['ends'] === 'string' && isValidIsoDate(obj['ends'])) value.ends = obj['ends'];
     out.push(value);
   }

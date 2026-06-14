@@ -9,10 +9,12 @@
       "prompt": "What should I pick up next?",
       "expected_output": "Runs the ranking script, recommends JB-102 (priority Now, ready — its only dependency JB-101 is Shipped), shows a shortlist including JB-104, notes JB-103 is blocked, and pauses for confirmation. Suggests only — no branch, no file edits.",
       "assertions": [
-        {"text": "Recommends JB-102 by id with a one-line rationale"},
-        {"text": "Offers a shortlist or alternatives (JB-104 at minimum)"},
-        {"text": "Uses the fixture's own vocabulary (epic/job, Queued/Doing/Shipped, Now/Soon/Later) — no F-/T- ids, P0 priorities, or other foreign vocabulary"},
-        {"text": "Creates no branch and edits no files; ends awaiting the user's confirmation"}
+        { "text": "Recommends JB-102 by id with a one-line rationale" },
+        { "text": "Offers a shortlist or alternatives (JB-104 at minimum)" },
+        {
+          "text": "Uses the fixture's own vocabulary (epic/job, Queued/Doing/Shipped, Now/Soon/Later) — no F-/T- ids, P0 priorities, or other foreign vocabulary"
+        },
+        { "text": "Creates no branch and edits no files; ends awaiting the user's confirmation" }
       ],
       "files": []
     },
@@ -22,9 +24,13 @@
       "prompt": "Grab the next card off the board and start working it.",
       "expected_output": "Identifies JB-102 as the pick and routes execution through the installed ship-card skill (the user already confirmed by asking to start) instead of building ad hoc. Does not skip ship-card's pre-flight/plan discipline.",
       "assertions": [
-        {"text": "Picks JB-102"},
-        {"text": "Hands execution to the ship-card skill (reads its SKILL.md / follows its flow) rather than improvising the build"},
-        {"text": "Any work done follows ship-card's flow: pre-flight script, plan, branch named job/JB-102-…, frontmatter-only card edits"}
+        { "text": "Picks JB-102" },
+        {
+          "text": "Hands execution to the ship-card skill (reads its SKILL.md / follows its flow) rather than improvising the build"
+        },
+        {
+          "text": "Any work done follows ship-card's flow: pre-flight script, plan, branch named job/JB-102-…, frontmatter-only card edits"
+        }
       ],
       "files": []
     },
@@ -34,9 +40,11 @@
       "prompt": "I want to knock out the whole field guide epic next — what do you think?",
       "expected_output": "Recognizes EP-100 is a container with one unfinished child (JB-102; JB-101 already Shipped). Steers toward the ready child as the smaller first bite but does not refuse the bigger scope — shipping EP-100 whole is the user's call, via ship-card.",
       "assertions": [
-        {"text": "Identifies EP-100 as a container and JB-102 as its only unfinished child"},
-        {"text": "Suggests the smaller scope (JB-102) first"},
-        {"text": "Does not refuse the epic outright — acknowledges shipping EP-100 via ship-card is a valid user choice"}
+        { "text": "Identifies EP-100 as a container and JB-102 as its only unfinished child" },
+        { "text": "Suggests the smaller scope (JB-102) first" },
+        {
+          "text": "Does not refuse the epic outright — acknowledges shipping EP-100 via ship-card is a valid user choice"
+        }
       ],
       "files": []
     },
@@ -46,8 +54,8 @@
       "prompt": "What should I work on next?",
       "expected_output": "Run from a directory with no .mos/config.json at or above it: states this isn't a mos vault and stops. No recommendation is invented.",
       "assertions": [
-        {"text": "Refuses, naming the missing .mos/config.json"},
-        {"text": "Invents no cards or recommendations"}
+        { "text": "Refuses, naming the missing .mos/config.json" },
+        { "text": "Invents no cards or recommendations" }
       ],
       "files": []
     },
@@ -57,10 +65,14 @@
       "prompt": "What can I pick up in parallel right now — a couple of cards I can work at the same time?",
       "expected_output": "Runs the script in batch mode (--parallel). Returns a conflict-free batch — JB-102 (prose) and EP-106 (data), whose touches are disjoint — and explains that JB-104 is excluded because its surface collides (prose with JB-102, data with EP-106). Names the overlapping area, not just the exclusion. Suggests only; creates no branch and edits nothing.",
       "assertions": [
-        {"text": "Returns JB-102 and EP-106 as a parallel batch (their touches are disjoint)"},
-        {"text": "Excludes JB-104 and names the colliding area(s) — prose with JB-102 and/or data with EP-106 — not a bare exclusion"},
-        {"text": "Uses the fixture's own vocabulary (epic/job, area names prose/layout/data) — no F-/T- ids or other foreign vocabulary"},
-        {"text": "Creates no branch and edits no files; ends awaiting confirmation"}
+        { "text": "Returns JB-102 and EP-106 as a parallel batch (their touches are disjoint)" },
+        {
+          "text": "Excludes JB-104 and names the colliding area(s) — prose with JB-102 and/or data with EP-106 — not a bare exclusion"
+        },
+        {
+          "text": "Uses the fixture's own vocabulary (epic/job, area names prose/layout/data) — no F-/T- ids or other foreign vocabulary"
+        },
+        { "text": "Creates no branch and edits no files; ends awaiting confirmation" }
       ],
       "files": []
     },
@@ -70,9 +82,11 @@
       "prompt": "What can I pick up in parallel right now?",
       "expected_output": "Special setup: the top-level `areas` key has been removed from .mos/config.json, so the vault declares no surfaces. Batch mode degrades to the plain ready set (JB-102, EP-106, JB-104) with an explicit caveat that file overlap can't be checked — it does NOT claim the cards are proven safe to parallelize.",
       "assertions": [
-        {"text": "Returns the ready set rather than refusing"},
-        {"text": "States plainly that overlap is unknown / unchecked because the vault declares no areas — does not assert the cards are collision-free"},
-        {"text": "Creates no branch and edits no files"}
+        { "text": "Returns the ready set rather than refusing" },
+        {
+          "text": "States plainly that overlap is unknown / unchecked because the vault declares no areas — does not assert the cards are collision-free"
+        },
+        { "text": "Creates no branch and edits no files" }
       ],
       "files": []
     }

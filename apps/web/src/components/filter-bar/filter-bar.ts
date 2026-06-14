@@ -29,7 +29,7 @@ import type { Facet, FilterState } from '@mos/core';
 
       @for (facet of facets(); track facet.field) {
         <select
-          class="select select-ghost select-sm w-auto appearance-none"
+          class="select w-auto appearance-none select-ghost select-sm"
           (change)="onFacet(facet.field, $event)"
           [attr.aria-label]="'Filter by ' + facet.label"
         >

@@ -66,10 +66,7 @@ export function parseFile(path: string, text: string): ParsedFile {
  * than a mapping (a bare scalar or a sequence) is reported as an error too —
  * frontmatter must be key/value pairs.
  */
-function parseFrontmatter(
-  yamlText: string,
-  errors: string[],
-): Record<string, unknown> {
+function parseFrontmatter(yamlText: string, errors: string[]): Record<string, unknown> {
   try {
     const doc = parseDocument(yamlText);
     if (doc.errors.length > 0) {

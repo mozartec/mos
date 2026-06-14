@@ -11,7 +11,9 @@ const webBrowserDist = join(webDist, 'browser');
 const target = join(here, '../dist/web');
 
 if (!existsSync(webBrowserDist)) {
-  console.error(`[copy-web-dist] missing web build at ${webBrowserDist} — run the @mos/web build first.`);
+  console.error(
+    `[copy-web-dist] missing web build at ${webBrowserDist} — run the @mos/web build first.`,
+  );
   process.exit(1);
 }
 

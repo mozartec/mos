@@ -65,10 +65,7 @@ function compileIdMatcher(source: string): RegExp | null {
   }
 }
 
-function findIds(
-  text: string,
-  matcher: RegExp,
-): Array<{ id: string; start: number; end: number }> {
+function findIds(text: string, matcher: RegExp): Array<{ id: string; start: number; end: number }> {
   const ids: Array<{ id: string; start: number; end: number }> = [];
   matcher.lastIndex = 0;
   while (true) {
@@ -143,7 +140,11 @@ function resolveById(id: string, model: VaultModel): ReferenceTarget | undefined
   return undefined;
 }
 
-function isInRanges(start: number, end: number, ranges: Array<{ start: number; end: number }>): boolean {
+function isInRanges(
+  start: number,
+  end: number,
+  ranges: Array<{ start: number; end: number }>,
+): boolean {
   return ranges.some((r) => start < r.end && end > r.start);
 }
 

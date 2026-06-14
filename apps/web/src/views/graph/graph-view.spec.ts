@@ -49,12 +49,23 @@ const AREAS_CONFIG = JSON.stringify({
   types: {
     task: {
       label: 'Task',
-      states: { Todo: 'Backlog', 'In Progress': 'In Progress', Blocked: 'In Progress', Done: 'Done', Deferred: null },
+      states: {
+        Todo: 'Backlog',
+        'In Progress': 'In Progress',
+        Blocked: 'In Progress',
+        Done: 'Done',
+        Deferred: null,
+      },
     },
   },
 });
 
-function makeCard(id: string, status: string, dependsOn: string[] = [], touches?: string[]): string {
+function makeCard(
+  id: string,
+  status: string,
+  dependsOn: string[] = [],
+  touches?: string[],
+): string {
   const lines = [
     '---',
     `id: ${id}`,
@@ -247,9 +258,7 @@ describe('GraphView', () => {
     // "ready" in the dependency sense); only the disjoint Todo card is *safe*.
     expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(3);
     expect(host.querySelectorAll('svg circle[data-safe]')).toHaveLength(1);
-    const byId = Object.fromEntries(
-      fixture.componentInstance['nodes']().map((n) => [n.id, n]),
-    );
+    const byId = Object.fromEntries(fixture.componentInstance['nodes']().map((n) => [n.id, n]));
     expect(byId['T-WEB'].safe).toBe(true);
     expect(byId['T-CORE'].safe).toBe(false);
     expect(byId['T-CORE'].ready).toBe(true);
@@ -308,7 +317,9 @@ describe('GraphView', () => {
       { 'board/T-001.md': makeCard('T-001', 'Todo', [], ['core']) },
       AREAS_CONFIG,
     );
-    const legend = (fixture.nativeElement as HTMLElement).querySelector('[aria-label="Graph legend"]');
+    const legend = (fixture.nativeElement as HTMLElement).querySelector(
+      '[aria-label="Graph legend"]',
+    );
     expect(legend?.textContent).toContain('Safe to start');
     expect(legend?.textContent).toContain('In-flight collision');
     expect(legend?.textContent).not.toContain('Ready to start'); // replaced by the parallel set
@@ -326,6 +337,8 @@ describe('GraphView', () => {
     expect(host.querySelectorAll('svg circle[data-safe]')).toHaveLength(0);
     // The pre-F-026 ready dot and its legend label are unchanged (all 3 unblocked).
     expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(3);
-    expect(host.querySelector('[aria-label="Graph legend"]')?.textContent).toContain('Ready to start');
+    expect(host.querySelector('[aria-label="Graph legend"]')?.textContent).toContain(
+      'Ready to start',
+    );
   });
 });

@@ -30,8 +30,18 @@ const config: VaultConfig = {
   },
   references: { idPattern: '[A-Z][A-Z0-9]*-[0-9]+' },
   types: {
-    feature: { label: 'Feature', parent: null, states: { Draft: 'Backlog' }, card: { fields: ['priority', 'owner'] } },
-    story: { label: 'Story', parent: 'feature', states: { Todo: 'Backlog' }, card: { fields: ['priority', 'owner'] } },
+    feature: {
+      label: 'Feature',
+      parent: null,
+      states: { Draft: 'Backlog' },
+      card: { fields: ['priority', 'owner'] },
+    },
+    story: {
+      label: 'Story',
+      parent: 'feature',
+      states: { Todo: 'Backlog' },
+      card: { fields: ['priority', 'owner'] },
+    },
   },
   sprints: ['S1', 'S2'],
   areas: {},
@@ -115,17 +125,28 @@ describe('matchesFilters / applyFilters', () => {
   });
 
   it('free text matches id, title, and string fields like owner', () => {
-    expect(applyFilters(cards, { q: 'reset', values: {} }, config).map((c) => c.id)).toEqual(['S-1']);
-    expect(applyFilters(cards, { q: 'alice', values: {} }, config).map((c) => c.id)).toEqual(['F-1', 'S-1']);
+    expect(applyFilters(cards, { q: 'reset', values: {} }, config).map((c) => c.id)).toEqual([
+      'S-1',
+    ]);
+    expect(applyFilters(cards, { q: 'alice', values: {} }, config).map((c) => c.id)).toEqual([
+      'F-1',
+      'S-1',
+    ]);
     expect(applyFilters(cards, { q: 'F-2', values: {} }, config).map((c) => c.id)).toEqual(['F-2']);
   });
 
   it('composes filters (AND across dimensions)', () => {
-    const out = applyFilters(cards, { q: 'log', values: { type: 'feature', owner: 'alice' } }, config);
+    const out = applyFilters(
+      cards,
+      { q: 'log', values: { type: 'feature', owner: 'alice' } },
+      config,
+    );
     expect(out.map((c) => c.id)).toEqual(['F-1']);
   });
 
   it('ignores empty selections', () => {
-    expect(matchesFilters(cards[0], { q: '', values: { type: '', priority: '' } }, config)).toBe(true);
+    expect(matchesFilters(cards[0], { q: '', values: { type: '', priority: '' } }, config)).toBe(
+      true,
+    );
   });
 });

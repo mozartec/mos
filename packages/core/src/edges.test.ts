@@ -55,10 +55,7 @@ describe('buildEdges', () => {
   });
 
   it('reports an unresolved id in errors, not thrown', () => {
-    const { edges, errors } = buildEdges(
-      model([{ id: 'T-001', dependsOn: ['T-404'] }]),
-      config,
-    );
+    const { edges, errors } = buildEdges(model([{ id: 'T-001', dependsOn: ['T-404'] }]), config);
     expect(edges).toEqual([]);
     expect(errors).toEqual(["T-001: dependsOn 'T-404' does not resolve to a card"]);
   });

@@ -42,10 +42,7 @@ export function watchPathsFromConfig(config: unknown): string[] {
   return [...new Set([...paths, MOS_CONFIG_PATH])];
 }
 
-export function toVaultRelativePath(
-  filePath: string,
-  vaultDir: string,
-): string | null {
+export function toVaultRelativePath(filePath: string, vaultDir: string): string | null {
   const full = resolve(filePath);
   const rel = relative(vaultDir, full);
   if (rel === '..' || rel.startsWith(`..${sep}`)) return null;
@@ -85,10 +82,7 @@ export function createDebouncedEmitter(
   onEmit: (event: VaultChangeEvent) => Promise<void> | void,
   debounceMs: number,
 ): (event: VaultChangeEvent) => void {
-  const pending = new Map<
-    string,
-    { kind: ChangeKind; timer: ReturnType<typeof setTimeout> }
-  >();
+  const pending = new Map<string, { kind: ChangeKind; timer: ReturnType<typeof setTimeout> }>();
 
   return (event: VaultChangeEvent) => {
     const existing = pending.get(event.path);

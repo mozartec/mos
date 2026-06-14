@@ -78,11 +78,7 @@ describe('buildDependencyGraph', () => {
 
   it('a dependent always outranks each of its prerequisites', () => {
     const graph = buildDependencyGraph(
-      model([
-        { id: 'T-001' },
-        { id: 'T-002' },
-        { id: 'T-003', dependsOn: ['T-001', 'T-002'] },
-      ]),
+      model([{ id: 'T-001' }, { id: 'T-002' }, { id: 'T-003', dependsOn: ['T-001', 'T-002'] }]),
       config,
     );
     const ranks = ranksOf(graph);
@@ -218,7 +214,10 @@ describe('readySet', () => {
     );
     expect(readySet(before)).toEqual(['T-001']);
     const after = buildDependencyGraph(
-      model([{ id: 'T-001', status: 'Done' }, { id: 'T-002', dependsOn: ['T-001'] }]),
+      model([
+        { id: 'T-001', status: 'Done' },
+        { id: 'T-002', dependsOn: ['T-001'] },
+      ]),
       config,
     );
     expect(readySet(after)).toEqual(['T-002']);
@@ -240,9 +239,7 @@ describe('criticalPath', () => {
   });
 
   it('returns a single node for an edgeless graph and [] for an empty one', () => {
-    expect(criticalPath(buildDependencyGraph(model([{ id: 'T-001' }]), config))).toEqual([
-      'T-001',
-    ]);
+    expect(criticalPath(buildDependencyGraph(model([{ id: 'T-001' }]), config))).toEqual(['T-001']);
     expect(criticalPath(buildDependencyGraph(model([]), config))).toEqual([]);
   });
 
