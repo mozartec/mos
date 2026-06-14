@@ -8,7 +8,7 @@ phase: Phase 4
 owner: mozart
 touches: [cli, core, server, scripts, skills, ci]
 created: 2026-06-14T00:38:48Z
-updated: 2026-06-14T12:48:29Z
+updated: 2026-06-14T13:08:23Z
 ---
 
 # T-015 — Prettier CI gate — format the repo and check formatting on every PR
@@ -22,6 +22,8 @@ This formats the repo once and adds a CI step so drift can't return.
 
 - `bun run format` (`prettier --check .`) passes on a clean checkout, and CI fails any
   PR that introduces unformatted code.
+- A husky pre-commit hook runs lint-staged (`prettier --write`) so drift is fixed
+  locally before it ever reaches CI — fast feedback; CI stays the source of truth.
 
 ## Context — read before starting
 
@@ -48,6 +50,10 @@ This formats the repo once and adds a CI step so drift can't return.
 3. Verify the reformat changed nothing functional: `bun run lint`, the package test
    suites, `bun run test:scripts`, and `bun run validate` (byte-identical output) all
    stay green.
+4. Add husky + lint-staged (root dev tooling, no turbo task): a `prepare: husky`
+   script so it self-installs on `bun install`, and a `.husky/pre-commit` running
+   `bunx lint-staged`, configured to `prettier --write --ignore-unknown` (same
+   `.prettierignore` as the gate).
 
 ## Acceptance
 
@@ -55,6 +61,8 @@ This formats the repo once and adds a CI step so drift can't return.
 - [x] CI runs `bun run format` on every PR, before the build step.
 - [x] No behavioral regressions: lint, tests, `test:scripts`, and `validate` are green
       and `bun run validate` output is unchanged.
+- [x] A husky pre-commit hook runs lint-staged (`prettier --write`) on staged files;
+      committing a misformatted file auto-formats it.
 
 ## Dependencies
 
@@ -65,8 +73,9 @@ This formats the repo once and adds a CI step so drift can't return.
 
 ## Out of scope
 
-New lint/style rules, an editor pre-commit hook, and reformatting prose (`docs/`,
-`board/`, `*.md` are deliberately ignored).
+New lint/style rules, running ESLint in the hook (per-package flat configs don't
+resolve cleanly from a root hook — prettier-only keeps it reliable), and reformatting
+prose (`docs/`, `board/`, `*.md` are deliberately ignored).
 
 ## References
 

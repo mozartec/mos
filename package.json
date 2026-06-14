@@ -17,11 +17,17 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "test:scripts": "node --test scripts/validate-vault.test.mjs",
-    "validate": "node scripts/validate-vault.mjs"
+    "validate": "node scripts/validate-vault.mjs",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "turbo": "^2.9.16"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
   }
 }
