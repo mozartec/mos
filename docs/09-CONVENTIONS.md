@@ -69,7 +69,7 @@ on every frontmatter edit — the app never writes these (see §Timestamps below
 
 When an agent finishes a card it sets `status` to Done **and** ticks the card's own `##
 Acceptance` boxes — the only prose edit allowed once a card has **left its initial state**
-(ADR-002; before then, see §Refinement). The ship-card skill's `ship_card.py <id> --finish`
+(ADR-002; before then, see §Refinement). The mos-ship-card skill's `ship_card.py <id> --finish`
 does both (and bumps `updated`) deterministically, so it isn't skipped.
 
 ## Refinement (reshaping cards before they start)
@@ -93,7 +93,7 @@ conflict-free batches exist to be picked. So there is a single, explicit excepti
   container with child cards ([ADR-019](08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units)),
   not a scatter of siblings.
 - Refinement **never** runs as a side effect of picking or shipping — only when asked. The
-  packaged form is the [`refine-batch`](../skills/refine-batch/SKILL.md) skill.
+  packaged form is the [`mos-refine-batch`](../skills/mos-refine-batch/SKILL.md) skill.
 
 ## Priority and phase
 

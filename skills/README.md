@@ -16,12 +16,16 @@ scripts.
 
 | Skill | What it does |
 |---|---|
-| [`next-card`](next-card/SKILL.md) | Rank the board and recommend the single best next card; hands the confirmed pick to ship-card. |
-| [`ship-card`](ship-card/SKILL.md) | Take one named card (any configured type — feature, story, task, …) from id to an open PR. |
-| [`refine-batch`](refine-batch/SKILL.md) | Reshape the backlog so parallel-safe work exists: raise not-yet-started cards to readiness, fill `touches`, and split overlap clusters into an enabler plus disjoint leaves (ADR-022). |
+| [`mos-next-card`](mos-next-card/SKILL.md) | Rank the board and recommend the single best next card; hands the confirmed pick to mos-ship-card. |
+| [`mos-ship-card`](mos-ship-card/SKILL.md) | Take one named card (any configured type — feature, story, task, …) from id to an open PR. |
+| [`mos-refine-batch`](mos-refine-batch/SKILL.md) | Reshape the backlog so parallel-safe work exists: raise not-yet-started cards to readiness, fill `touches`, and split overlap clusters into an enabler plus disjoint leaves (ADR-022). |
 
 ## Conventions for skills in this folder
 
+- **First-party mos skills carry the `mos-` prefix** (`mos-next-card`, `mos-ship-card`,
+  `mos-refine-batch`). The prefix marks provenance and keeps them distinct from a host
+  project's other skills wherever mos is adopted; invocation is `/mos-next-card` etc.
+  Third-party skills keep their upstream names — they aren't ours to namespace.
 - One folder per skill; the folder name is the skill name in `SKILL.md`'s `name:`.
 - Bundled scripts live in the skill's own `scripts/`, zero-dependency Python 3, and must
   be config-driven — nothing vault-specific hardcoded.

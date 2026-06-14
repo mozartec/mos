@@ -6,13 +6,13 @@ vocabulary so any hardcoded mos-repo vocabulary fails loudly. Evals never refere
 this repo's live board: live cards move and the evals would rot.
 
 - [`fixture-vault/`](fixture-vault/) — the **pick/ship** fixture (epic/job,
-  Queued/Doing/Shipped, Now/Soon/Later). Used by `next-card` and `ship-card`.
+  Queued/Doing/Shipped, Now/Soon/Later). Used by `mos-next-card` and `mos-ship-card`.
 - [`refine-fixture-vault/`](refine-fixture-vault/) — the **refinement** fixture
   (track/leg/errand, Sketch/Lined Up/Underway/Landed, Hot/Warm/Cool). It has a hub
   area (`registry` → one file) plus module areas, thin `Sketch` drafts that share the
   hub, an oversized split candidate, and a decided card to protect. Used by
-  `refine-batch`. Kept separate so refinement scenarios don't disturb the pick/ship
-  evals (a new ready card would change next-card's recommendation).
+  `mos-refine-batch`. Kept separate so refinement scenarios don't disturb the pick/ship
+  evals (a new ready card would change mos-next-card's recommendation).
 
 ## Running an eval
 
@@ -22,7 +22,7 @@ this repo's live board: live cards move and the evals would rot.
    dest=$(mktemp -d)/vault
    cp -R skills/evals/fixture-vault "$dest"
    mkdir -p "$dest/.agents/skills"
-   cp -R skills/next-card skills/ship-card "$dest/.agents/skills/"
+   cp -R skills/mos-next-card skills/mos-ship-card "$dest/.agents/skills/"
    git -C "$dest" init -q -b main && git -C "$dest" add -A
    git -C "$dest" -c user.email=eval@local -c user.name=eval commit -qm "fixture"
    ```
@@ -31,16 +31,16 @@ this repo's live board: live cards move and the evals would rot.
    models) with cwd=`$dest`, the skills "installed" at `.agents/skills/`, **no
    network**, and `gh` treated as unavailable. Give it the eval's `prompt`.
 
-   (For `refine-batch`, copy `refine-fixture-vault` instead and install
-   `skills/refine-batch`. Those evals reshape cards, so the agent needs to be told
+   (For `mos-refine-batch`, copy `refine-fixture-vault` instead and install
+   `skills/mos-refine-batch`. Those evals reshape cards, so the agent needs to be told
    to apply changes — the prompts already say so.)
 
 3. Judge the transcript against the eval's `assertions`. Special setups:
    - `not-a-vault-refusal` (both skills): run from an empty directory.
-   - `harness-branch-stay` (ship-card): before the run, `git switch -c copilot/do-jb-102`.
-   - `parallel-batch-no-areas` (next-card): delete the top-level `areas` key from
+   - `harness-branch-stay` (mos-ship-card): before the run, `git switch -c copilot/do-jb-102`.
+   - `parallel-batch-no-areas` (mos-next-card): delete the top-level `areas` key from
      `.mos/config.json` (turns the vault back into an unscoped one).
-   - `no-areas-degrade` (refine-batch): delete the top-level `areas` key from the refine
+   - `no-areas-degrade` (mos-refine-batch): delete the top-level `areas` key from the refine
      fixture's `.mos/config.json` **and** the `## Areas` section from its `AGENTS.md`, so
      no surface map exists anywhere — config is the only legitimate source and it's empty.
 

@@ -1,6 +1,6 @@
 # AGENTS.md — Wander (refine eval fixture)
 
-A tiny mos vault for evaluating the refine-batch skill. Treat it like any user vault;
+A tiny mos vault for evaluating the mos-refine-batch skill. Treat it like any user vault;
 all vocabulary (types, states, columns, areas) comes from `.mos/config.json` and is
 deliberately unlike any other vault's.
 
