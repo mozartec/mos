@@ -14,8 +14,8 @@
 // lands (F-002), this logic graduates into core with a real parser and tests.
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
-import { globToRegExp } from '../packages/core/src/path-glob.js';
+import { join, relative } from 'node:path';
+import { globToRegExp, toPosixPath } from '../packages/core/src/path-glob.js';
 
 const IGNORE = new Set(['node_modules', '.git', '.angular', '.turbo', 'dist', '.cache']);
 
@@ -190,6 +190,49 @@ function validateScope(cfg, errors, warnings) {
         );
 }
 
+// Area glob overlap (§5c, ADR-021): "two differently-named areas whose globs
+// match the same file defeat the point," because batch math compares `touches`
+// by name. This flags *demonstrable* overlap only — a file actually matched by
+// two areas in the vault's file list — not a guess about whether two globs could
+// ever collide; that keeps it cheap and honest (a false "too coarse" is worse
+// than none). One warning per overlapping pair, with a sample shared path, so a
+// many-file overlap collapses to one line. A warning, never an error — overlap is
+// a design smell, like the in-flight overlap below. Granularity ("is this area
+// too coarse?") is a planning call, not statically decidable, and stays out (§5c).
+function validateAreaOverlap(areas, files, root, warnings) {
+  if (areas == null || typeof areas !== 'object' || Array.isArray(areas)) return;
+  const compiled = Object.entries(areas).map(([name, globs]) => ({
+    name,
+    res: (Array.isArray(globs) ? globs : [globs])
+      .filter((g) => typeof g === 'string')
+      .map(globToRegExp),
+  }));
+  if (compiled.length < 2) return; // 0 or 1 area can't overlap — skip before mapping paths
+  const relFiles = files.map((f) => toPosixPath(relative(root, f)));
+  // Per overlapping pair keep the lexicographically smallest matching path, so a
+  // many-file overlap collapses to one deterministic line regardless of walk order.
+  // A nested Map<a, Map<b, sample>> (smaller name first) holds the pair directly,
+  // without packing the two names into one string key.
+  const samples = new Map();
+  for (const rel of relFiles) {
+    const hit = compiled.filter((a) => a.res.some((re) => re.test(rel))).map((a) => a.name);
+    if (hit.length < 2) continue;
+    hit.sort();
+    for (let i = 0; i < hit.length; i++)
+      for (let j = i + 1; j < hit.length; j++) {
+        let byB = samples.get(hit[i]);
+        if (byB === undefined) samples.set(hit[i], (byB = new Map()));
+        const prev = byB.get(hit[j]);
+        if (prev === undefined || rel < prev) byB.set(hit[j], rel);
+      }
+  }
+  for (const a of [...samples.keys()].sort())
+    for (const b of [...samples.get(a).keys()].sort())
+      warnings.push(
+        `areas '${a}' and '${b}' have overlapping globs (both match '${samples.get(a).get(b)}')`,
+      );
+}
+
 export function validateVault(root) {
   const errors = [];
   const warnings = [];
@@ -220,6 +263,12 @@ export function validateVault(root) {
   // Board scope (§5d, ADR-020): scopeField / dated values / 0.3 sprints alias.
   validateScope(cfg, errors, warnings);
 
+  // Walk the tree once — shared by the area-overlap check and the card scan below.
+  const files = walk(root);
+
+  // Area glob overlap (§5c): areas whose globs match a common file.
+  validateAreaOverlap(cfg.areas, files, root, warnings);
+
   // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
   // declared `values` list, the resolved source, or — when the declared
   // source names no config key — the empty set, so every declared value is
@@ -238,8 +287,9 @@ export function validateVault(root) {
   }
 
   const cards = {};
-  for (const f of walk(root).filter((f) => f.endsWith('.md'))) {
-    const rel = relative(root, f).split(sep).join('/');
+  for (const f of files) {
+    if (!f.endsWith('.md')) continue;
+    const rel = toPosixPath(relative(root, f));
     if (!includes.some((re) => re.test(rel))) continue;
     const data = parseFrontmatter(readFileSync(f, 'utf8'));
     if (!data || !types[data.type]) continue; // not a card

@@ -57,18 +57,10 @@ function baseConfig(overrides = {}) {
 }
 
 // Config whose `touches` is registered as a list-enum sourced from `areas`, with
-// the given area names defined. The common "areas are configured" setup.
+// the given area names defined (each glob conventionally `<name>/**`). The common
+// "areas are configured" setup; delegates to withAreaGlobs for the shared wiring.
 function withAreas(areaNames, extra = {}) {
-  return baseConfig({
-    fields: {
-      id: { type: 'id' },
-      title: { type: 'string' },
-      status: { type: 'string' },
-      touches: { type: 'enum', source: 'areas', list: true },
-    },
-    areas: Object.fromEntries(areaNames.map((n) => [n, [`${n}/**`]])),
-    ...extra,
-  });
+  return withAreaGlobs(Object.fromEntries(areaNames.map((n) => [n, [`${n}/**`]])), extra);
 }
 
 // Wrap frontmatter lines into a card body. Lines are written verbatim, so a test
@@ -311,6 +303,100 @@ test('a two-column vault produces no overlap warnings (no in-flight column exist
     'cards/b.md': card('id: T-2', 'type: item', 'title: B', 'status: Open', 'touches: [alpha]'),
   });
   assert.deepEqual(validateVault(root).warnings, []);
+});
+
+// --- area glob overlap (§5c) --------------------------------------------------
+
+// A config whose areas are given verbatim (each value a glob list), with touches
+// registered as a list-enum sourced from them — the §5c setup, but with control
+// over the globs so a test can make two areas collide. The base for withAreas.
+function withAreaGlobs(areas, extra = {}) {
+  return baseConfig({
+    fields: {
+      id: { type: 'id' },
+      title: { type: 'string' },
+      status: { type: 'string' },
+      touches: { type: 'enum', source: 'areas', list: true },
+    },
+    areas,
+    ...extra,
+  });
+}
+
+test('two areas matching a shared file: one warning names both areas and a sample path', () => {
+  const root = makeVault(withAreaGlobs({ web: ['apps/**'], app: ['apps/web/**'] }), {
+    // Both files are matched by web (apps/**) and app (apps/web/**): a many-file
+    // overlap that must collapse to a single line, not one per file.
+    'apps/web/a.ts': 'a',
+    'apps/web/b.ts': 'b',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors, warnings } = validateVault(root);
+  assert.deepEqual(errors, [], errors.join('\n'));
+  const overlap = warnings.filter((w) => w.includes('have overlapping globs'));
+  assert.equal(overlap.length, 1, overlap.join('\n'));
+  assert.ok(overlap[0].includes("'app'") && overlap[0].includes("'web'"), overlap[0]);
+  assert.ok(overlap[0].includes('apps/web/a.ts'), overlap[0]); // smallest matched path
+});
+
+test('multiple independent overlapping pairs: one line each, emitted in sorted order', () => {
+  // Two disjoint collisions — z1/z2 over z/**, a1/a2 over a/** — so the only thing
+  // under test is the final sort of the pair keys (independent of which file the
+  // walk visits first). 'a1' sorts before 'z1', so its line comes first.
+  const root = makeVault(
+    withAreaGlobs({ z1: ['z/**'], z2: ['z/**'], a1: ['a/**'], a2: ['a/**'] }),
+    {
+      'z/f.ts': 'z',
+      'a/f.ts': 'a',
+      'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+    },
+  );
+  const { errors, warnings } = validateVault(root);
+  assert.deepEqual(errors, [], errors.join('\n'));
+  const overlap = warnings.filter((w) => w.includes('have overlapping globs'));
+  assert.equal(overlap.length, 2, overlap.join('\n'));
+  assert.ok(overlap[0].includes("'a1'") && overlap[0].includes("'a2'"), overlap[0]);
+  assert.ok(overlap[1].includes("'z1'") && overlap[1].includes("'z2'"), overlap[1]);
+});
+
+test('disjoint areas: no overlap warning, no new error', () => {
+  const root = makeVault(withAreaGlobs({ core: ['core/**'], web: ['web/**'] }), {
+    'core/a.ts': 'a',
+    'web/b.ts': 'b',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors, warnings } = validateVault(root);
+  assert.ok(!has(warnings, 'overlapping globs'), warnings.join('\n'));
+  assert.deepEqual(errors, [], errors.join('\n')); // exit code unchanged
+});
+
+test('a single area cannot overlap: no warning even when it matches many files', () => {
+  const root = makeVault(withAreaGlobs({ web: ['apps/**', 'apps/web/**'] }), {
+    'apps/web/a.ts': 'a',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors, warnings } = validateVault(root);
+  assert.ok(!has(warnings, 'overlapping globs'), warnings.join('\n'));
+  assert.deepEqual(errors, [], errors.join('\n'));
+});
+
+test('empty areas map, and a vault with no areas: no overlap warning, no new error', () => {
+  const empty = validateVault(
+    makeVault(withAreaGlobs({}), {
+      'apps/web/a.ts': 'a',
+      'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+    }),
+  );
+  assert.ok(!has(empty.warnings, 'overlapping globs'), empty.warnings.join('\n'));
+  assert.deepEqual(empty.errors, [], empty.errors.join('\n'));
+  const none = validateVault(
+    makeVault(baseConfig(), {
+      'apps/web/a.ts': 'a',
+      'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+    }),
+  );
+  assert.ok(!has(none.warnings, 'overlapping globs'), none.warnings.join('\n'));
+  assert.deepEqual(none.errors, [], none.errors.join('\n'));
 });
 
 // --- ids, timestamps, ordering ------------------------------------------------

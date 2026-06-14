@@ -2,14 +2,14 @@
 id: T-012
 type: task
 title: Validator — flag overlapping area globs
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 dependsOn: [T-011]
 touches: [scripts]
 created: 2026-06-13T17:50:00Z
-updated: 2026-06-13T17:50:00Z
+updated: 2026-06-14T13:31:03Z
 ---
 
 # T-012 — Validator — flag overlapping area globs
@@ -68,12 +68,12 @@ This adds the one cheap, deterministic check that catches it.
 
 ## Acceptance
 
-- [ ] A config with two areas whose globs match a shared file produces a warning naming
+- [x] A config with two areas whose globs match a shared file produces a warning naming
       both areas and a sample path; a many-file overlap is one line, not N.
-- [ ] Disjoint areas, and a vault with no `areas`, produce no new warning and the same
+- [x] Disjoint areas, and a vault with no `areas`, produce no new warning and the same
       exit code as before.
-- [ ] This repo validates with no new warnings.
-- [ ] The behavior is covered by tests in the validator suite (T-011), failing the build
+- [x] This repo validates with no new warnings.
+- [x] The behavior is covered by tests in the validator suite (T-011), failing the build
       on regression.
 
 ## Dependencies
