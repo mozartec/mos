@@ -32,9 +32,8 @@ never as a side effect of next-card or ship-card.
 ## The one boundary that makes this safe (ADR-022)
 
 Refinement may rewrite prose, split a card, and create enabler cards — but **only for a
-card still in its type's *initial* state** (the first state the type declares in config;
-this vault: `Draft` / `Todo`). The moment a card leaves that state it's *decided*:
-[ADR-002](../../docs/08-DECISIONS.md#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer)
+card still in its type's *initial* state** (the first state the type declares in config —
+the script reports it per type). The moment a card leaves that state it's *decided*: ADR-002
 applies unchanged — **frontmatter only, never touch its prose**, even one that shares a
 surface with the cluster you're reshaping. The boundary is a status check, so it's
 mechanical: the script flags which cards are refinable and which are not. This is what
@@ -64,8 +63,7 @@ Run them in order over the named horizon; each builds on the last.
 ### Pass 1 — readiness
 
 Raise every refinable card to the **cold-start standard**
-([ADR-007](../../docs/08-DECISIONS.md#adr-007--the-repository-is-the-memory-cards-target-cold-any-model-agents),
-`09-CONVENTIONS.md` §Card readiness): a cold mid-tier agent should execute it from the
+(ADR-007, the vault's conventions §Card readiness): a cold mid-tier agent should execute it from the
 card plus its linked docs, no guessing. The script lists each card's missing sections
 (Outcome, Context, Constraints, Plan, Acceptance, Out of scope). Fill the gaps from the
 card's own intent and the docs it points to — not from invention. A tiny card may
@@ -74,7 +72,7 @@ legitimately skip a section; that's your judgment, not a checkbox to force.
 ### Pass 2 — surfaces
 
 Fill or correct each card's `touches` — the areas it will modify — against the repo
-layout and the card's own Plan (`09-CONVENTIONS.md` §Areas & touches, VAULT_SPEC §5c).
+layout and the card's own Plan (the vault's areas & touches conventions, VAULT_SPEC §5c).
 Declare the *work*, not the bookkeeping: every card flips its own status, so don't declare
 the board area for that. `touches: []` is a real claim ("touches nothing"); leave the
 field off only while the surface is genuinely unknown. Without this pass, pass 3 has
@@ -107,8 +105,7 @@ A sibling that genuinely *must* touch a hub is serialised behind that leaf with 
 
 **Split along the hierarchy, not into a scatter.** When a card is oversized and its type
 allows a parent, split it into a **container with child cards**
-([ADR-019](../../docs/08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units)) so
-the split stays legible on the board — not a handful of unrelated siblings. An enabler
+(ADR-019) so the split stays legible on the board — not a handful of unrelated siblings. An enabler
 becomes a *child* when one parent owns the surface, a *standalone* card when several share
 it. Emit `dependsOn` edges for every sequencing decision. The split is a project-specific
 judgment, not a formula.

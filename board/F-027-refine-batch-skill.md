@@ -2,14 +2,14 @@
 id: F-027
 type: feature
 title: Refine-batch skill — shape the backlog for parallel work
-status: In Progress
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-024]
 touches: [skills, docs]
 created: 2026-06-12T19:10:00Z
-updated: 2026-06-14T12:00:00Z
+updated: 2026-06-14T08:49:26Z
 ---
 
 # F-027 — Refine-batch skill — shape the backlog for parallel work
@@ -117,24 +117,24 @@ plus parallel-safe leaves, under the write rules of
 
 ## Acceptance
 
-- [ ] `skills/refine-batch` exists in the installable layout, is config-driven, and
+- [x] `skills/refine-batch` exists in the installable layout, is config-driven, and
       refuses to start without `.mos/config.json` — same behavior as its siblings.
-- [ ] Given a fixture backlog whose initial-state cards share a `touches` area, the
+- [x] Given a fixture backlog whose initial-state cards share a `touches` area, the
       skill proposes an enabler extraction with disjoint leaves and `dependsOn` edges —
       not a serialized pick order.
-- [ ] When a split is proposed for a type that allows a parent, the result is a
+- [x] When a split is proposed for a type that allows a parent, the result is a
       container with child cards (ADR-019), not unrelated siblings.
-- [ ] For a container whose children would all touch a hub area, the proposed split
+- [x] For a container whose children would all touch a hub area, the proposed split
       yields one schema-and-wiring leaf holding the hub areas with hub-free siblings;
       any sibling forced to touch a hub is serialised behind it with a stated reason.
-- [ ] It rewrites prose only on cards in their type's initial state; a card in any
+- [x] It rewrites prose only on cards in their type's initial state; a card in any
       later status is left prose-untouched in the same run (frontmatter-only, ADR-002).
-- [ ] In a vault without `areas`, passes 1–2 complete and pass 3 states that overlap is
+- [x] In a vault without `areas`, passes 1–2 complete and pass 3 states that overlap is
       unknown.
-- [ ] [`docs/09-CONVENTIONS.md`](../docs/09-CONVENTIONS.md) and
+- [x] [`docs/09-CONVENTIONS.md`](../docs/09-CONVENTIONS.md) and
       [`AGENTS.md`](../AGENTS.md) document the refinement stage per ADR-022; installed
       copies are refreshed via the CLI with `skills-lock.json` updated (T-009).
-- [ ] A refinement run on this vault leaves `bun run validate` green.
+- [x] A refinement run on this vault leaves `bun run validate` green.
 
 ## Dependencies
 
