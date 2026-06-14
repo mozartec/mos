@@ -1,6 +1,6 @@
 ---
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-12T12:27:01Z
+updated: 2026-06-14T00:02:12Z
 ---
 
 # Design system — Ink & Highlight
@@ -190,6 +190,21 @@ uses semantic tokens.
   appears at most once per view. Destructive actions (future write mode) use `btn-error`.
 - **Badges/chips:** card type badges and enum chips are `badge-soft` at `badge-sm`/`xs`;
   blocked is `badge-error` (no pulse animation — a board full of pulsing chips is noise).
+- **Parallel-batch overlays (F-026, ADR-021):** two derived states the board and graph
+  surface so the orchestrator sees parallel safety without asking. Both are computed by
+  pure core selectors (`inFlightCollisions`, `safeToStart`) and appear only when the vault
+  declares `areas` — a vault without them renders exactly as before.
+  - **Collision badge.** A card in the in-flight column that shares a declared `touches`
+    area with another in-flight card carries a `badge-warning` (the burnt-orange alert
+    tone, like `blocked`'s prominence but not error) with the `git-merge` glyph and the
+    overlapping area name(s); its `title` names the colliding card(s). On the graph, the
+    same is a small warning triangle on the node with the names in its `<title>`.
+  - **Safe-to-start highlight.** A ready card whose surface is disjoint from every
+    in-flight card gets a subtle `accent` ring (`ring-1 ring-accent/50`) and a
+    `badge-soft badge-accent` "Safe to start" chip with the `bolt` glyph — `accent` because
+    it is the board echo of the graph's accent-toned ready set. On the graph, the ready dot
+    splits: solid `accent` when safe, hollow (`fill-none stroke-accent`) when ready but its
+    surface isn't clear of in-flight work. The legend gains matching entries.
 - **Selects/filters:** filter bars use small ghost `select`/`filter` components in one
   row, mono values where the value is an id or sprint name.
 - **Focus:** every interactive element keeps a visible 2px focus ring

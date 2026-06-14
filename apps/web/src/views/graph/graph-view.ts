@@ -14,11 +14,15 @@ import {
   createEmptyVaultModel,
   criticalPath,
   globToRegExp,
+  inFlightCollisions,
+  inFlightColumn,
   loadConfig,
   parseFile,
   placeCard,
   readySet,
+  safeToStart,
   toPosixPath,
+  type AreaCollision,
   type ParsedFile,
   type VaultConfig,
   type VaultModel,
@@ -44,6 +48,16 @@ export interface PositionedNode {
   critical: boolean;
   /** In the ready set (F-012-S-04): badge — every dependency is done. */
   ready: boolean;
+  /** Ready and clear of every in-flight surface (F-026) — safe to start now. */
+  safe: boolean;
+  /** Paint the ready dot solid (safe / parallelism off) vs hollow (would overlap). */
+  dotFilled: boolean;
+  /** Tooltip for the ready dot, worded for the current parallelism state. */
+  readyTitle: string;
+  /** Shares an in-flight area with another in-progress card (F-026). */
+  collision: boolean;
+  /** Tooltip for the collision marker, naming the cards and areas it shares. */
+  collisionLabel: string;
 }
 
 /** A core graph edge with endpoint coordinates for the SVG template. */
@@ -183,17 +197,49 @@ export class GraphView {
   private readonly readyIds = computed(() => new Set(readySet(this.graph())));
 
   /**
+   * True when parallel-batch overlays apply: the vault declares `areas` and the
+   * board has a distinct in-flight column. When false the ready set renders
+   * exactly as before F-026 (no safe/overlap split, no collision markers).
+   */
+  protected readonly parallelActive = computed(() => {
+    const config = this.config();
+    return config !== null && Object.keys(config.areas).length > 0 && inFlightColumn(config) !== null;
+  });
+
+  /** In-flight area collisions (F-026), keyed by card id; empty unless active. */
+  private readonly collisionsMap = computed<Record<string, AreaCollision[]>>(() => {
+    const config = this.config();
+    return config === null ? {} : inFlightCollisions(this.model(), config);
+  });
+
+  /** Safe-to-start ids (F-026), reusing the already-built graph (no rebuild). */
+  private readonly safeIds = computed<Set<string>>(() => {
+    const config = this.config();
+    if (config === null) return new Set();
+    return new Set(safeToStart(this.model(), config, undefined, this.graph()));
+  });
+
+  /**
    * Visible nodes with pixel positions. Hidden-state cards (state → null,
    * e.g. Deferred) stay off the lens, consistent with the board.
    */
   protected readonly nodes = computed<PositionedNode[]>(() => {
     const config = this.config();
     if (config === null) return [];
+    const parallelActive = this.parallelActive();
     const result: PositionedNode[] = [];
     for (const node of this.graph().nodes) {
       const card = this.model().cards[node.id];
       const placement = placeCard(card, config);
       if (placement.error !== undefined || placement.column === null) continue;
+
+      const ready = this.readyIds().has(node.id);
+      const safe = ready && parallelActive && this.safeIds().has(node.id);
+      // Solid dot when safe, or when parallelism is off (pre-F-026 behaviour);
+      // hollow when ready but its surface isn't clear of in-flight work.
+      const dotFilled = ready && (!parallelActive || safe);
+      const overlaps = this.collisionsMap()[node.id] ?? [];
+
       result.push({
         id: node.id,
         title: node.title,
@@ -203,7 +249,20 @@ export class GraphView {
         y: PADDING + node.order * CELL_H,
         path: card.path,
         critical: this.criticalIds().has(node.id),
-        ready: this.readyIds().has(node.id),
+        ready,
+        safe,
+        dotFilled,
+        readyTitle: !parallelActive
+          ? 'Ready to start: every dependency is done'
+          : safe
+            ? 'Safe to start — clear of in-flight work'
+            : 'Ready, but may overlap in-flight work',
+        collision: overlaps.length > 0,
+        collisionLabel:
+          overlaps.length > 0
+            ? 'Shares an in-flight area with ' +
+              overlaps.map((c) => `${c.with} (${c.areas.join(', ')})`).join('; ')
+            : '',
       });
     }
     return result;

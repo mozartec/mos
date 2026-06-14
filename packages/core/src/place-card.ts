@@ -78,6 +78,20 @@ export function isCardDone(card: Card, config: VaultConfig): boolean {
 }
 
 /**
+ * The config-driven "in flight" column: the board column **before** the last —
+ * the counterpart of {@link isCardDone}'s "last column is done" (ADR-003). With
+ * fewer than three columns there is no distinct in-flight column (the
+ * penultimate would be the backlog itself), so this returns `null`. Positional
+ * by the same convention as `isCardDone`, not config-named — kept deliberately
+ * symmetric so the two rules live by one logic. Shared by the parallel
+ * collision/safe-to-start selectors (F-026) and the vault validator.
+ */
+export function inFlightColumn(config: VaultConfig): string | null {
+  const columns = config.board.columns;
+  return columns.length >= 3 ? columns[columns.length - 2] : null;
+}
+
+/**
  * Priority field rank order fallback when not configured in fields.
  * This is the default priority ranking per VAULT_SPEC.
  */

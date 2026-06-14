@@ -103,11 +103,25 @@
                     [attr.cx]="node.x + NODE_W - 8"
                     [attr.cy]="node.y + 8"
                     r="5"
-                    class="fill-accent"
+                    [class]="node.dotFilled ? 'fill-accent' : 'fill-none stroke-accent'"
+                    [attr.stroke-width]="node.dotFilled ? null : 1.5"
                     data-ready=""
+                    [attr.data-safe]="node.safe ? '' : null"
                   >
-                    <title>Ready to start: every dependency is done</title>
+                    <title>{{ node.readyTitle }}</title>
                   </circle>
+                }
+                @if (node.collision) {
+                  <path
+                    [attr.transform]="'translate(' + node.x + ',' + node.y + ')'"
+                    d="M 8 3 L 15 15 L 1 15 Z"
+                    class="fill-warning stroke-warning"
+                    stroke-width="1"
+                    stroke-linejoin="round"
+                    data-collision=""
+                  >
+                    <title>{{ node.collisionLabel }}</title>
+                  </path>
                 }
                 <text
                   [attr.x]="node.x + 10"
@@ -168,10 +182,37 @@
             ></span>
             Critical path
           </li>
-          <li class="flex items-center gap-1.5">
-            <span aria-hidden="true" class="inline-block h-2.5 w-2.5 rounded-full bg-accent"></span>
-            Ready to start
-          </li>
+          @if (parallelActive()) {
+            <li class="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                class="inline-block h-2.5 w-2.5 rounded-full bg-accent"
+              ></span>
+              Safe to start
+            </li>
+            <li class="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                class="inline-block h-2.5 w-2.5 rounded-full border border-accent"
+              ></span>
+              Ready, may overlap
+            </li>
+            <li class="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                class="inline-block h-0 w-0 border-x-[5px] border-b-[8px] border-x-transparent border-b-warning"
+              ></span>
+              In-flight collision
+            </li>
+          } @else {
+            <li class="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                class="inline-block h-2.5 w-2.5 rounded-full bg-accent"
+              ></span>
+              Ready to start
+            </li>
+          }
           <li class="flex items-center gap-1.5">
             <span
               aria-hidden="true"

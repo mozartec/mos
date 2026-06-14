@@ -30,24 +30,50 @@ const TEST_CONFIG = JSON.stringify({
   },
 });
 
-function makeCard(id: string, status: string, dependsOn: string[] = []): string {
-  return [
+/** A copy of TEST_CONFIG that also declares `areas` + `touches` (turns on F-026). */
+const AREAS_CONFIG = JSON.stringify({
+  specVersion: '0.4',
+  wiki: { include: ['**/*.md'], exclude: [] },
+  board: {
+    include: ['board/**/*.md'],
+    columns: ['Backlog', 'In Progress', 'Done'],
+    sortWithinColumn: ['priority', 'id'],
+  },
+  fields: {
+    priority: { type: 'enum', values: ['P0', 'P1', 'P2', 'P3'] },
+    dependsOn: { type: 'id', list: true },
+    touches: { type: 'enum', source: 'areas', list: true },
+  },
+  areas: { core: ['packages/core/**'], web: ['apps/web/**'] },
+  types: {
+    task: {
+      label: 'Task',
+      states: { Todo: 'Backlog', 'In Progress': 'In Progress', Blocked: 'In Progress', Done: 'Done', Deferred: null },
+    },
+  },
+});
+
+function makeCard(id: string, status: string, dependsOn: string[] = [], touches?: string[]): string {
+  const lines = [
     '---',
     `id: ${id}`,
     'type: task',
     `title: Card ${id}`,
     `status: ${status}`,
     `dependsOn: [${dependsOn.join(', ')}]`,
-    '---',
-    '',
-    `# ${id}`,
-  ].join('\n');
+  ];
+  if (touches !== undefined) lines.push(`touches: [${touches.join(', ')}]`);
+  lines.push('---', '', `# ${id}`);
+  return lines.join('\n');
 }
 
 describe('GraphView', () => {
-  async function createGraph(extraFiles: Record<string, string> = {}) {
+  async function createGraph(
+    extraFiles: Record<string, string> = {},
+    config: string = TEST_CONFIG,
+  ) {
     const source = new InMemoryVaultSource({
-      '.mos/config.json': TEST_CONFIG,
+      '.mos/config.json': config,
       ...extraFiles,
     });
     await TestBed.configureTestingModule({
@@ -186,5 +212,71 @@ describe('GraphView', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/reader'], {
       queryParams: { path: 'board/T-001.md', from: 'graph' },
     });
+  });
+
+  // ── F-026: collision markers + safe-to-start distinction ──────────────────
+
+  it('marks in-flight nodes that share an area with a collision marker', async () => {
+    const fixture = await createGraph(
+      {
+        'board/T-001.md': makeCard('T-001', 'In Progress', [], ['core']),
+        'board/T-002.md': makeCard('T-002', 'In Progress', [], ['core']),
+        'board/T-003.md': makeCard('T-003', 'In Progress', [], ['web']), // disjoint
+      },
+      AREAS_CONFIG,
+    );
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('svg path[data-collision]')).toHaveLength(2);
+    const collided = fixture.componentInstance['nodes']().filter((n) => n.collision);
+    expect(collided.map((n) => n.id).sort()).toEqual(['T-001', 'T-002']);
+    expect(collided[0].collisionLabel).toContain('core');
+  });
+
+  it('splits the ready set into safe (solid) and would-overlap (hollow) dots', async () => {
+    const fixture = await createGraph(
+      {
+        'board/T-001.md': makeCard('T-001', 'In Progress', [], ['core']), // claims core
+        'board/T-WEB.md': makeCard('T-WEB', 'Todo', [], ['web']), // ready, disjoint → safe
+        'board/T-CORE.md': makeCard('T-CORE', 'Todo', [], ['core']), // ready, overlaps → unsafe
+      },
+      AREAS_CONFIG,
+    );
+    const host = fixture.nativeElement as HTMLElement;
+    // All three are unblocked, so all carry a ready dot (an in-flight card is
+    // "ready" in the dependency sense); only the disjoint Todo card is *safe*.
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(3);
+    expect(host.querySelectorAll('svg circle[data-safe]')).toHaveLength(1);
+    const byId = Object.fromEntries(
+      fixture.componentInstance['nodes']().map((n) => [n.id, n]),
+    );
+    expect(byId['T-WEB'].safe).toBe(true);
+    expect(byId['T-CORE'].safe).toBe(false);
+    expect(byId['T-CORE'].ready).toBe(true);
+  });
+
+  it('shows parallel legend entries when areas are configured', async () => {
+    const fixture = await createGraph(
+      { 'board/T-001.md': makeCard('T-001', 'Todo', [], ['core']) },
+      AREAS_CONFIG,
+    );
+    const legend = (fixture.nativeElement as HTMLElement).querySelector('[aria-label="Graph legend"]');
+    expect(legend?.textContent).toContain('Safe to start');
+    expect(legend?.textContent).toContain('In-flight collision');
+    expect(legend?.textContent).not.toContain('Ready to start'); // replaced by the parallel set
+  });
+
+  it('renders no parallel overlays for a vault without areas (zero-config silence)', async () => {
+    // Same overlapping in-flight cards, but the default config declares no areas.
+    const fixture = await createGraph({
+      'board/T-001.md': makeCard('T-001', 'In Progress', [], ['core']),
+      'board/T-002.md': makeCard('T-002', 'In Progress', [], ['core']),
+      'board/T-003.md': makeCard('T-003', 'Todo'),
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('svg path[data-collision]')).toHaveLength(0);
+    expect(host.querySelectorAll('svg circle[data-safe]')).toHaveLength(0);
+    // The pre-F-026 ready dot and its legend label are unchanged (all 3 unblocked).
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(3);
+    expect(host.querySelector('[aria-label="Graph legend"]')?.textContent).toContain('Ready to start');
   });
 });

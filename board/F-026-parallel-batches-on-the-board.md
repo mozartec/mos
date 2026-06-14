@@ -2,14 +2,14 @@
 id: F-026
 type: feature
 title: Parallel batches on the board — collision badges and safe-to-start
-status: Draft
+status: Done
 priority: P2
 phase: Future
 owner: mozart
 dependsOn: [F-023, F-024]
 touches: [core, web]
 created: 2026-06-12T18:30:00Z
-updated: 2026-06-13T00:55:00Z
+updated: 2026-06-14T00:28:01Z
 ---
 
 # F-026 — Parallel batches on the board — collision badges and safe-to-start
@@ -73,11 +73,11 @@ described in [`docs/14-PERSONAS.md`](../docs/14-PERSONAS.md).
 
 ## Acceptance
 
-- [ ] Two In Progress cards declaring a shared area show a collision badge naming it,
+- [x] Two In Progress cards declaring a shared area show a collision badge naming it,
       on board and graph lens.
-- [ ] Ready cards disjoint from all in-flight work are visibly distinct from ready
+- [x] Ready cards disjoint from all in-flight work are visibly distinct from ready
       cards that would collide; the logic is a pure, unit-tested core selector.
-- [ ] A vault without `areas` renders identically to today — no badges, no highlights,
+- [x] A vault without `areas` renders identically to today — no badges, no highlights,
       no warnings.
 
 ## Dependencies

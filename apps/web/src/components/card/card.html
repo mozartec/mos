@@ -13,12 +13,31 @@
       </span>
     </div>
 
-    @if (blocked()) {
-      <span class="badge gap-1 rounded py-1 badge-sm font-semibold badge-error">
-        <app-icon [icon]="iconLock" [size]="11" />
-        Blocked
-      </span>
-    }
+    <div class="flex shrink-0 items-center gap-1">
+      @if (safeToStart()) {
+        <span class="badge gap-1 rounded py-1 badge-soft badge-sm font-semibold badge-accent">
+          <app-icon [icon]="iconBolt" [size]="11" />
+          Safe to start
+        </span>
+      }
+
+      @if (hasCollision()) {
+        <span
+          class="badge gap-1 rounded py-1 badge-sm font-semibold badge-warning"
+          [attr.title]="'Shares an in-flight area with ' + collisionTitle()"
+        >
+          <app-icon [icon]="iconGitMerge" [size]="11" />
+          {{ collisionAreas().join(', ') }}
+        </span>
+      }
+
+      @if (blocked()) {
+        <span class="badge gap-1 rounded py-1 badge-sm font-semibold badge-error">
+          <app-icon [icon]="iconLock" [size]="11" />
+          Blocked
+        </span>
+      }
+    </div>
   </div>
 
   <!-- Title -->

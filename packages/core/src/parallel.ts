@@ -13,7 +13,7 @@
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
 import { buildDependencyGraph, readySet, type DependencyGraph } from './graph.js';
-import { compareIdsByPriority } from './place-card.js';
+import { compareIdsByPriority, inFlightColumn, placeCard } from './place-card.js';
 
 /** The conventional surface field name when the registry declares none. */
 export const TOUCHES_FIELD = 'touches';
@@ -156,6 +156,98 @@ export function parallelBatch(
   }
 
   return { batch, conflicts, undeclared, errors };
+}
+
+/** One shared-area overlap between a card and another card in the batch/board. */
+export interface AreaCollision {
+  /** The other card sharing area name(s). */
+  with: string;
+  /** Area names both cards declare (known or unknown — names collide by name). */
+  areas: string[];
+}
+
+/**
+ * In-flight collisions (F-026): for every card in the in-flight column (the one
+ * before the last, {@link inFlightColumn}) that shares a declared area with
+ * another in-flight card, the overlaps it has — keyed by card id, each entry
+ * naming the other card and the shared areas. Two cards heading for the same
+ * surface while both in progress are bound for a merge conflict; this is what
+ * the board's collision badge renders (ADR-021).
+ *
+ * Pure: model + config in, plain data out (ADR-001). Disjointness is over area
+ * *names*, exactly as {@link parallelBatch} (unknown names still collide by
+ * name; the validator flags them). A vault that configures no `areas`, or a
+ * board with no in-flight column, has no collisions — the map is empty, so the
+ * UI renders exactly as before.
+ */
+export function inFlightCollisions(
+  model: VaultModel,
+  config: VaultConfig,
+  fieldName: string = TOUCHES_FIELD,
+): Record<string, AreaCollision[]> {
+  const result: Record<string, AreaCollision[]> = {};
+  const column = inFlightColumn(config);
+  if (column === null || Object.keys(config.areas).length === 0) return result;
+
+  // In-flight cards with their declared area names, id-sorted for determinism.
+  const inFlight = Object.values(model.cards)
+    .filter((card) => placeCard(card, config).column === column)
+    .map((card) => ({ id: card.id, names: declaredTouches(card, fieldName)?.names ?? [] }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  for (let i = 0; i < inFlight.length; i++) {
+    for (let j = i + 1; j < inFlight.length; j++) {
+      const shared = inFlight[i].names.filter((name) => inFlight[j].names.includes(name));
+      if (shared.length === 0) continue;
+      (result[inFlight[i].id] ??= []).push({ with: inFlight[j].id, areas: shared });
+      (result[inFlight[j].id] ??= []).push({ with: inFlight[i].id, areas: shared });
+    }
+  }
+  return result;
+}
+
+/**
+ * Safe-to-start cards (F-026): ready cards — every dependency done, not yet in
+ * flight — whose declared `touches` are disjoint from the union of every
+ * in-flight card's surface, so picking one up now collides with nothing already
+ * underway. This is the board/graph "safe to start" highlight, the orchestrator
+ * counterpart of {@link parallelBatch}: that asks "which ready cards run
+ * together"; this asks "which ready cards are safe to add to what's in flight".
+ *
+ * A card whose surface is unknown (no `touches`, or a malformed entry) can't be
+ * claimed safe and is left out, mirroring {@link parallelBatch}'s `undeclared`;
+ * an explicit empty list (`touches: []`) touches nothing and is always safe.
+ * With no in-flight column the highlight has nothing to be relative to and the
+ * set is empty; likewise a vault with no `areas`. Pure (ADR-001). Pass `graph`
+ * when the caller already built one (a lens) so it isn't rebuilt.
+ */
+export function safeToStart(
+  model: VaultModel,
+  config: VaultConfig,
+  fieldName: string = TOUCHES_FIELD,
+  graph: DependencyGraph = buildDependencyGraph(model, config),
+): string[] {
+  const column = inFlightColumn(config);
+  if (column === null || Object.keys(config.areas).length === 0) return [];
+
+  // Union of area names already claimed by in-flight work, and their card ids.
+  const claimed = new Set<string>();
+  const inFlightIds = new Set<string>();
+  for (const card of Object.values(model.cards)) {
+    if (placeCard(card, config).column !== column) continue;
+    inFlightIds.add(card.id);
+    for (const name of declaredTouches(card, fieldName)?.names ?? []) claimed.add(name);
+  }
+
+  const safe: string[] = [];
+  for (const id of readySet(graph)) {
+    if (inFlightIds.has(id)) continue; // already in flight — not "to start"
+    const declared = declaredTouches(model.cards[id], fieldName);
+    // An unknown surface can't be declared safe (mirrors parallelBatch.undeclared).
+    if (declared === undefined || declared.malformed.length > 0) continue;
+    if (declared.names.every((name) => !claimed.has(name))) safe.push(id);
+  }
+  return safe;
 }
 
 /**

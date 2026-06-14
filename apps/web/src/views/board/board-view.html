@@ -107,6 +107,8 @@
                     [typeDef]="cfg.types[card.type]"
                     [fieldsRegistry]="cfg.fields"
                     [blocked]="isCardBlocked(card, cfg)"
+                    [collisions]="collisionsFor(card)"
+                    [safeToStart]="isSafeToStart(card)"
                     (cardSelect)="onCardSelect($event)"
                   />
                 </li>
@@ -143,6 +145,8 @@
                           [typeDef]="cfg.types[card.type]"
                           [fieldsRegistry]="cfg.fields"
                           [blocked]="isCardBlocked(card, cfg)"
+                          [collisions]="collisionsFor(card)"
+                          [safeToStart]="isSafeToStart(card)"
                           (cardSelect)="onCardSelect($event)"
                         />
                       </li>

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { CardComponent } from './card';
-import type { Card, FieldDef, TypeDef } from '@mos/core';
+import type { AreaCollision, Card, FieldDef, TypeDef } from '@mos/core';
 
 describe('CardComponent', () => {
   const testFieldsRegistry: Record<string, FieldDef> = {
@@ -52,6 +52,8 @@ describe('CardComponent', () => {
     typeDef: TypeDef;
     fieldsRegistry: Record<string, FieldDef>;
     blocked?: boolean;
+    collisions?: AreaCollision[];
+    safeToStart?: boolean;
   }) {
     await TestBed.configureTestingModule({
       imports: [CardComponent],
@@ -64,6 +66,12 @@ describe('CardComponent', () => {
     fixture.componentRef.setInput('fieldsRegistry', inputs.fieldsRegistry);
     if (inputs.blocked !== undefined) {
       fixture.componentRef.setInput('blocked', inputs.blocked);
+    }
+    if (inputs.collisions !== undefined) {
+      fixture.componentRef.setInput('collisions', inputs.collisions);
+    }
+    if (inputs.safeToStart !== undefined) {
+      fixture.componentRef.setInput('safeToStart', inputs.safeToStart);
     }
 
     fixture.detectChanges();
@@ -257,6 +265,52 @@ describe('CardComponent', () => {
     // Not blocked, so any <svg> present comes from a field icon (owner/priority/...).
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelectorAll('svg').length).toBeGreaterThan(0);
+  });
+
+  // ── F-026: collision badge + safe-to-start highlight ──────────────────────
+
+  it('shows no collision badge or safe ring by default', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).not.toContain('Safe to start');
+    expect(host.className).not.toContain('ring-accent');
+  });
+
+  it('renders a collision badge naming the shared area(s), card(s) in the title', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      collisions: [
+        { with: 'F-027', areas: ['core'] },
+        { with: 'F-028', areas: ['core', 'web'] },
+      ],
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const badge = [...host.querySelectorAll('.badge-warning')].at(0);
+    expect(badge).toBeDefined();
+    // Distinct area names, deduped across overlaps.
+    expect(badge?.textContent).toContain('core');
+    expect(badge?.textContent).toContain('web');
+    // Tooltip names the colliding cards and their shared areas.
+    expect(badge?.getAttribute('title')).toContain('F-027 (core)');
+    expect(badge?.getAttribute('title')).toContain('F-028 (core, web)');
+  });
+
+  it('renders the safe-to-start badge and accent ring when safe', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      safeToStart: true,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).toContain('Safe to start');
+    expect(host.className).toContain('ring-accent/50');
   });
 
   it('renders no field icons when no field declares one', async () => {

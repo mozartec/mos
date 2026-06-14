@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
 import { buildDependencyGraph } from './graph.js';
-import { parallelBatch, resolveTouches } from './parallel.js';
+import { inFlightCollisions, parallelBatch, resolveTouches, safeToStart } from './parallel.js';
 
 function makeConfig(areas: Record<string, string[]> = {}): VaultConfig {
   return {
@@ -23,6 +23,28 @@ function makeConfig(areas: Record<string, string[]> = {}): VaultConfig {
     sprints: [],
     areas,
     fieldOrder: [],
+  };
+}
+
+/**
+ * A three-column board (Backlog · In Progress · Done) so there is a distinct
+ * in-flight column for the collision / safe-to-start selectors; {@link makeConfig}'s
+ * two-column board has none.
+ */
+function makeFlightConfig(areas: Record<string, string[]> = {}): VaultConfig {
+  return {
+    ...makeConfig(areas),
+    board: {
+      include: ['board/**'],
+      columns: ['Backlog', 'In Progress', 'Done'],
+      sortWithinColumn: [],
+    },
+    types: {
+      task: {
+        parent: null,
+        states: { Todo: 'Backlog', 'In Progress': 'In Progress', Done: 'Done' },
+      },
+    },
   };
 }
 
@@ -222,5 +244,149 @@ describe('parallelBatch', () => {
     expect(result.batch).toEqual(['T-001', 'T-002', 'T-003']);
     expect(result.conflicts).toEqual([]);
     expect(result.undeclared).toEqual([]);
+  });
+});
+
+describe('inFlightCollisions', () => {
+  it('pairs in-flight cards that share an area, naming the overlap both ways', () => {
+    const result = inFlightCollisions(
+      model([
+        { id: 'T-001', touches: ['core', 'docs'], status: 'In Progress' },
+        { id: 'T-002', touches: ['docs'], status: 'In Progress' },
+        { id: 'T-003', touches: ['web'], status: 'In Progress' }, // disjoint
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual({
+      'T-001': [{ with: 'T-002', areas: ['docs'] }],
+      'T-002': [{ with: 'T-001', areas: ['docs'] }],
+    });
+  });
+
+  it('counts only cards in the in-flight column, not the ones still queued', () => {
+    const result = inFlightCollisions(
+      model([
+        { id: 'T-001', touches: ['core'], status: 'In Progress' },
+        { id: 'T-002', touches: ['core'], status: 'Todo' }, // queued, not in flight
+        { id: 'T-003', touches: ['core'], status: 'Done' }, // finished
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual({});
+  });
+
+  it('treats unknown area names as colliding by name, like parallelBatch', () => {
+    const result = inFlightCollisions(
+      model([
+        { id: 'T-001', touches: ['webz'], status: 'In Progress' },
+        { id: 'T-002', touches: ['webz'], status: 'In Progress' },
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual({
+      'T-001': [{ with: 'T-002', areas: ['webz'] }],
+      'T-002': [{ with: 'T-001', areas: ['webz'] }],
+    });
+  });
+
+  it('reports nothing when the vault configures no areas (zero-config silence)', () => {
+    const result = inFlightCollisions(
+      model([
+        { id: 'T-001', touches: ['core'], status: 'In Progress' },
+        { id: 'T-002', touches: ['core'], status: 'In Progress' },
+      ]),
+      makeFlightConfig(),
+    );
+    expect(result).toEqual({});
+  });
+
+  it('reports nothing when the board has no in-flight column (fewer than 3 columns)', () => {
+    const result = inFlightCollisions(
+      model([
+        { id: 'T-001', touches: ['core'] },
+        { id: 'T-002', touches: ['core'] },
+      ]),
+      makeConfig(AREAS), // two-column board: Backlog · Done
+    );
+    expect(result).toEqual({});
+  });
+});
+
+describe('safeToStart', () => {
+  it('highlights ready cards disjoint from in-flight work, not the ones that collide', () => {
+    const result = safeToStart(
+      model([
+        { id: 'T-001', touches: ['core'], status: 'In Progress' }, // claims core
+        { id: 'T-002', touches: ['web'], status: 'Todo' }, // ready, disjoint → safe
+        { id: 'T-003', touches: ['core'], status: 'Todo' }, // ready, overlaps core → unsafe
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual(['T-002']);
+  });
+
+  it('leaves out cards with unfinished dependencies; an explicit empty surface is safe', () => {
+    const result = safeToStart(
+      model([
+        { id: 'T-001', touches: ['core'], status: 'In Progress' },
+        { id: 'T-002', touches: ['web'], status: 'Todo', dependsOn: ['T-004'] }, // not ready
+        { id: 'T-004', touches: [], status: 'Todo' }, // ready, touches nothing → safe
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual(['T-004']);
+  });
+
+  it('sets aside an undeclared (no touches) ready card; it can claim no safety', () => {
+    const result = safeToStart(
+      model([
+        { id: 'T-001', touches: ['core'], status: 'In Progress' },
+        { id: 'T-002', status: 'Todo' }, // no touches → unknown surface → unsafe
+        { id: 'T-003', touches: [], status: 'Todo' }, // explicit empty → safe
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual(['T-003']);
+  });
+
+  it('never marks an in-flight card "safe to start", even with an empty surface', () => {
+    const result = safeToStart(
+      model([
+        { id: 'T-001', touches: [], status: 'In Progress' }, // already started
+        { id: 'T-002', touches: ['web'], status: 'Todo' }, // ready, disjoint → safe
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual(['T-002']);
+  });
+
+  it('is empty when the vault configures no areas (zero-config silence)', () => {
+    const result = safeToStart(
+      model([
+        { id: 'T-001', touches: ['core'], status: 'In Progress' },
+        { id: 'T-002', status: 'Todo' },
+      ]),
+      makeFlightConfig(),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('is empty when the board has no in-flight column (fewer than 3 columns)', () => {
+    const result = safeToStart(
+      model([{ id: 'T-001', touches: ['web'], status: 'Todo' }]),
+      makeConfig(AREAS), // two-column board
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('accepts a prebuilt dependency graph, with the same result as building one', () => {
+    const m = model([
+      { id: 'T-001', touches: ['core'], status: 'In Progress' },
+      { id: 'T-002', touches: ['web'], status: 'Todo' },
+    ]);
+    const config = makeFlightConfig(AREAS);
+    const graph = buildDependencyGraph(m, config);
+    expect(safeToStart(m, config, undefined, graph)).toEqual(safeToStart(m, config));
+    expect(safeToStart(m, config, undefined, graph)).toEqual(['T-002']);
   });
 });
