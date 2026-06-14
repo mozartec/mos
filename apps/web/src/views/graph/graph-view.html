@@ -112,9 +112,10 @@
                   </circle>
                 }
                 @if (node.collision) {
+                  <!-- Top-right cluster, left of the ready dot — clear of the id label. -->
                   <path
-                    [attr.transform]="'translate(' + node.x + ',' + node.y + ')'"
-                    d="M 8 3 L 15 15 L 1 15 Z"
+                    [attr.transform]="'translate(' + (node.x + NODE_W - 34) + ',' + (node.y + 4) + ')'"
+                    d="M 7 0 L 14 12 L 0 12 Z"
                     class="fill-warning stroke-warning"
                     stroke-width="1"
                     stroke-linejoin="round"
@@ -195,7 +196,7 @@
                 aria-hidden="true"
                 class="inline-block h-2.5 w-2.5 rounded-full border border-accent"
               ></span>
-              Ready, may overlap
+              Ready, not confirmed safe
             </li>
             <li class="flex items-center gap-1.5">
               <span

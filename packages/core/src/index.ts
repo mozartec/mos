@@ -29,6 +29,7 @@ export {
   compareIdsByPriority,
   isCardDone,
   inFlightColumn,
+  parallelOverlaysActive,
 } from './place-card.js';
 export type { ScopeDef } from './scope.js';
 export {

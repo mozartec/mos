@@ -15,14 +15,16 @@ import {
   criticalPath,
   globToRegExp,
   inFlightCollisions,
-  inFlightColumn,
   loadConfig,
+  parallelOverlaysActive,
   parseFile,
   placeCard,
   readySet,
+  resolveTouches,
   safeToStart,
   toPosixPath,
   type AreaCollision,
+  type Card,
   type ParsedFile,
   type VaultConfig,
   type VaultModel,
@@ -203,7 +205,7 @@ export class GraphView {
    */
   protected readonly parallelActive = computed(() => {
     const config = this.config();
-    return config !== null && Object.keys(config.areas).length > 0 && inFlightColumn(config) !== null;
+    return config !== null && parallelOverlaysActive(config);
   });
 
   /** In-flight area collisions (F-026), keyed by card id; empty unless active. */
@@ -252,11 +254,7 @@ export class GraphView {
         ready,
         safe,
         dotFilled,
-        readyTitle: !parallelActive
-          ? 'Ready to start: every dependency is done'
-          : safe
-            ? 'Safe to start — clear of in-flight work'
-            : 'Ready, but may overlap in-flight work',
+        readyTitle: this.readyTitle(card, config, parallelActive, ready, safe),
         collision: overlaps.length > 0,
         collisionLabel:
           overlaps.length > 0
@@ -314,6 +312,28 @@ export class GraphView {
     if (placement.column === columns[columns.length - 1]) return 'done';
     if (placement.column === columns[0]) return 'todo';
     return 'active';
+  }
+
+  /**
+   * Tooltip for the ready dot, honest in every parallelism state. A hollow
+   * (ready-but-not-safe) dot distinguishes its reason: a declared surface that
+   * overlaps in-flight work, vs an undeclared surface whose safety can't be
+   * confirmed — the latter holds even when nothing is in flight, so it must not
+   * claim an overlap that isn't there.
+   */
+  private readyTitle(
+    card: Card,
+    config: VaultConfig,
+    parallelActive: boolean,
+    ready: boolean,
+    safe: boolean,
+  ): string {
+    if (!parallelActive || !ready) return 'Ready to start: every dependency is done';
+    if (safe) return 'Safe to start — clear of in-flight work';
+    const touched = resolveTouches(card, config);
+    return touched.areas.length === 0 && touched.unknown.length === 0
+      ? 'Ready — its touched areas are undeclared, so safety cannot be confirmed'
+      : 'Ready, but overlaps work already in flight';
   }
 
   /** Open the node's card in the shared reader, with a way back here (ADR-004). */

@@ -13,7 +13,12 @@
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
 import { buildDependencyGraph, readySet, type DependencyGraph } from './graph.js';
-import { compareIdsByPriority, inFlightColumn, placeCard } from './place-card.js';
+import {
+  compareIdsByPriority,
+  inFlightColumn,
+  parallelOverlaysActive,
+  placeCard,
+} from './place-card.js';
 
 /** The conventional surface field name when the registry declares none. */
 export const TOUCHES_FIELD = 'touches';
@@ -186,8 +191,8 @@ export function inFlightCollisions(
   fieldName: string = TOUCHES_FIELD,
 ): Record<string, AreaCollision[]> {
   const result: Record<string, AreaCollision[]> = {};
+  if (!parallelOverlaysActive(config)) return result;
   const column = inFlightColumn(config);
-  if (column === null || Object.keys(config.areas).length === 0) return result;
 
   // In-flight cards with their declared area names, id-sorted for determinism.
   const inFlight = Object.values(model.cards)
@@ -227,8 +232,8 @@ export function safeToStart(
   fieldName: string = TOUCHES_FIELD,
   graph: DependencyGraph = buildDependencyGraph(model, config),
 ): string[] {
+  if (!parallelOverlaysActive(config)) return [];
   const column = inFlightColumn(config);
-  if (column === null || Object.keys(config.areas).length === 0) return [];
 
   // Union of area names already claimed by in-flight work, and their card ids.
   const claimed = new Set<string>();

@@ -254,6 +254,32 @@ describe('GraphView', () => {
     expect(byId['T-CORE'].ready).toBe(true);
   });
 
+  it('explains a hollow dot by reason: overlap vs undeclared surface', async () => {
+    const fixture = await createGraph(
+      {
+        'board/T-001.md': makeCard('T-001', 'In Progress', [], ['core']), // claims core
+        'board/T-CORE.md': makeCard('T-CORE', 'Todo', [], ['core']), // declared, overlaps
+        'board/T-NONE.md': makeCard('T-NONE', 'Todo'), // ready, no touches → undeclared
+      },
+      AREAS_CONFIG,
+    );
+    const byId = Object.fromEntries(fixture.componentInstance['nodes']().map((n) => [n.id, n]));
+    expect(byId['T-CORE'].readyTitle).toContain('overlaps');
+    expect(byId['T-NONE'].readyTitle).toContain('undeclared');
+  });
+
+  it('does not claim in-flight overlap for an undeclared card when nothing is in flight', async () => {
+    const fixture = await createGraph(
+      { 'board/T-NONE.md': makeCard('T-NONE', 'Todo') }, // areas configured, nothing In Progress
+      AREAS_CONFIG,
+    );
+    const node = fixture.componentInstance['nodes']().find((n) => n.id === 'T-NONE')!;
+    expect(node.safe).toBe(false); // unknown surface can't be proven safe
+    expect(node.dotFilled).toBe(false); // hollow
+    expect(node.readyTitle).toContain('undeclared');
+    expect(node.readyTitle).not.toContain('in-flight');
+  });
+
   it('shows parallel legend entries when areas are configured', async () => {
     const fixture = await createGraph(
       { 'board/T-001.md': makeCard('T-001', 'Todo', [], ['core']) },

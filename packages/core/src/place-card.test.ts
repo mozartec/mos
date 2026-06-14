@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Card, VaultConfig } from './index.js';
-import { placeCard, sortWithinColumn, inFlightColumn } from './place-card.js';
+import { placeCard, sortWithinColumn, inFlightColumn, parallelOverlaysActive } from './place-card.js';
 
 // Minimal valid config for testing
 const testConfig: VaultConfig = {
@@ -302,5 +302,20 @@ describe('inFlightColumn', () => {
     expect(inFlightColumn(withColumns(['Backlog', 'Done']))).toBeNull();
     expect(inFlightColumn(withColumns(['Done']))).toBeNull();
     expect(inFlightColumn(withColumns([]))).toBeNull();
+  });
+});
+
+describe('parallelOverlaysActive', () => {
+  const cfg = (columns: string[], areas: Record<string, string[]>): VaultConfig => ({
+    ...testConfig,
+    board: { ...testConfig.board, columns },
+    areas,
+  });
+
+  it('needs both declared areas and a distinct in-flight column', () => {
+    const areas = { core: ['packages/core/**'] };
+    expect(parallelOverlaysActive(cfg(['Backlog', 'In Progress', 'Done'], areas))).toBe(true);
+    expect(parallelOverlaysActive(cfg(['Backlog', 'In Progress', 'Done'], {}))).toBe(false); // no areas
+    expect(parallelOverlaysActive(cfg(['Backlog', 'Done'], areas))).toBe(false); // no in-flight column
   });
 });
