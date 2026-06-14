@@ -49,6 +49,16 @@ const UNSCOPED = JSON.stringify({
   types: TYPES,
 });
 
+/** Unscoped board that also declares `areas` + `touches` — turns on F-026 overlays. */
+const WITH_AREAS = JSON.stringify({
+  specVersion: '0.4',
+  wiki: { include: ['**/*.md'], exclude: [] },
+  board: BOARD,
+  fields: { ...FIELDS, touches: { type: 'enum', source: 'areas', list: true, label: 'Touches' } },
+  areas: { core: ['packages/core/**'], web: ['apps/web/**'] },
+  types: TYPES,
+});
+
 /** A scopeField with dated inline values. */
 const SCOPED_DATED = JSON.stringify({
   specVersion: '0.4',
@@ -453,5 +463,57 @@ describe('BoardView', () => {
     await settle(harness.fixture);
     const component = harness.routeDebugElement!.componentInstance as BoardView;
     expect(component['loadState']()).toBe('error');
+  });
+
+  // ── F-026: parallel-batch overlays (collision badge + safe-to-start) ─────────
+
+  it('badges in-flight cards that declare a shared area', async () => {
+    const { host } = await createBoard({
+      config: WITH_AREAS,
+      files: {
+        'board/T-001.md': makeCard('T-001', 'task', 'In Progress', { touches: '[core]' }),
+        'board/T-002.md': makeCard('T-002', 'task', 'In Progress', { touches: '[core]' }),
+        'board/T-003.md': makeCard('T-003', 'task', 'In Progress', { touches: '[web]' }), // disjoint
+      },
+    });
+    const collisionBadges = host.querySelectorAll('.badge-warning');
+    expect(collisionBadges).toHaveLength(2); // T-001 and T-002, not T-003
+    for (const badge of collisionBadges) expect(badge.textContent).toContain('core');
+  });
+
+  it('highlights a ready card clear of in-flight work, not one that would collide', async () => {
+    const { host } = await createBoard({
+      config: WITH_AREAS,
+      files: {
+        'board/T-001.md': makeCard('T-001', 'task', 'In Progress', { touches: '[core]' }), // claims core
+        'board/T-WEB.md': makeCard('T-WEB', 'task', 'Todo', { touches: '[web]' }), // ready, disjoint → safe
+        'board/T-CORE.md': makeCard('T-CORE', 'task', 'Todo', { touches: '[core]' }), // ready, overlaps → unsafe
+      },
+    });
+    // Exactly one safe-to-start badge, and one card carries the accent ring.
+    expect([...host.querySelectorAll('.badge-accent')].map((b) => b.textContent?.trim())).toEqual([
+      'Safe to start',
+    ]);
+    const ringed = [...host.querySelectorAll('app-card')].filter((el) =>
+      el.className.includes('ring-accent'),
+    );
+    expect(ringed).toHaveLength(1);
+    expect(host.querySelectorAll('.badge-warning')).toHaveLength(0); // only one in-flight card
+  });
+
+  it('renders no overlays for a vault without areas (zero-config silence)', async () => {
+    const { host } = await createBoard({
+      config: UNSCOPED,
+      files: {
+        'board/T-001.md': makeCard('T-001', 'task', 'In Progress', { touches: '[core]' }),
+        'board/T-002.md': makeCard('T-002', 'task', 'In Progress', { touches: '[core]' }),
+        'board/T-003.md': makeCard('T-003', 'task', 'Todo', { touches: '[web]' }),
+      },
+    });
+    expect(host.querySelectorAll('.badge-warning')).toHaveLength(0);
+    expect(host.textContent).not.toContain('Safe to start');
+    expect(
+      [...host.querySelectorAll('app-card')].filter((el) => el.className.includes('ring-accent')),
+    ).toHaveLength(0);
   });
 });

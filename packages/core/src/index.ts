@@ -23,7 +23,14 @@ export { resolveReferences } from './references.js';
 export { globToRegExp, toPosixPath } from './path-glob.js';
 export { resolveRelativeLink } from './resolve-link.js';
 export type { CardPlacement } from './place-card.js';
-export { placeCard, sortWithinColumn, compareIdsByPriority, isCardDone } from './place-card.js';
+export {
+  placeCard,
+  sortWithinColumn,
+  compareIdsByPriority,
+  isCardDone,
+  inFlightColumn,
+  parallelOverlaysActive,
+} from './place-card.js';
 export type { ScopeDef } from './scope.js';
 export {
   normalizeScope,
@@ -44,5 +51,17 @@ export type { DependencyEdge, BuildEdgesResult } from './edges.js';
 export { buildEdges, deriveBlocks, DEPENDS_ON_FIELD } from './edges.js';
 export type { GraphNode, GraphEdge, DependencyGraph } from './graph.js';
 export { buildDependencyGraph, criticalPath, readySet } from './graph.js';
-export type { ResolvedTouches, BatchConflict, ParallelBatchResult } from './parallel.js';
-export { resolveTouches, parallelBatch, TOUCHES_FIELD } from './parallel.js';
+export type {
+  ResolvedTouches,
+  BatchConflict,
+  ParallelBatchResult,
+  AreaCollision,
+} from './parallel.js';
+export {
+  resolveTouches,
+  parallelBatch,
+  inFlightCollisions,
+  inFlightAreas,
+  safeToStart,
+  TOUCHES_FIELD,
+} from './parallel.js';

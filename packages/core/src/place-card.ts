@@ -78,6 +78,41 @@ export function isCardDone(card: Card, config: VaultConfig): boolean {
 }
 
 /**
+ * The config-driven "in flight" column: the board column **before** the last —
+ * the counterpart of {@link isCardDone}'s "last column is done" (ADR-003). With
+ * fewer than three columns there is no distinct in-flight column (the
+ * penultimate would be the backlog itself), so this returns `null`. Positional
+ * by the same convention as `isCardDone`, not config-named — kept deliberately
+ * symmetric so the two rules live by one logic. Shared by the parallel
+ * collision/safe-to-start selectors (F-026) and the vault validator.
+ *
+ * Limitation: this names a **single** in-flight column. A board with more than
+ * one active column between backlog and done (e.g. `['Todo','Doing','Review',
+ * 'Done']`) under-detects — only `Review` counts, so collisions among `Doing`
+ * cards are missed and a card overlapping `Doing` work is still called safe.
+ * The format can't tell an active middle column from a queued one (this vault's
+ * `Planned` is queued, not in flight) without config, so the heuristic holds
+ * for boards with one active column; naming the in-flight column(s) in config
+ * is the eventual fix (F-028).
+ */
+export function inFlightColumn(config: VaultConfig): string | null {
+  const columns = config.board.columns;
+  return columns.length >= 3 ? columns[columns.length - 2] : null;
+}
+
+/**
+ * Whether the parallel-batch overlays (F-026) apply to this vault: it declares
+ * at least one `area` and its board has a distinct in-flight column
+ * ({@link inFlightColumn}). The single predicate behind the activation of
+ * `inFlightCollisions`, `safeToStart`, and the graph lens's render mode, so the
+ * rule lives in one place. When false those selectors return empty and the
+ * lenses render exactly as before F-026 (zero-config silence).
+ */
+export function parallelOverlaysActive(config: VaultConfig): boolean {
+  return Object.keys(config.areas).length > 0 && inFlightColumn(config) !== null;
+}
+
+/**
  * Priority field rank order fallback when not configured in fields.
  * This is the default priority ranking per VAULT_SPEC.
  */

@@ -13,7 +13,12 @@
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
 import { buildDependencyGraph, readySet, type DependencyGraph } from './graph.js';
-import { compareIdsByPriority } from './place-card.js';
+import {
+  compareIdsByPriority,
+  inFlightColumn,
+  parallelOverlaysActive,
+  placeCard,
+} from './place-card.js';
 
 /** The conventional surface field name when the registry declares none. */
 export const TOUCHES_FIELD = 'touches';
@@ -156,6 +161,120 @@ export function parallelBatch(
   }
 
   return { batch, conflicts, undeclared, errors };
+}
+
+/** One shared-area overlap between a card and another card in the batch/board. */
+export interface AreaCollision {
+  /** The other card sharing area name(s). */
+  with: string;
+  /** Area names both cards declare (known or unknown — names collide by name). */
+  areas: string[];
+}
+
+/**
+ * The surface in-flight work claims (F-026): the union of every in-flight card's
+ * declared `touches` names (known or unknown — names collide by name), deduped
+ * and sorted. The set {@link safeToStart} measures ready cards against; exposed
+ * so a lens can explain *why* a ready card isn't safe — a real overlap with this
+ * set vs a surface it simply can't vouch for. Empty when the overlays are
+ * inactive ({@link parallelOverlaysActive}). Pure (ADR-001).
+ */
+export function inFlightAreas(
+  model: VaultModel,
+  config: VaultConfig,
+  fieldName: string = TOUCHES_FIELD,
+): string[] {
+  if (!parallelOverlaysActive(config)) return [];
+  const names = new Set<string>();
+  for (const card of inFlightCards(model, config)) {
+    for (const name of declaredTouches(card, fieldName)?.names ?? []) names.add(name);
+  }
+  return [...names].sort();
+}
+
+/**
+ * In-flight collisions (F-026): for every card in the in-flight column (the one
+ * before the last, {@link inFlightColumn}) that shares a declared area with
+ * another in-flight card, the overlaps it has — keyed by card id, each entry
+ * naming the other card and the shared areas. Two cards heading for the same
+ * surface while both in progress are bound for a merge conflict; this is what
+ * the board's collision badge renders (ADR-021).
+ *
+ * Pure: model + config in, plain data out (ADR-001). Disjointness is over area
+ * *names*, exactly as {@link parallelBatch} (unknown names still collide by
+ * name; the validator flags them). A vault that configures no `areas`, or a
+ * board with no in-flight column, has no collisions — the map is empty, so the
+ * UI renders exactly as before.
+ */
+export function inFlightCollisions(
+  model: VaultModel,
+  config: VaultConfig,
+  fieldName: string = TOUCHES_FIELD,
+): Record<string, AreaCollision[]> {
+  const result: Record<string, AreaCollision[]> = {};
+  if (!parallelOverlaysActive(config)) return result;
+
+  // In-flight cards with their declared area names, id-sorted for determinism.
+  const inFlight = inFlightCards(model, config)
+    .map((card) => ({ id: card.id, names: declaredTouches(card, fieldName)?.names ?? [] }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  for (let i = 0; i < inFlight.length; i++) {
+    for (let j = i + 1; j < inFlight.length; j++) {
+      const shared = inFlight[i].names.filter((name) => inFlight[j].names.includes(name));
+      if (shared.length === 0) continue;
+      (result[inFlight[i].id] ??= []).push({ with: inFlight[j].id, areas: shared });
+      (result[inFlight[j].id] ??= []).push({ with: inFlight[i].id, areas: shared });
+    }
+  }
+  return result;
+}
+
+/**
+ * Safe-to-start cards (F-026): ready cards — every dependency done, not yet in
+ * flight — whose declared `touches` are disjoint from the union of every
+ * in-flight card's surface, so picking one up now collides with nothing already
+ * underway. This is the board/graph "safe to start" highlight, the orchestrator
+ * counterpart of {@link parallelBatch}: that asks "which ready cards run
+ * together"; this asks "which ready cards are safe to add to what's in flight".
+ *
+ * A card whose surface is unknown (no `touches`, or a malformed entry) can't be
+ * claimed safe and is left out, mirroring {@link parallelBatch}'s `undeclared`;
+ * an explicit empty list (`touches: []`) touches nothing and is always safe.
+ * With no in-flight column the highlight has nothing to be relative to and the
+ * set is empty; likewise a vault with no `areas`. Pure (ADR-001). Pass `graph`
+ * when the caller already built one (a lens) so it isn't rebuilt.
+ */
+export function safeToStart(
+  model: VaultModel,
+  config: VaultConfig,
+  fieldName: string = TOUCHES_FIELD,
+  graph: DependencyGraph = buildDependencyGraph(model, config),
+): string[] {
+  if (!parallelOverlaysActive(config)) return [];
+
+  // The surface in-flight work claims, and the cards already in flight.
+  const claimed = new Set(inFlightAreas(model, config, fieldName));
+  const inFlightIds = new Set(inFlightCards(model, config).map((card) => card.id));
+
+  const safe: string[] = [];
+  for (const id of readySet(graph)) {
+    if (inFlightIds.has(id)) continue; // already in flight — not "to start"
+    const declared = declaredTouches(model.cards[id], fieldName);
+    // An unknown surface can't be declared safe (mirrors parallelBatch.undeclared).
+    if (declared === undefined || declared.malformed.length > 0) continue;
+    if (declared.names.every((name) => !claimed.has(name))) safe.push(id);
+  }
+  return safe;
+}
+
+/**
+ * The cards currently in the in-flight column ({@link inFlightColumn}). Callers
+ * gate on {@link parallelOverlaysActive} first, so the column is non-null here.
+ */
+function inFlightCards(model: VaultModel, config: VaultConfig): Card[] {
+  const column = inFlightColumn(config);
+  return Object.values(model.cards).filter((card) => placeCard(card, config).column === column);
 }
 
 /**

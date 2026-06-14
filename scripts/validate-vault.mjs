@@ -288,6 +288,9 @@ export function validateVault(root) {
   // heading for the same files (F-024, ADR-021). A warning, never an error.
   // `touches` is the spec's conventional surface field (VAULT_SPEC §5c),
   // mirroring core's TOUCHES_FIELD, the way `dependsOn` is the deps convention.
+  // Core owns this rule as `inFlightColumn(config)` (place-card.ts); kept inline
+  // here because this validator is zero-dependency and runs under plain `node`,
+  // which can't import core's TS — the same reason placeCard/sorting are inlined.
   const inFlightCol = columns.length >= 3 ? columns[columns.length - 2] : null;
   if (inFlightCol != null) {
     const inFlight = Object.values(cards)

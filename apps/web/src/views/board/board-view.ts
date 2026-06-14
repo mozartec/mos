@@ -10,16 +10,19 @@ import {
   cardScopeValue,
   createEmptyVaultModel,
   globToRegExp,
+  inFlightCollisions,
   loadConfig,
   normalizeScope,
   parseFile,
   placeCard,
   resolveCurrentScope,
+  safeToStart,
   scopeDaysLeft,
   sortWithinColumn,
   toPosixPath,
 } from '@mos/core';
 import type {
+  AreaCollision,
   Card,
   Facet,
   FilterState,
@@ -105,6 +108,22 @@ export class BoardView {
 
   /** Every card in the model. */
   private readonly allCards = computed(() => Object.values(this.model().cards));
+
+  /**
+   * Parallel-batch overlays (F-026, ADR-021), derived purely from the whole
+   * model so they reflect global in-flight state regardless of the active scope
+   * or filters. Empty for a vault with no `areas` — the board renders as before.
+   */
+  private readonly collisions = computed<Record<string, AreaCollision[]>>(() => {
+    const config = this.config();
+    return config === null ? {} : inFlightCollisions(this.model(), config);
+  });
+
+  /** Ids of ready cards safe to start: disjoint from every in-flight surface. */
+  private readonly safeIds = computed<Set<string>>(() => {
+    const config = this.config();
+    return config === null ? new Set() : new Set(safeToStart(this.model(), config));
+  });
 
   /** The vault's board scope, or `null` when it declares none (unscoped). */
   protected readonly scopeDef = computed<ScopeDef | null>(() => {
@@ -335,6 +354,16 @@ export class BoardView {
 
   protected isCardBlocked(card: Card, config: VaultConfig): boolean {
     return placeCard(card, config).blocked;
+  }
+
+  /** In-flight area overlaps for a card (empty when none) — drives its badge. */
+  protected collisionsFor(card: Card): AreaCollision[] {
+    return this.collisions()[card.id] ?? [];
+  }
+
+  /** True when the card is ready and safe to start (disjoint from in-flight work). */
+  protected isSafeToStart(card: Card): boolean {
+    return this.safeIds().has(card.id);
   }
 
   // ── Scope switching ────────────────────────────────────────────────────────

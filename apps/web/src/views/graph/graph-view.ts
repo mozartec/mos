@@ -14,11 +14,18 @@ import {
   createEmptyVaultModel,
   criticalPath,
   globToRegExp,
+  inFlightAreas,
+  inFlightCollisions,
   loadConfig,
+  parallelOverlaysActive,
   parseFile,
   placeCard,
   readySet,
+  resolveTouches,
+  safeToStart,
   toPosixPath,
+  type AreaCollision,
+  type Card,
   type ParsedFile,
   type VaultConfig,
   type VaultModel,
@@ -44,6 +51,16 @@ export interface PositionedNode {
   critical: boolean;
   /** In the ready set (F-012-S-04): badge — every dependency is done. */
   ready: boolean;
+  /** Ready and clear of every in-flight surface (F-026) — safe to start now. */
+  safe: boolean;
+  /** Paint the ready dot solid (safe / parallelism off) vs hollow (would overlap). */
+  dotFilled: boolean;
+  /** Tooltip for the ready dot, worded for the current parallelism state. */
+  readyTitle: string;
+  /** Shares an in-flight area with another in-progress card (F-026). */
+  collision: boolean;
+  /** Tooltip for the collision marker, naming the cards and areas it shares. */
+  collisionLabel: string;
 }
 
 /** A core graph edge with endpoint coordinates for the SVG template. */
@@ -183,17 +200,56 @@ export class GraphView {
   private readonly readyIds = computed(() => new Set(readySet(this.graph())));
 
   /**
+   * True when parallel-batch overlays apply: the vault declares `areas` and the
+   * board has a distinct in-flight column. When false the ready set renders
+   * exactly as before F-026 (no safe/overlap split, no collision markers).
+   */
+  protected readonly parallelActive = computed(() => {
+    const config = this.config();
+    return config !== null && parallelOverlaysActive(config);
+  });
+
+  /** In-flight area collisions (F-026), keyed by card id; empty unless active. */
+  private readonly collisionsMap = computed<Record<string, AreaCollision[]>>(() => {
+    const config = this.config();
+    return config === null ? {} : inFlightCollisions(this.model(), config);
+  });
+
+  /** Safe-to-start ids (F-026), reusing the already-built graph (no rebuild). */
+  private readonly safeIds = computed<Set<string>>(() => {
+    const config = this.config();
+    if (config === null) return new Set();
+    return new Set(safeToStart(this.model(), config, undefined, this.graph()));
+  });
+
+  /** Area names claimed by in-flight work — lets a hollow dot name its reason honestly. */
+  private readonly claimedAreas = computed<Set<string>>(() => {
+    const config = this.config();
+    return config === null ? new Set() : new Set(inFlightAreas(this.model(), config));
+  });
+
+  /**
    * Visible nodes with pixel positions. Hidden-state cards (state → null,
    * e.g. Deferred) stay off the lens, consistent with the board.
    */
   protected readonly nodes = computed<PositionedNode[]>(() => {
     const config = this.config();
     if (config === null) return [];
+    const parallelActive = this.parallelActive();
+    const claimed = this.claimedAreas();
     const result: PositionedNode[] = [];
     for (const node of this.graph().nodes) {
       const card = this.model().cards[node.id];
       const placement = placeCard(card, config);
       if (placement.error !== undefined || placement.column === null) continue;
+
+      const ready = this.readyIds().has(node.id);
+      const safe = ready && parallelActive && this.safeIds().has(node.id);
+      // Solid dot when safe, or when parallelism is off (pre-F-026 behaviour);
+      // hollow when ready but its surface isn't clear of in-flight work.
+      const dotFilled = ready && (!parallelActive || safe);
+      const overlaps = this.collisionsMap()[node.id] ?? [];
+
       result.push({
         id: node.id,
         title: node.title,
@@ -203,7 +259,16 @@ export class GraphView {
         y: PADDING + node.order * CELL_H,
         path: card.path,
         critical: this.criticalIds().has(node.id),
-        ready: this.readyIds().has(node.id),
+        ready,
+        safe,
+        dotFilled,
+        readyTitle: this.readyTitle(card, config, parallelActive, ready, safe, claimed),
+        collision: overlaps.length > 0,
+        collisionLabel:
+          overlaps.length > 0
+            ? 'Shares an in-flight area with ' +
+              overlaps.map((c) => `${c.with} (${c.areas.join(', ')})`).join('; ')
+            : '',
       });
     }
     return result;
@@ -255,6 +320,36 @@ export class GraphView {
     if (placement.column === columns[columns.length - 1]) return 'done';
     if (placement.column === columns[0]) return 'todo';
     return 'active';
+  }
+
+  /**
+   * Tooltip for the ready dot, honest in every parallelism state. A hollow
+   * (ready-but-not-safe) dot names its actual reason and never claims an overlap
+   * that isn't there: a declared area that truly intersects in-flight work
+   * ("overlaps") vs a surface that simply can't be vouched for — undeclared, or
+   * declared with an unreadable entry. The overlap is confirmed against the
+   * `claimed` in-flight surface, so a partially-malformed `touches` whose valid
+   * areas don't collide falls to the honest "can't confirm" wording.
+   */
+  private readyTitle(
+    card: Card,
+    config: VaultConfig,
+    parallelActive: boolean,
+    ready: boolean,
+    safe: boolean,
+    claimed: Set<string>,
+  ): string {
+    if (!parallelActive || !ready) return 'Ready to start: every dependency is done';
+    if (safe) return 'Safe to start — clear of in-flight work';
+    const touched = resolveTouches(card, config);
+    const declaredNames = [...touched.areas, ...touched.unknown];
+    if (declaredNames.some((name) => claimed.has(name))) {
+      return 'Ready, but overlaps work already in flight';
+    }
+    // Not safe, yet no confirmed overlap → the surface itself can't be vouched for.
+    return declaredNames.length === 0
+      ? 'Ready — its touched areas are undeclared, so safety cannot be confirmed'
+      : 'Ready — its touched areas can’t be fully read, so safety cannot be confirmed';
   }
 
   /** Open the node's card in the shared reader, with a way back here (ADR-004). */

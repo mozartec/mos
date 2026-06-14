@@ -40,11 +40,13 @@ const ICONS = [
   'flag',
   'hourglass',
   'git-commit',
+  'git-merge',
   'clock',
   'tag',
   'target',
   'stack',
   'bookmark',
+  'bolt',
 ];
 
 /** Resolve the installed @tabler/icons package root via its `exports` map. */

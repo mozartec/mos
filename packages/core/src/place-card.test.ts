@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Card, VaultConfig } from './index.js';
-import { placeCard, sortWithinColumn } from './place-card.js';
+import { placeCard, sortWithinColumn, inFlightColumn, parallelOverlaysActive } from './place-card.js';
 
 // Minimal valid config for testing
 const testConfig: VaultConfig = {
@@ -282,5 +282,40 @@ describe('sortWithinColumn', () => {
     const sorted = sortWithinColumn(cards, noFieldsConfig);
     // Should use default: P0 < P1 < P2 < P3
     expect(sorted.map((c) => c.id)).toEqual(['T-001', 'T-003', 'T-002', 'T-004']);
+  });
+});
+
+describe('inFlightColumn', () => {
+  const withColumns = (columns: string[]): VaultConfig => ({
+    ...testConfig,
+    board: { ...testConfig.board, columns },
+  });
+
+  it('is the column before the last — the counterpart of "last column is done"', () => {
+    expect(inFlightColumn(withColumns(['Backlog', 'In Progress', 'Done']))).toBe('In Progress');
+    expect(inFlightColumn(withColumns(['Backlog', 'Planned', 'In Progress', 'Done']))).toBe(
+      'In Progress',
+    );
+  });
+
+  it('is null with fewer than three columns (no distinct in-flight column)', () => {
+    expect(inFlightColumn(withColumns(['Backlog', 'Done']))).toBeNull();
+    expect(inFlightColumn(withColumns(['Done']))).toBeNull();
+    expect(inFlightColumn(withColumns([]))).toBeNull();
+  });
+});
+
+describe('parallelOverlaysActive', () => {
+  const cfg = (columns: string[], areas: Record<string, string[]>): VaultConfig => ({
+    ...testConfig,
+    board: { ...testConfig.board, columns },
+    areas,
+  });
+
+  it('needs both declared areas and a distinct in-flight column', () => {
+    const areas = { core: ['packages/core/**'] };
+    expect(parallelOverlaysActive(cfg(['Backlog', 'In Progress', 'Done'], areas))).toBe(true);
+    expect(parallelOverlaysActive(cfg(['Backlog', 'In Progress', 'Done'], {}))).toBe(false); // no areas
+    expect(parallelOverlaysActive(cfg(['Backlog', 'Done'], areas))).toBe(false); // no in-flight column
   });
 });

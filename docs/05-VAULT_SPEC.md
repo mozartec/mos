@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-13T15:27:00Z
+updated: 2026-06-14T00:45:00Z
 ---
 
 # Vault spec
@@ -293,10 +293,13 @@ empty list (`touches: []`) declares "touches nothing" and batches with anything.
 
 Validation: a `touches` entry that names no configured area is flagged, and two cards
 concurrently in flight (in the column before the last — the counterpart of "last column
-is done") that declare overlapping areas draw a warning. Everything here is additive: a
-vault with no `areas` and no `touches` validates and renders exactly as before, and batch
-computation degrades to the plain ready set. Verifying declarations against actual git
-diffs is deliberately out of spec for now (ADR-021).
+is done") that declare overlapping areas draw a warning. This in-flight column is
+positional: the single column before the last, so a board with several active columns
+between backlog and done detects only the last of them (and treats the rest as queued) —
+naming the in-flight column(s) in config is the eventual fix (F-028). Everything here is
+additive: a vault with no `areas` and no `touches` validates and renders exactly as
+before, and batch computation degrades to the plain ready set. Verifying declarations
+against actual git diffs is deliberately out of spec for now (ADR-021).
 
 ## 5d. Board scope (a config-named grouping)
 
