@@ -38,11 +38,11 @@
       "id": 2,
       "name": "no-areas-degrade",
       "prompt": "Refine the backlog so it's ready to work.",
-      "expected_output": "Special setup: the top-level `areas` key has been removed from .mos/config.json, so the vault declares no surfaces. The readiness pass still runs (the thin Sketch cards get their missing sections), but the shape pass cannot reason about overlap: the agent states plainly that file overlap is UNKNOWN and does NOT claim any cards are parallel-safe or invent a collision map. It still respects the initial-state boundary (TR-220 prose untouched).",
+      "expected_output": "Special setup: the top-level `areas` key is removed from .mos/config.json AND the '## Areas' section is removed from the fixture's AGENTS.md, so the vault declares no surfaces anywhere — config is the only place areas could come from, and there are none. The readiness pass still runs (the thin Sketch cards get their missing sections), but the shape pass has no surface map to reason over: the agent states plainly that overlap is UNKNOWN, does NOT reshape for overlap (no enabler extraction, no hub concentration) and does NOT claim any cards are parallel-safe. It still respects the initial-state boundary (TR-220 prose untouched).",
       "assertions": [
         {"text": "Still does the readiness pass (raises thin Sketch cards toward the cold-start standard) rather than refusing"},
         {"text": "States plainly that surface overlap is unknown / unchecked because the vault declares no areas — does not assert any cards are collision-free or safe to parallelize"},
-        {"text": "Invents no areas/touches collision map out of thin air"},
+        {"text": "Does NOT reshape for overlap: with no declared areas it does not extract enablers or concentrate hub areas from an inferred surface map"},
         {"text": "Leaves the decided card TR-220 prose-untouched"}
       ],
       "files": []

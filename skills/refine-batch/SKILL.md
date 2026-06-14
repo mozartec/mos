@@ -123,8 +123,13 @@ once, each with the areas it claims. That batch should match the semantics next-
 ## 3. Degrade honestly
 
 No `areas` configured? Passes 1-2 still run — readiness and `touches` are still worth
-doing — but pass 3 cannot reason about overlap. Say so plainly: state that surface overlap
-is **unknown**, and do not claim any cards are parallel-safe. Never guess a collision map.
+doing. But pass 3 reasons **only over the config's declared `areas`**: with none, it has
+no surface map, so **do not reshape for overlap and do not claim parallel-safety** — even
+if an `AGENTS.md` or a card body *describes* surfaces in prose. Prose is not a checkable
+declaration; treating it as one silently re-introduces the guessing this skill exists to
+prevent. State plainly that surface overlap is **unknown** and stop there. (A genuinely
+oversized card may still be split for *readiness*, but not to engineer a parallel batch
+you can't verify.)
 
 ## 4. Propose, then apply on confirmation
 

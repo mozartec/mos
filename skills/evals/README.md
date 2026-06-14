@@ -40,8 +40,9 @@ this repo's live board: live cards move and the evals would rot.
    - `harness-branch-stay` (ship-card): before the run, `git switch -c copilot/do-jb-102`.
    - `parallel-batch-no-areas` (next-card): delete the top-level `areas` key from
      `.mos/config.json` (turns the vault back into an unscoped one).
-   - `no-areas-degrade` (refine-batch): same — delete the top-level `areas` key from
-     the refine fixture's `.mos/config.json` before the run.
+   - `no-areas-degrade` (refine-batch): delete the top-level `areas` key from the refine
+     fixture's `.mos/config.json` **and** the `## Areas` section from its `AGENTS.md`, so
+     no surface map exists anywhere — config is the only legitimate source and it's empty.
 
 ## Fixture map
 
