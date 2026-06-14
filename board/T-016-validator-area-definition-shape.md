@@ -2,14 +2,14 @@
 id: T-016
 type: task
 title: Validator — flag malformed area definitions
-status: Todo
+status: Done
 priority: P3
 phase: Phase 4
 owner: mozart
 dependsOn: [T-012]
 touches: [scripts]
 created: 2026-06-14T17:26:46Z
-updated: 2026-06-14T17:26:46Z
+updated: 2026-06-14T17:40:54Z
 ---
 
 # T-016 — Validator — flag malformed area definitions
@@ -73,14 +73,14 @@ exactly that misconfiguration. This adds the cheap shape check.
 
 ## Acceptance
 
-- [ ] An area whose value is not an array of strings (a non-array value, or an array with a
+- [x] An area whose value is not an array of strings (a non-array value, or an array with a
       non-string entry) produces an error naming the area; a well-formed area does not.
-- [ ] The shape check fires even for a single area, independent of the ≥2-area overlap
+- [x] The shape check fires even for a single area, independent of the ≥2-area overlap
       check.
-- [ ] A vault with no `areas`, and one with only well-formed `areas`, produce no new
+- [x] A vault with no `areas`, and one with only well-formed `areas`, produce no new
       error/warning and the same exit code as before.
-- [ ] This repo validates clean.
-- [ ] The behavior is covered by tests in the validator suite (T-011), failing the build on
+- [x] This repo validates clean.
+- [x] The behavior is covered by tests in the validator suite (T-011), failing the build on
       regression.
 
 ## Dependencies

@@ -233,6 +233,32 @@ function validateAreaOverlap(areas, files, root, warnings) {
       );
 }
 
+// Area definition shape (§5c, T-016): `areas` maps each name to a *list of glob
+// strings*. validateAreaOverlap coerces and filters non-strings defensively
+// (`(Array.isArray(globs) ? globs : [globs]).filter(...)`), so a malformed area —
+// a non-array value, or an array with a non-string entry — would otherwise
+// compile to fewer (or zero) regexes, silently match nothing, and vanish from
+// overlap detection with no diagnostic. This is the cheap shape check that
+// surfaces it: an error (broken config, like an unknown column or an enum without
+// `values`/`source`), naming the offending area and value. It runs independently
+// of the overlap check, which needs ≥2 areas, so a single malformed area is still
+// caught. Shape only — it does not validate glob *syntax* (beyond "is a string")
+// or judge area granularity (a planning call, not statically decidable; §5c).
+function validateAreas(areas, errors) {
+  if (areas == null || typeof areas !== 'object' || Array.isArray(areas)) return;
+  for (const [name, globs] of Object.entries(areas)) {
+    if (!Array.isArray(globs)) {
+      errors.push(
+        `area '${name}': definition must be a list of glob strings, got ${JSON.stringify(globs)}`,
+      );
+      continue;
+    }
+    for (const g of globs)
+      if (typeof g !== 'string')
+        errors.push(`area '${name}': glob ${JSON.stringify(g)} is not a string`);
+  }
+}
+
 export function validateVault(root) {
   const errors = [];
   const warnings = [];
@@ -268,6 +294,11 @@ export function validateVault(root) {
 
   // Area glob overlap (§5c): areas whose globs match a common file.
   validateAreaOverlap(cfg.areas, files, root, warnings);
+
+  // Area definition shape (§5c, T-016): each area is a list of glob strings.
+  // Independent of the overlap check above (which needs ≥2 areas), so a single
+  // malformed area is still caught.
+  validateAreas(cfg.areas, errors);
 
   // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
   // declared `values` list, the resolved source, or — when the declared
