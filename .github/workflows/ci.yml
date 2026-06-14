@@ -52,5 +52,8 @@ jobs:
       - name: Smoke test packed CLI
         run: bunx turbo run smoke --filter=@mozartec/mos-cli
 
+      - name: Test scripts
+        run: bun run test:scripts
+
       - name: Validate vault
         run: bun run validate

@@ -2,13 +2,13 @@
 id: T-011
 type: task
 title: Validator test suite — pin the guarantees review keeps re-proving
-status: Todo
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 touches: [scripts, ci]
 created: 2026-06-12T22:15:00Z
-updated: 2026-06-12T22:15:00Z
+updated: 2026-06-14T00:11:13Z
 ---
 
 # T-011 — Validator test suite — pin the guarantees review keeps re-proving
@@ -72,11 +72,11 @@ waiting for a review to notice.
 
 ## Acceptance
 
-- [ ] `validateVault` is importable; `bun run validate` output and exit codes are
+- [x] `validateVault` is importable; `bun run validate` output and exit codes are
       byte-identical to before.
-- [ ] Every case in plan step 3 has a test, and reverting any one validator guard
+- [x] Every case in plan step 3 has a test, and reverting any one validator guard
       locally makes at least one test fail (spot-checked).
-- [ ] CI runs the suite on every PR.
+- [x] CI runs the suite on every PR.
 
 ## Dependencies
 

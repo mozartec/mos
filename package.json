@@ -16,6 +16,7 @@
     "check-types": "turbo run check-types",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
+    "test:scripts": "node --test scripts/validate-vault.test.mjs",
     "validate": "node scripts/validate-vault.mjs"
   },
   "devDependencies": {
