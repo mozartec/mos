@@ -61,6 +61,7 @@ export {
   resolveTouches,
   parallelBatch,
   inFlightCollisions,
+  inFlightAreas,
   safeToStart,
   TOUCHES_FIELD,
 } from './parallel.js';

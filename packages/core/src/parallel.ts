@@ -172,6 +172,27 @@ export interface AreaCollision {
 }
 
 /**
+ * The surface in-flight work claims (F-026): the union of every in-flight card's
+ * declared `touches` names (known or unknown — names collide by name), deduped
+ * and sorted. The set {@link safeToStart} measures ready cards against; exposed
+ * so a lens can explain *why* a ready card isn't safe — a real overlap with this
+ * set vs a surface it simply can't vouch for. Empty when the overlays are
+ * inactive ({@link parallelOverlaysActive}). Pure (ADR-001).
+ */
+export function inFlightAreas(
+  model: VaultModel,
+  config: VaultConfig,
+  fieldName: string = TOUCHES_FIELD,
+): string[] {
+  if (!parallelOverlaysActive(config)) return [];
+  const names = new Set<string>();
+  for (const card of inFlightCards(model, config)) {
+    for (const name of declaredTouches(card, fieldName)?.names ?? []) names.add(name);
+  }
+  return [...names].sort();
+}
+
+/**
  * In-flight collisions (F-026): for every card in the in-flight column (the one
  * before the last, {@link inFlightColumn}) that shares a declared area with
  * another in-flight card, the overlaps it has — keyed by card id, each entry
@@ -192,11 +213,9 @@ export function inFlightCollisions(
 ): Record<string, AreaCollision[]> {
   const result: Record<string, AreaCollision[]> = {};
   if (!parallelOverlaysActive(config)) return result;
-  const column = inFlightColumn(config);
 
   // In-flight cards with their declared area names, id-sorted for determinism.
-  const inFlight = Object.values(model.cards)
-    .filter((card) => placeCard(card, config).column === column)
+  const inFlight = inFlightCards(model, config)
     .map((card) => ({ id: card.id, names: declaredTouches(card, fieldName)?.names ?? [] }))
     .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -233,16 +252,10 @@ export function safeToStart(
   graph: DependencyGraph = buildDependencyGraph(model, config),
 ): string[] {
   if (!parallelOverlaysActive(config)) return [];
-  const column = inFlightColumn(config);
 
-  // Union of area names already claimed by in-flight work, and their card ids.
-  const claimed = new Set<string>();
-  const inFlightIds = new Set<string>();
-  for (const card of Object.values(model.cards)) {
-    if (placeCard(card, config).column !== column) continue;
-    inFlightIds.add(card.id);
-    for (const name of declaredTouches(card, fieldName)?.names ?? []) claimed.add(name);
-  }
+  // The surface in-flight work claims, and the cards already in flight.
+  const claimed = new Set(inFlightAreas(model, config, fieldName));
+  const inFlightIds = new Set(inFlightCards(model, config).map((card) => card.id));
 
   const safe: string[] = [];
   for (const id of readySet(graph)) {
@@ -253,6 +266,15 @@ export function safeToStart(
     if (declared.names.every((name) => !claimed.has(name))) safe.push(id);
   }
   return safe;
+}
+
+/**
+ * The cards currently in the in-flight column ({@link inFlightColumn}). Callers
+ * gate on {@link parallelOverlaysActive} first, so the column is non-null here.
+ */
+function inFlightCards(model: VaultModel, config: VaultConfig): Card[] {
+  const column = inFlightColumn(config);
+  return Object.values(model.cards).filter((card) => placeCard(card, config).column === column);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import type { Card } from '@mos/core';
 import { GraphView } from './graph-view';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
 import { InMemoryVaultSource, settle } from '../../testing/test-helpers';
@@ -266,6 +267,28 @@ describe('GraphView', () => {
     const byId = Object.fromEntries(fixture.componentInstance['nodes']().map((n) => [n.id, n]));
     expect(byId['T-CORE'].readyTitle).toContain('overlaps');
     expect(byId['T-NONE'].readyTitle).toContain('undeclared');
+  });
+
+  it('does not assert an overlap that does not exist for a partially-malformed surface', async () => {
+    // In-flight work claims only `web`; the ready card declares `core` (no overlap)
+    // plus a malformed entry, so it is unsafe for the malformed reason — not a clash.
+    const fixture = await createGraph(
+      { 'board/T-001.md': makeCard('T-001', 'In Progress', [], ['web']) },
+      AREAS_CONFIG,
+    );
+    const comp = fixture.componentInstance;
+    const config = comp['config']()!;
+    const card = {
+      id: 'T-X',
+      type: 'task',
+      title: 'X',
+      status: 'Todo',
+      path: 'board/T-X.md',
+      fields: { touches: ['core', ''] }, // 'core' valid, '' malformed
+    } as unknown as Card;
+    const title = comp['readyTitle'](card, config, true, true, false, new Set(['web']));
+    expect(title).not.toContain('overlaps');
+    expect(title).toContain('fully read');
   });
 
   it('does not claim in-flight overlap for an undeclared card when nothing is in flight', async () => {

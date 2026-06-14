@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
 import { buildDependencyGraph } from './graph.js';
-import { inFlightCollisions, parallelBatch, resolveTouches, safeToStart } from './parallel.js';
+import {
+  inFlightAreas,
+  inFlightCollisions,
+  parallelBatch,
+  resolveTouches,
+  safeToStart,
+} from './parallel.js';
 
 function makeConfig(areas: Record<string, string[]> = {}): VaultConfig {
   return {
@@ -309,6 +315,29 @@ describe('inFlightCollisions', () => {
       makeConfig(AREAS), // two-column board: Backlog · Done
     );
     expect(result).toEqual({});
+  });
+});
+
+describe('inFlightAreas', () => {
+  it('unions the declared surfaces of in-flight cards, deduped and sorted', () => {
+    const result = inFlightAreas(
+      model([
+        { id: 'T-001', touches: ['web', 'core'], status: 'In Progress' },
+        { id: 'T-002', touches: ['core'], status: 'In Progress' },
+        { id: 'T-003', touches: ['docs'], status: 'Todo' }, // not in flight
+        { id: 'T-004', touches: ['docs'], status: 'Done' }, // finished
+      ]),
+      makeFlightConfig(AREAS),
+    );
+    expect(result).toEqual(['core', 'web']);
+  });
+
+  it('is empty without areas or without an in-flight column', () => {
+    const cards = model([{ id: 'T-001', touches: ['core'], status: 'In Progress' }]);
+    expect(inFlightAreas(cards, makeFlightConfig())).toEqual([]); // no areas
+    expect(inFlightAreas(model([{ id: 'T-001', touches: ['core'] }]), makeConfig(AREAS))).toEqual(
+      [], // two-column board: no in-flight column
+    );
   });
 });
 

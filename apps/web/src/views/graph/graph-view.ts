@@ -14,6 +14,7 @@ import {
   createEmptyVaultModel,
   criticalPath,
   globToRegExp,
+  inFlightAreas,
   inFlightCollisions,
   loadConfig,
   parallelOverlaysActive,
@@ -221,6 +222,12 @@ export class GraphView {
     return new Set(safeToStart(this.model(), config, undefined, this.graph()));
   });
 
+  /** Area names claimed by in-flight work — lets a hollow dot name its reason honestly. */
+  private readonly claimedAreas = computed<Set<string>>(() => {
+    const config = this.config();
+    return config === null ? new Set() : new Set(inFlightAreas(this.model(), config));
+  });
+
   /**
    * Visible nodes with pixel positions. Hidden-state cards (state → null,
    * e.g. Deferred) stay off the lens, consistent with the board.
@@ -229,6 +236,7 @@ export class GraphView {
     const config = this.config();
     if (config === null) return [];
     const parallelActive = this.parallelActive();
+    const claimed = this.claimedAreas();
     const result: PositionedNode[] = [];
     for (const node of this.graph().nodes) {
       const card = this.model().cards[node.id];
@@ -254,7 +262,7 @@ export class GraphView {
         ready,
         safe,
         dotFilled,
-        readyTitle: this.readyTitle(card, config, parallelActive, ready, safe),
+        readyTitle: this.readyTitle(card, config, parallelActive, ready, safe, claimed),
         collision: overlaps.length > 0,
         collisionLabel:
           overlaps.length > 0
@@ -316,10 +324,12 @@ export class GraphView {
 
   /**
    * Tooltip for the ready dot, honest in every parallelism state. A hollow
-   * (ready-but-not-safe) dot distinguishes its reason: a declared surface that
-   * overlaps in-flight work, vs an undeclared surface whose safety can't be
-   * confirmed — the latter holds even when nothing is in flight, so it must not
-   * claim an overlap that isn't there.
+   * (ready-but-not-safe) dot names its actual reason and never claims an overlap
+   * that isn't there: a declared area that truly intersects in-flight work
+   * ("overlaps") vs a surface that simply can't be vouched for — undeclared, or
+   * declared with an unreadable entry. The overlap is confirmed against the
+   * `claimed` in-flight surface, so a partially-malformed `touches` whose valid
+   * areas don't collide falls to the honest "can't confirm" wording.
    */
   private readyTitle(
     card: Card,
@@ -327,13 +337,19 @@ export class GraphView {
     parallelActive: boolean,
     ready: boolean,
     safe: boolean,
+    claimed: Set<string>,
   ): string {
     if (!parallelActive || !ready) return 'Ready to start: every dependency is done';
     if (safe) return 'Safe to start — clear of in-flight work';
     const touched = resolveTouches(card, config);
-    return touched.areas.length === 0 && touched.unknown.length === 0
+    const declaredNames = [...touched.areas, ...touched.unknown];
+    if (declaredNames.some((name) => claimed.has(name))) {
+      return 'Ready, but overlaps work already in flight';
+    }
+    // Not safe, yet no confirmed overlap → the surface itself can't be vouched for.
+    return declaredNames.length === 0
       ? 'Ready — its touched areas are undeclared, so safety cannot be confirmed'
-      : 'Ready, but overlaps work already in flight';
+      : 'Ready — its touched areas can’t be fully read, so safety cannot be confirmed';
   }
 
   /** Open the node's card in the shared reader, with a way back here (ADR-004). */
