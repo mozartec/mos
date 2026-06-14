@@ -399,6 +399,70 @@ test('empty areas map, and a vault with no areas: no overlap warning, no new err
   assert.deepEqual(none.errors, [], none.errors.join('\n'));
 });
 
+// --- area definition shape (§5c, T-016): each area is a list of glob strings ---
+
+test('area whose value is not an array: error names the area and the value', () => {
+  const root = makeVault(withAreaGlobs({ web: 'apps/web/**' }), {
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors } = validateVault(root);
+  assert.ok(
+    has(errors, `area 'web': definition must be a list of glob strings, got "apps/web/**"`),
+    errors.join('\n'),
+  );
+});
+
+test('area array with a non-string entry: error names the area and the offending value', () => {
+  const root = makeVault(withAreaGlobs({ web: ['apps/web/**', 42] }), {
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors } = validateVault(root);
+  assert.ok(has(errors, "area 'web': glob 42 is not a string"), errors.join('\n'));
+});
+
+test('shape check fires for a single malformed area, independent of the ≥2-area overlap check', () => {
+  // One area, so validateAreaOverlap returns before mapping paths — yet the shape
+  // error is still raised, proving the two checks are independent.
+  const root = makeVault(withAreaGlobs({ web: 42 }), {
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors, warnings } = validateVault(root);
+  assert.ok(
+    has(errors, "area 'web': definition must be a list of glob strings"),
+    errors.join('\n'),
+  );
+  assert.ok(!has(warnings, 'overlapping globs'), warnings.join('\n'));
+});
+
+test('every malformed entry in one area is named, not just the first', () => {
+  const root = makeVault(withAreaGlobs({ web: [1, 'ok', 2] }), {
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors } = validateVault(root);
+  assert.ok(has(errors, "area 'web': glob 1 is not a string"), errors.join('\n'));
+  assert.ok(has(errors, "area 'web': glob 2 is not a string"), errors.join('\n'));
+});
+
+test('well-formed areas: no shape error and no new warning', () => {
+  const root = makeVault(withAreaGlobs({ core: ['core/**'], web: ['web/**'] }), {
+    'core/a.ts': 'a',
+    'web/b.ts': 'b',
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors, warnings } = validateVault(root);
+  assert.deepEqual(errors, [], errors.join('\n'));
+  assert.deepEqual(warnings, [], warnings.join('\n'));
+});
+
+test('vault with no areas: no shape error', () => {
+  const root = makeVault(baseConfig(), {
+    'cards/c.md': card('id: T-1', 'type: item', 'title: C', 'status: Open'),
+  });
+  const { errors } = validateVault(root);
+  assert.ok(!has(errors, 'area '), errors.join('\n'));
+  assert.deepEqual(errors, [], errors.join('\n'));
+});
+
 // --- ids, timestamps, ordering ------------------------------------------------
 
 test('unresolved dependsOn id: error', () => {
