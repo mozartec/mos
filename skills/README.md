@@ -18,6 +18,7 @@ scripts.
 |---|---|
 | [`next-card`](next-card/SKILL.md) | Rank the board and recommend the single best next card; hands the confirmed pick to ship-card. |
 | [`ship-card`](ship-card/SKILL.md) | Take one named card (any configured type — feature, story, task, …) from id to an open PR. |
+| [`refine-batch`](refine-batch/SKILL.md) | Reshape the backlog so parallel-safe work exists: raise not-yet-started cards to readiness, fill `touches`, and split overlap clusters into an enabler plus disjoint leaves (ADR-022). |
 
 ## Conventions for skills in this folder
 

@@ -25,6 +25,12 @@
       "skillPath": "skills/next-card/SKILL.md",
       "computedHash": "e278c8868342a091d5ad15a75e18457cefe2e886db4ada2cd473dcd9d50bc920"
     },
+    "refine-batch": {
+      "source": "mozartec/mos",
+      "sourceType": "github",
+      "skillPath": "skills/refine-batch/SKILL.md",
+      "computedHash": "066e9a7a897c25593b49deb68d95adce977a6f37385e02e93e99d8311882399b"
+    },
     "ship-card": {
       "source": "mozartec/mos",
       "sourceType": "github",

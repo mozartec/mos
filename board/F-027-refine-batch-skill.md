@@ -2,14 +2,14 @@
 id: F-027
 type: feature
 title: Refine-batch skill — shape the backlog for parallel work
-status: Draft
+status: In Progress
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-024]
 touches: [skills, docs]
 created: 2026-06-12T19:10:00Z
-updated: 2026-06-13T17:50:00Z
+updated: 2026-06-14T12:00:00Z
 ---
 
 # F-027 — Refine-batch skill — shape the backlog for parallel work
