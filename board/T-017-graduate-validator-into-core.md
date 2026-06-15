@@ -2,13 +2,13 @@
 id: T-017
 type: task
 title: Graduate the vault validator into packages/core (spec-version aware)
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [core, scripts]
 created: 2026-06-14T18:29:34Z
-updated: 2026-06-14T18:56:37Z
+updated: 2026-06-15T14:48:53Z
 ---
 
 # T-017 — Graduate the vault validator into packages/core (spec-version aware)
@@ -107,18 +107,18 @@ supports," and reduce the script to a thin I/O shell.
 
 ## Acceptance
 
-- [ ] `packages/core` exports a pure `validateVault` over parsed input + config; it imports
+- [x] `packages/core` exports a pure `validateVault` over parsed input + config; it imports
       no `node:fs`/`node:path`/network (core stays pure — ADR-001).
-- [ ] The script's inlined parser/placement is removed; `scripts/validate-vault.mjs` only
+- [x] The script's inlined parser/placement is removed; `scripts/validate-vault.mjs` only
       reads/discovers/prints and delegates the checks to core.
-- [ ] Every check listed in Constraints still fires (one fixture per check); the contract
+- [x] Every check listed in Constraints still fires (one fixture per check); the contract
       suite `scripts/validate-vault.test.mjs` stays green or is updated with each diff
       explained.
-- [ ] A vault whose `specVersion` is newer than the supported range produces a non-fatal
+- [x] A vault whose `specVersion` is newer than the supported range produces a non-fatal
       warning; an equal/older vault does not.
-- [ ] `bun run validate` on this repo is clean; exit codes are unchanged for valid/invalid
+- [x] `bun run validate` on this repo is clean; exit codes are unchanged for valid/invalid
       0.4 vaults.
-- [ ] The stale F-002 graduation comment is gone, replaced by an accurate description.
+- [x] The stale F-002 graduation comment is gone, replaced by an accurate description.
 
 ## Dependencies
 

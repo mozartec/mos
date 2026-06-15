@@ -1,21 +1,30 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // validate-vault.mjs — check a mos vault against its .mos/config.json.
 //
-// Zero dependencies. Run with Bun or Node:
-//   bun run validate            # or: node scripts/validate-vault.mjs
-//   node scripts/validate-vault.mjs <vaultDir> [<vaultDir> ...]
+// The validation rules live in @mos/core (validateVault); this script is the
+// thin I/O shell around them — it discovers vaults, reads files, parses cards
+// with core's parser, builds the model, and prints the report. Because it
+// imports core's TypeScript source (no dist/, ADR-008), run it with Bun:
+//   bun run validate            # this repo's vault
+//   bun scripts/validate-vault.mjs <vaultDir> [<vaultDir> ...]
 //
 // With no args it auto-discovers every vault (a directory containing
 // .mos/config.json) under the current directory. Exits non-zero if any vault
-// has errors, so it doubles as a CI gate.
-//
-// This is an interim guide for agents working on tasks: run it to confirm the
-// board renders as intended before/after editing cards. When packages/core
-// lands (F-002), this logic graduates into core with a real parser and tests.
+// has errors, so it doubles as a CI gate. The same core validateVault backs the
+// `mos validate` CLI for any repo (F-029).
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { globToRegExp, toPosixPath } from '../packages/core/src/path-glob.js';
+import {
+  loadConfig,
+  parseFile,
+  buildModel,
+  validateVault as validateVaultCore,
+  placeCard,
+  sortWithinColumn,
+  globToRegExp,
+  toPosixPath,
+} from '../packages/core/src/index.js';
 
 const IGNORE = new Set(['node_modules', '.git', '.angular', '.turbo', 'dist', '.cache']);
 
@@ -35,413 +44,69 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-function unquote(v) {
-  return (v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))
-    ? v.slice(1, -1)
-    : v;
-}
-
-function parseFrontmatter(text) {
-  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
-  if (!m) return null;
-  const obj = {};
-  const lines = m[1].split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const mm = /^([A-Za-z0-9_]+):\s*(.*)$/.exec(lines[i]);
-    if (!mm) continue;
-    const v = mm[2].trim();
-    if (v === '') {
-      // A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
-      //   key:
-      //     - entry
-      const items = [];
-      for (let item; i + 1 < lines.length && (item = /^\s*-\s*(.*)$/.exec(lines[i + 1])); i++) {
-        items.push(unquote(item[1].trim()));
-      }
-      obj[mm[1]] = items.length > 0 ? items : v;
-    } else {
-      obj[mm[1]] = unquote(v);
-    }
-  }
-  return obj;
-}
-
-// The shipped default frontmatter order (F-013); config `fieldOrder` overrides it.
-const DEFAULT_FIELD_ORDER = [
-  'id',
-  'type',
-  'title',
-  'status',
-  'priority',
-  'phase',
-  'owner',
-  'sprint',
-  'parent',
-  'estimate',
-  'dependsOn',
-  'touches',
-  'created',
-  'updated',
-];
-
-// A frontmatter list value, deduped: a block list (already an array from
-// parseFrontmatter), an inline `[a, b]` — entries may be quoted, but a quoted
-// entry containing a comma is beyond this interim parser — or a bare single
-// value; null when absent.
-function parseList(raw) {
-  if (raw == null || raw === '') return null;
-  if (Array.isArray(raw)) return [...new Set(raw)];
-  const inline = /^\[(.*)\]$/.exec(raw);
-  const items = inline
-    ? inline[1]
-        .split(',')
-        .map((s) => unquote(s.trim()))
-        .filter(Boolean)
-    : [raw];
-  return [...new Set(items)];
-}
-
-// Values an enum `source` supplies: a config list's entries, or a config map's keys.
-function sourceValues(cfg, source) {
-  if (typeof source !== 'string' || !Object.hasOwn(cfg, source)) return null;
-  const src = cfg[source];
-  if (Array.isArray(src)) return src;
-  if (src !== null && typeof src === 'object') return Object.keys(src);
-  return null;
-}
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-// A real ISO YYYY-MM-DD calendar date (rejects shapes like 2026-13-99).
-function validIsoDate(s) {
-  return typeof s === 'string' && ISO_DATE.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));
-}
-
-// Raw board-scope values (§5d, ADR-020): an explicit board.scopeField (inline
-// `values`, else a `source` config list/map), or the 0.3 `sprints` alias.
-// `{ values: null }` means the vault is unscoped.
-function scopeRawValues(cfg) {
-  const field = cfg.board?.scopeField;
-  if (field !== undefined) {
-    const def = (cfg.fields ?? {})[field];
-    if (!def || typeof def !== 'object')
-      return { error: `board.scopeField: '${field}' is not a registered field` };
-    if (def.type !== 'enum') return { error: `board.scopeField: field '${field}' must be an enum` };
-    if (Array.isArray(def.values) && def.values.length) return { values: def.values };
-    if (typeof def.source === 'string' && Object.hasOwn(cfg, def.source)) {
-      const src = cfg[def.source];
-      if (Array.isArray(src)) return { values: src };
-      if (src !== null && typeof src === 'object') return { values: Object.keys(src) };
-    }
-    return { values: [] };
-  }
-  if (Array.isArray(cfg.sprints) && cfg.sprints.length) return { values: cfg.sprints };
-  return { values: null };
-}
-
-// Validate the board scope: accept string or dated { name, starts?, ends? }
-// values, flag malformed/inverted dates (errors), and warn on overlapping
-// windows. A scope-less vault is checked and left warning-free.
-function validateScope(cfg, errors, warnings) {
-  const { values, error } = scopeRawValues(cfg);
-  if (error) {
-    errors.push(error);
-    return;
-  }
-  if (values == null) return; // unscoped
-
-  const dated = [];
-  for (const entry of values) {
-    if (typeof entry === 'string') continue; // dateless value, fine
-    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-      errors.push(
-        `board scope: value ${JSON.stringify(entry)} must be a string or { name, starts?, ends? }`,
-      );
-      continue;
-    }
-    const name = entry.name;
-    if (typeof name !== 'string' || name === '') {
-      errors.push('board scope: a value is missing a name');
-      continue;
-    }
-    for (const key of ['starts', 'ends']) {
-      if (entry[key] != null && !validIsoDate(entry[key]))
-        errors.push(
-          `board scope '${name}': ${key} '${entry[key]}' is not a valid ISO date (YYYY-MM-DD)`,
-        );
-    }
-    const s = validIsoDate(entry.starts) ? Date.parse(`${entry.starts}T00:00:00Z`) : null;
-    const e = validIsoDate(entry.ends) ? Date.parse(`${entry.ends}T00:00:00Z`) : null;
-    if (s != null && e != null) {
-      if (s > e)
-        errors.push(
-          `board scope '${name}': starts '${entry.starts}' is after ends '${entry.ends}'`,
-        );
-      else dated.push({ name, s, e });
-    }
-  }
-
-  dated.sort((a, b) => a.s - b.s);
-  for (let i = 0; i < dated.length; i++)
-    for (let j = i + 1; j < dated.length; j++)
-      if (dated[i].s <= dated[j].e && dated[j].s <= dated[i].e)
-        warnings.push(
-          `board scope '${dated[i].name}' and '${dated[j].name}' have overlapping dates`,
-        );
-}
-
-// Area glob overlap (§5c, ADR-021): "two differently-named areas whose globs
-// match the same file defeat the point," because batch math compares `touches`
-// by name. This flags *demonstrable* overlap only — a file actually matched by
-// two areas in the vault's file list — not a guess about whether two globs could
-// ever collide; that keeps it cheap and honest (a false "too coarse" is worse
-// than none). One warning per overlapping pair, with a sample shared path, so a
-// many-file overlap collapses to one line. A warning, never an error — overlap is
-// a design smell, like the in-flight overlap below. Granularity ("is this area
-// too coarse?") is a planning call, not statically decidable, and stays out (§5c).
-function validateAreaOverlap(areas, files, root, warnings) {
-  if (areas == null || typeof areas !== 'object' || Array.isArray(areas)) return;
-  const compiled = Object.entries(areas).map(([name, globs]) => ({
-    name,
-    res: (Array.isArray(globs) ? globs : [globs])
-      .filter((g) => typeof g === 'string')
-      .map(globToRegExp),
-  }));
-  if (compiled.length < 2) return; // 0 or 1 area can't overlap — skip before mapping paths
-  const relFiles = files.map((f) => toPosixPath(relative(root, f)));
-  // Per overlapping pair keep the lexicographically smallest matching path, so a
-  // many-file overlap collapses to one deterministic line regardless of walk order.
-  // A nested Map<a, Map<b, sample>> (smaller name first) holds the pair directly,
-  // without packing the two names into one string key.
-  const samples = new Map();
-  for (const rel of relFiles) {
-    const hit = compiled.filter((a) => a.res.some((re) => re.test(rel))).map((a) => a.name);
-    if (hit.length < 2) continue;
-    hit.sort();
-    for (let i = 0; i < hit.length; i++)
-      for (let j = i + 1; j < hit.length; j++) {
-        let byB = samples.get(hit[i]);
-        if (byB === undefined) samples.set(hit[i], (byB = new Map()));
-        const prev = byB.get(hit[j]);
-        if (prev === undefined || rel < prev) byB.set(hit[j], rel);
-      }
-  }
-  for (const a of [...samples.keys()].sort())
-    for (const b of [...samples.get(a).keys()].sort())
-      warnings.push(
-        `areas '${a}' and '${b}' have overlapping globs (both match '${samples.get(a).get(b)}')`,
-      );
-}
-
-// Area definition shape (§5c, T-016): `areas` maps each name to a *list of glob
-// strings*. validateAreaOverlap coerces and filters non-strings defensively
-// (`(Array.isArray(globs) ? globs : [globs]).filter(...)`), so a malformed area —
-// a non-array value, or an array with a non-string entry — would otherwise
-// compile to fewer (or zero) regexes, silently match nothing, and vanish from
-// overlap detection with no diagnostic. This is the cheap shape check that
-// surfaces it: an error (broken config, like an unknown column or an enum without
-// `values`/`source`), naming the offending area and value. It runs independently
-// of the overlap check, which needs ≥2 areas, so a single malformed area is still
-// caught. Shape only — it does not validate glob *syntax* (beyond "is a string")
-// or judge area granularity (a planning call, not statically decidable; §5c).
-function validateAreas(areas, errors) {
-  if (areas == null || typeof areas !== 'object' || Array.isArray(areas)) return;
-  for (const [name, globs] of Object.entries(areas)) {
-    if (!Array.isArray(globs)) {
-      errors.push(
-        `area '${name}': definition must be a list of glob strings, got ${JSON.stringify(globs)}`,
-      );
-      continue;
-    }
-    for (const g of globs)
-      if (typeof g !== 'string')
-        errors.push(`area '${name}': glob ${JSON.stringify(g)} is not a string`);
-  }
-}
-
+/**
+ * Validate one vault rooted at `root`. The I/O half of the validator: read the
+ * config, walk the tree, parse the board-scope cards with core's parser, then
+ * hand the parsed model + config + file list to core's pure validateVault. The
+ * returned object carries the diagnostics (errors/warnings) plus the board view
+ * printReport renders — both built here, nothing validated here.
+ */
 export function validateVault(root) {
-  const errors = [];
-  const warnings = [];
-  const cfg = JSON.parse(readFileSync(join(root, '.mos', 'config.json'), 'utf8'));
-  const types = cfg.types;
-  const columns = cfg.board.columns;
-  const includes = (cfg.board.include || []).map(globToRegExp);
-  // Timestamp fields are config-driven (meta.timestamps); they're optional, but when present
-  // must be UTC ISO 8601 with the `Z` designator — not a local time or a +hh:mm offset (ADR-010).
-  const tsFields = [
-    cfg.meta?.timestamps?.createdField ?? 'created',
-    cfg.meta?.timestamps?.updatedField ?? 'updated',
-  ];
-  const UTC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+  const { config, errors: configErrors } = loadConfig(
+    readFileSync(join(root, '.mos', 'config.json'), 'utf8'),
+  );
 
-  for (const [tn, t] of Object.entries(types)) {
-    if (t.parent != null) {
-      if (!types[t.parent]) errors.push(`type ${tn}: parent type '${t.parent}' is not defined`);
-      else if (types[t.parent].parent != null)
-        errors.push(`type ${tn}: parent '${t.parent}' itself has a parent (nesting > 1)`);
-    }
-    for (const [st, col] of Object.entries(t.states)) {
-      if (col != null && !columns.includes(col))
-        errors.push(`type ${tn}: state '${st}' maps to unknown column '${col}'`);
-    }
-  }
-
-  // Board scope (§5d, ADR-020): scopeField / dated values / 0.3 sprints alias.
-  validateScope(cfg, errors, warnings);
-
-  // Walk the tree once — shared by the area-overlap check and the card scan below.
   const files = walk(root);
+  const relPaths = files.map((f) => toPosixPath(relative(root, f)));
 
-  // Area glob overlap (§5c): areas whose globs match a common file.
-  validateAreaOverlap(cfg.areas, files, root, warnings);
-
-  // Area definition shape (§5c, T-016): each area is a list of glob strings.
-  // Independent of the overlap check above (which needs ≥2 areas), so a single
-  // malformed area is still caught.
-  validateAreas(cfg.areas, errors);
-
-  // Allowed values per list-enum field (F-024, ADR-021), resolved once: a
-  // declared `values` list, the resolved source, or — when the declared
-  // source names no config key — the empty set, so every declared value is
-  // flagged rather than the whole check silently skipped.
-  const listEnumAllowed = new Map();
-  for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
-    if (def?.type !== 'enum' || def?.list !== true) continue;
-    const allowed =
-      Array.isArray(def.values) && def.values.length > 0
-        ? def.values
-        : def.source !== undefined
-          ? (sourceValues(cfg, def.source) ?? [])
-          : null;
-    if (allowed != null)
-      listEnumAllowed.set(fieldName, { allowed: new Set(allowed), source: def.source });
-  }
-
-  const cards = {};
+  // Parse the board-scope markdown into cards with core's real parser, the way
+  // the app and the `mos validate` CLI (F-029) do — no inlined frontmatter parser.
+  const boardMatchers = config.board.include.map(globToRegExp);
+  const parsed = [];
   for (const f of files) {
     if (!f.endsWith('.md')) continue;
     const rel = toPosixPath(relative(root, f));
-    if (!includes.some((re) => re.test(rel))) continue;
-    const data = parseFrontmatter(readFileSync(f, 'utf8'));
-    if (!data || !types[data.type]) continue; // not a card
-    if (!data.id || typeof data.id !== 'string') {
-      errors.push(`${rel}: card has no scalar id`);
-      continue;
-    }
-    if (cards[data.id]) errors.push(`duplicate id '${data.id}' (${rel})`);
-    cards[data.id] = { ...data, _rel: rel };
+    if (!boardMatchers.some((re) => re.test(rel))) continue;
+    parsed.push(parseFile(rel, readFileSync(f, 'utf8')));
   }
+  const build = buildModel(parsed, config);
 
-  for (const c of Object.values(cards)) {
-    const t = types[c.type];
-    if (!(c.status in t.states))
-      errors.push(`${c.id}: status '${c.status}' not allowed for type '${c.type}'`);
-    if (c.parent != null) {
-      if (typeof c.parent !== 'string') errors.push(`${c.id}: parent is not a single id`);
-      else if (t.parent == null) errors.push(`${c.id}: type '${c.type}' may not have a parent`);
-      else if (!cards[c.parent]) errors.push(`${c.id}: parent '${c.parent}' not found`);
-      else if (cards[c.parent].type !== t.parent)
-        errors.push(
-          `${c.id}: parent '${c.parent}' is type '${cards[c.parent].type}', expected '${t.parent}'`,
-        );
-    }
-    for (const field of tsFields) {
-      const v = c[field];
-      if (v == null || v === '') continue; // timestamps are optional
-      if (typeof v !== 'string' || !UTC_ISO.test(v) || Number.isNaN(Date.parse(v)))
-        errors.push(
-          `${c.id}: ${field} '${v}' is not UTC ISO 8601 (expected e.g. 2026-06-08T09:00:00Z)`,
-        );
-    }
-    // Every id in a list-of-id field (e.g. dependsOn, F-012-S-01) must resolve to a card.
-    for (const [fieldName, def] of Object.entries(cfg.fields ?? {})) {
-      if (def?.type !== 'id' || def?.list !== true) continue;
-      for (const id of parseList(c[fieldName]) ?? []) {
-        if (!cards[id]) errors.push(`${c.id}: ${fieldName} '${id}' does not resolve to a card`);
-      }
-    }
-    // Every value of a list-enum field must come from its declared values or
-    // source — the list analogue of the id check above (F-024, ADR-021; e.g.
-    // a `touches` entry that names no configured area).
-    for (const [fieldName, { allowed, source }] of listEnumAllowed) {
-      for (const v of parseList(c[fieldName]) ?? []) {
-        if (!allowed.has(v))
-          errors.push(
-            `${c.id}: ${fieldName} '${v}' is not a value of ${source !== undefined ? `config '${source}'` : 'its enum'}`,
-          );
-      }
-    }
-    // §5c fallback: `touches` is the spec's conventional surface field. When
-    // the registry doesn't already type it as a list enum, its entries must
-    // still name configured areas — a vault using touches without areas is
-    // half-configured, not exempt.
-    if (!listEnumAllowed.has('touches')) {
-      for (const name of parseList(c.touches) ?? []) {
-        if (!Object.hasOwn(cfg.areas ?? {}, name))
-          errors.push(`${c.id}: touches '${name}' names no configured area`);
-      }
-    }
-    // Frontmatter property order (F-013): a warning, never an error.
-    const fieldOrder = Array.isArray(cfg.fieldOrder) ? cfg.fieldOrder : DEFAULT_FIELD_ORDER;
-    const present = Object.keys(c).filter((k) => k !== '_rel' && fieldOrder.includes(k));
-    const expected = fieldOrder.filter((k) => present.includes(k));
-    if (present.join(' ') !== expected.join(' '))
-      warnings.push(`${c.id}: frontmatter keys out of order (expected ${expected.join(', ')})`);
-  }
+  const { errors, warnings } = validateVaultCore(build, config, relPaths);
 
-  // Two cards concurrently in flight — in the column before the last, the
-  // counterpart of "last column is done" — that declare overlapping areas are
-  // heading for the same files (F-024, ADR-021). A warning, never an error.
-  // `touches` is the spec's conventional surface field (VAULT_SPEC §5c),
-  // mirroring core's TOUCHES_FIELD, the way `dependsOn` is the deps convention.
-  // Core owns this rule as `inFlightColumn(config)` (place-card.ts); kept inline
-  // here because this validator is zero-dependency and runs under plain `node`,
-  // which can't import core's TS — the same reason placeCard/sorting are inlined.
-  const inFlightCol = columns.length >= 3 ? columns[columns.length - 2] : null;
-  if (inFlightCol != null) {
-    const inFlight = Object.values(cards)
-      .filter((c) => types[c.type].states[c.status] === inFlightCol)
-      .map((c) => ({ id: c.id, areas: parseList(c.touches) ?? [] }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-    for (let i = 0; i < inFlight.length; i++) {
-      for (let j = i + 1; j < inFlight.length; j++) {
-        const shared = inFlight[i].areas.filter((a) => inFlight[j].areas.includes(a));
-        if (shared.length)
-          warnings.push(
-            `${inFlight[i].id} and ${inFlight[j].id}: both in '${inFlightCol}' and declare overlapping area(s): ${shared.join(', ')}`,
-          );
-      }
-    }
-  }
+  // loadConfig owns config normalization; only its fundamental failures
+  // (unparseable / not an object) are surfaced here. Every semantic check the
+  // validator promises lives in core's validateVault, so its richer config
+  // diagnostics are intentionally not double-reported.
+  const allErrors = [...configErrors.filter((e) => e.startsWith('config:')), ...errors];
 
-  const rank = { P0: 0, P1: 1, P2: 2, P3: 3 };
-  const board = Object.fromEntries(columns.map((c) => [c, []]));
+  // Lay the cards out by column for the human-readable report — presentation
+  // only, reusing core's placement and within-column sort.
+  const cards = Object.values(build.model.cards);
+  const board = Object.fromEntries(config.board.columns.map((c) => [c, []]));
   const hidden = [];
-  for (const c of Object.values(cards)) {
-    const col = types[c.type].states[c.status];
-    (col == null ? hidden : board[col]).push(c);
+  for (const card of cards) {
+    const column = placeCard(card, config).column;
+    (column == null ? hidden : board[column]).push(card);
   }
-  for (const col of columns)
-    board[col].sort(
-      (a, b) => (rank[a.priority] ?? 9) - (rank[b.priority] ?? 9) || a.id.localeCompare(b.id),
-    );
+  for (const column of config.board.columns) {
+    board[column] = sortWithinColumn(board[column], config);
+  }
 
   return {
-    errors,
+    errors: allErrors,
     warnings,
-    name: cfg.vault?.name ?? root,
-    specVersion: cfg.specVersion,
-    cardCount: Object.keys(cards).length,
-    columns,
+    name: config.vault.name || root,
+    specVersion: config.specVersion || undefined,
+    cardCount: cards.length,
+    columns: config.board.columns,
     board,
     hidden,
   };
 }
 
-// Print one vault's report exactly as the CLI always has — the output is part of
-// the validator's contract, so this stays byte-for-byte what validateVault used
-// to log (T-011). The importable validateVault is side-effect free; only the CLI
-// path prints, by calling this.
+// Print one vault's report. The output is the validator's human-facing surface;
+// it reads the card shape core returns (status, priority, title, and parent in
+// fields). The importable validateVault is side-effect free; only the CLI prints.
 function printReport({ name, specVersion, cardCount, columns, board, hidden, warnings, errors }) {
   console.log(
     `\n${'='.repeat(60)}\nVAULT: ${name}  (specVersion ${specVersion ?? '?'}, ${cardCount} cards)\n${'='.repeat(60)}`,
@@ -450,7 +115,7 @@ function printReport({ name, specVersion, cardCount, columns, board, hidden, war
     console.log(`\n  [${col}] (${board[col].length})`);
     for (const c of board[col]) {
       const badge = c.status === 'Blocked' ? ' *BLOCKED*' : '';
-      const par = c.parent ? `  ^${c.parent}` : '';
+      const par = c.fields?.parent ? `  ^${c.fields.parent}` : '';
       console.log(`    ${c.id.padEnd(12)} ${c.priority ?? '--'} ${c.title ?? ''}${par}${badge}`);
     }
   }

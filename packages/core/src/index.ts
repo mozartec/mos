@@ -71,3 +71,5 @@ export {
   safeToStart,
   TOUCHES_FIELD,
 } from './parallel.js';
+export type { ValidateVaultResult } from './validate.js';
+export { validateVault, SUPPORTED_SPEC_VERSION } from './validate.js';
