@@ -324,3 +324,26 @@ describe('parallelOverlaysActive', () => {
     expect(parallelOverlaysActive(cfg(['Backlog', 'Done'], areas))).toBe(false); // no in-flight column
   });
 });
+
+describe('placeCard — malformed config', () => {
+  it('diagnoses, never throws, when a type carries no states map', () => {
+    // A malformed config (a type with no `states`) must not crash placement —
+    // it is on the app's and the validator's hot path (T-017 RISK B).
+    const badConfig: VaultConfig = {
+      ...testConfig,
+      types: { story: { parent: null } as unknown as VaultConfig['types'][string] },
+    };
+    const card: Card = {
+      id: 'S-1',
+      type: 'story',
+      title: 'S',
+      status: 'Todo',
+      path: 'board/s.md',
+      fields: {},
+    };
+    expect(() => placeCard(card, badConfig)).not.toThrow();
+    const result = placeCard(card, badConfig);
+    expect(result.column).toBeNull();
+    expect(result.error).toContain("Unknown status 'Todo'");
+  });
+});

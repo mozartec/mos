@@ -125,21 +125,40 @@ function compareVersions(a: number[], b: number[]): number {
 
 // ── config shape: types & scope ──────────────────────────────────────────────
 
-/** Parent nesting ≤ 1 and every state maps to a real column or `null` (ADR-003). */
+/**
+ * Parent nesting ≤ 1 and every state maps to a real column or `null` (ADR-003).
+ * A type with no usable `states` map can't place its cards — and would crash
+ * placement — so it is reported, not thrown on. Reads the types defensively (as
+ * unknown), mirroring loadConfig, since a malformed config may carry non-objects.
+ */
 function validateTypes(config: VaultConfig, errors: string[]): void {
   const columns = config.board.columns;
-  for (const [typeName, type] of Object.entries(config.types)) {
-    if (type.parent != null) {
-      const parentDef = config.types[type.parent];
-      if (parentDef === undefined) {
-        errors.push(`type ${typeName}: parent type '${type.parent}' is not defined`);
-      } else if (parentDef.parent != null) {
-        errors.push(`type ${typeName}: parent '${type.parent}' itself has a parent (nesting > 1)`);
+  const types = config.types as Record<string, unknown>;
+  for (const [typeName, typeRaw] of Object.entries(types)) {
+    const type = isObject(typeRaw) ? typeRaw : {};
+
+    const parent = type['parent'];
+    if (parent != null) {
+      const parentDef = typeof parent === 'string' ? types[parent] : undefined;
+      if (!isObject(parentDef)) {
+        errors.push(`type ${typeName}: parent type '${String(parent)}' is not defined`);
+      } else if (parentDef['parent'] != null) {
+        errors.push(
+          `type ${typeName}: parent '${String(parent)}' itself has a parent (nesting > 1)`,
+        );
       }
     }
-    for (const [state, column] of Object.entries(type.states)) {
-      if (column != null && !columns.includes(column)) {
-        errors.push(`type ${typeName}: state '${state}' maps to unknown column '${column}'`);
+
+    const states = type['states'];
+    if (!isObject(states)) {
+      errors.push(`type ${typeName}: no states defined`);
+      continue;
+    }
+    for (const [state, column] of Object.entries(states)) {
+      if (column != null && (typeof column !== 'string' || !columns.includes(column))) {
+        errors.push(
+          `type ${typeName}: state '${state}' maps to unknown column '${String(column)}'`,
+        );
       }
     }
   }
@@ -314,8 +333,11 @@ function validateCards(
 
   for (const card of Object.values(cards)) {
     const typeDef = config.types[card.type];
+    // Guard the states map: a malformed type with none is already reported by
+    // validateTypes, and `in undefined` would throw (validateTypes/placeCard fix).
+    const typeStates = isObject(typeDef?.states) ? typeDef.states : undefined;
 
-    if (typeDef !== undefined && !(card.status in typeDef.states)) {
+    if (typeStates !== undefined && !(card.status in typeStates)) {
       errors.push(`${card.id}: status '${card.status}' not allowed for type '${card.type}'`);
     }
 
@@ -438,15 +460,31 @@ function buildListEnumAllowed(
   return result;
 }
 
-/** A frontmatter list value as deduped strings: an array, a lone scalar, or none. */
+/**
+ * A frontmatter list value as deduped name strings: an array, a lone scalar, or
+ * none. Scalar entries (numbers/booleans) are stringified — matching the old
+ * inlined parser, which turned every value into a string, so a numeric typo like
+ * `dependsOn: [123]` is still flagged as unresolved rather than silently dropped.
+ * Non-scalar entries (objects, nested arrays) have no name and are skipped.
+ */
 function asList(value: unknown): string[] {
   if (value == null) return [];
   const array = Array.isArray(value) ? value : [value];
   const out: string[] = [];
   for (const entry of array) {
-    if (typeof entry === 'string' && !out.includes(entry)) out.push(entry);
+    const name = scalarName(entry);
+    if (name !== '' && !out.includes(name)) out.push(name);
   }
   return out;
+}
+
+/** A list entry as a name: a string, or a stringified number/boolean/bigint; `''` otherwise. */
+function scalarName(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+  return '';
 }
 
 /** An enum entry's value name: a plain string, or a dated value's `name` (§5d). */

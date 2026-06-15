@@ -48,7 +48,10 @@ export function placeCard(card: Card, config: VaultConfig): CardPlacement {
     };
   }
 
-  const column = typeDef.states[card.status];
+  // `?.` so a malformed type with no `states` map reports an "unknown status"
+  // rather than throwing — placement is on the app's and validator's hot path,
+  // and a primitive that crashes on bad config is worse than one that diagnoses it.
+  const column = typeDef.states?.[card.status];
   if (column === undefined) {
     return {
       column: null,

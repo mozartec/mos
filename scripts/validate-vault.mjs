@@ -73,10 +73,14 @@ export function validateVault(root) {
 
   const { errors, warnings } = validateVaultCore(build, config, relPaths);
 
-  // loadConfig owns config normalization; only its fundamental failures
-  // (unparseable / not an object) are surfaced here. Every semantic check the
-  // validator promises lives in core's validateVault, so its richer config
-  // diagnostics are intentionally not double-reported.
+  // Surface only loadConfig's two fundamental, config-unusable errors — invalid
+  // JSON / not an object — which it alone prefixes with `config:`. Its semantic
+  // diagnostics (field types, colors, idPattern, enum sources) are deliberately
+  // NOT forwarded: those checks are core validateVault's contract, and surfacing
+  // loadConfig's would both add rules the validator doesn't promise and change
+  // `validate` output. Keep this filter narrow — widening it past the `config:`
+  // fundamentals re-introduces both. (If core ever gives a config:-prefixed
+  // semantic error, switch this to an explicit "config unusable" signal.)
   const allErrors = [...configErrors.filter((e) => e.startsWith('config:')), ...errors];
 
   // Lay the cards out by column for the human-readable report — presentation

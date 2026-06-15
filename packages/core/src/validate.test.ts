@@ -204,3 +204,103 @@ describe('validateVault — happy path & a card rule', () => {
     expect(errors).toContain("T-1: status 'Nope' not allowed for type 'item'");
   });
 });
+
+// A vault with id-list and area-sourced list-enum fields, for the list-entry and
+// per-card rules below.
+function listConfig(): Record<string, unknown> {
+  return baseConfig({
+    fields: {
+      id: { type: 'id' },
+      title: { type: 'string' },
+      status: { type: 'string' },
+      created: { type: 'datetime' },
+      dependsOn: { type: 'id', list: true },
+      touches: { type: 'enum', source: 'areas', list: true },
+    },
+    areas: { core: ['core/**'] },
+  });
+}
+
+describe('validateVault — list entries are coerced, not dropped (RISK A)', () => {
+  it('flags a numeric dependsOn entry as unresolved (the old parser stringified it)', () => {
+    const { errors } = run(listConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'dependsOn: [123]'),
+    });
+    expect(errors).toContain("T-1: dependsOn '123' does not resolve to a card");
+  });
+
+  it('flags a numeric touches entry as no configured area', () => {
+    const { errors } = run(listConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'touches: [123]'),
+    });
+    expect(errors).toContain("T-1: touches '123' is not a value of config 'areas'");
+  });
+
+  it('still accepts a valid string list entry', () => {
+    const { errors } = run(listConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'touches: [core]'),
+    });
+    expect(errors).toEqual([]);
+  });
+});
+
+describe('validateVault — malformed config never throws (RISK B)', () => {
+  const noStates = () => baseConfig({ types: { item: { parent: null } } });
+
+  it('reports a type with no states map instead of throwing', () => {
+    expect(() => run(noStates())).not.toThrow();
+    expect(run(noStates()).errors).toContain('type item: no states defined');
+  });
+
+  it('does not throw on a card whose type has no states map', () => {
+    const cards = { 'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open') };
+    expect(() => run(noStates(), cards)).not.toThrow();
+    expect(run(noStates(), cards).errors).toContain('type item: no states defined');
+  });
+});
+
+describe('validateVault — per-card rules (direct)', () => {
+  it('flags a non-UTC timestamp', () => {
+    const { errors } = run(listConfig(), {
+      'cards/a.md': card(
+        'id: T-1',
+        'type: item',
+        'title: A',
+        'status: Open',
+        'created: 2026-01-01T00:00:00+02:00',
+      ),
+    });
+    expect(errors).toContainEqual(expect.stringContaining('T-1: created'));
+  });
+
+  it('flags an unresolved dependsOn id', () => {
+    const { errors } = run(listConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'dependsOn: [T-99]'),
+    });
+    expect(errors).toContain("T-1: dependsOn 'T-99' does not resolve to a card");
+  });
+
+  it('flags a touches entry naming no configured area', () => {
+    const { errors } = run(listConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'touches: [ghost]'),
+    });
+    expect(errors).toContain("T-1: touches 'ghost' is not a value of config 'areas'");
+  });
+
+  it('warns on frontmatter keys out of order', () => {
+    const { warnings } = run(listConfig(), {
+      'cards/a.md': card('title: A', 'id: T-1', 'type: item', 'status: Open'),
+    });
+    expect(warnings).toContainEqual(expect.stringContaining('T-1: frontmatter keys out of order'));
+  });
+
+  it('warns when two in-flight cards declare overlapping areas', () => {
+    const { warnings } = run(listConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Active', 'touches: [core]'),
+      'cards/b.md': card('id: T-2', 'type: item', 'title: B', 'status: Active', 'touches: [core]'),
+    });
+    expect(warnings).toContainEqual(
+      expect.stringContaining("both in 'Doing' and declare overlapping area(s): core"),
+    );
+  });
+});
