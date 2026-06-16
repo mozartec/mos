@@ -21,4 +21,11 @@ describe('parseArgs', () => {
     expect(parseArgs(['serve', '--write'])).toHaveProperty('error');
     expect(parseArgs(['deploy'])).toHaveProperty('error');
   });
+
+  it('parses validate with an optional dir and rejects options or extra args', () => {
+    expect(parseArgs(['validate'])).toEqual({ command: 'validate', dir: undefined });
+    expect(parseArgs(['validate', './vault'])).toEqual({ command: 'validate', dir: './vault' });
+    expect(parseArgs(['validate', '--write'])).toHaveProperty('error');
+    expect(parseArgs(['validate', 'a', 'b'])).toHaveProperty('error');
+  });
 });

@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [T-017]
 touches: [ci, docs]
 created: 2026-06-14T20:00:00Z
-updated: 2026-06-14T20:00:00Z
+updated: 2026-06-16T10:33:34Z
 ---
 
 # T-019 — Intent lives in tracked decisions, not comments (ADR + CI guard + sweep)
@@ -29,14 +29,15 @@ substrate meets the same cold-read bar the cards already do (ADR-007).
   ("will," "interim," "for now," "future," "graduates into," `TODO`/`FIXME`) lives behind a
   **card id**, not a bare comment.
 - A **CI guard** flags new forward-looking comments that carry no card id and fails the build.
-- Existing violations are cleared (the known F-002 comment is T-017's job; this sweeps the
-  rest).
+- Existing violations are cleared — T-017 (Done) already removed the seed F-002 comment, and a
+  sweep confirms no other un-carded forward-looking comments remain in shipped source today, so
+  the substantive work is the ADR + guard.
 
 ## Context — read before starting
 
 - [`scripts/validate-vault.mjs`](../scripts/validate-vault.mjs) — the F-002 comment that
-  triggered this; its fix is owned by **T-017** (the script rewrite). This task depends on
-  T-017 so the new guard doesn't flag a comment another card is already removing.
+  triggered this; **T-017 (Done) already removed it** in the script rewrite, so the guard has
+  nothing to flag there. The dependency on T-017 is satisfied — kept for provenance.
 - [`docs/08-DECISIONS.md`](../docs/08-DECISIONS.md) — where ADR-023 is added, in the existing
   ADR format.
 - [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — where the guard is wired (a
@@ -56,8 +57,8 @@ substrate meets the same cold-read bar the cards already do (ADR-007).
 - **Card-id escape hatch.** A forward-looking note is allowed when it carries a card id
   ("interim until F-002" is fine — it points at tracked work). The guard passes when a marker
   is accompanied by a `T-`/`F-` id.
-- **Coordinate with T-017** on `scripts/validate-vault.mjs` — it removes the F-002 comment;
-  depend on it so this task doesn't fight that edit or double-fix it.
+- **Don't re-fix the F-002 comment** — T-017 (Done) already removed it from
+  `scripts/validate-vault.mjs`; the dependency existed so this card never raced that edit.
 
 ## Plan
 
@@ -67,8 +68,9 @@ substrate meets the same cold-read bar the cards already do (ADR-007).
 2. Add the CI guard (a grep step in `ci.yml`, or a small `scripts/` checker invoked from CI)
    that fails on a forward-looking marker lacking a nearby card id; document the marker list
    and the escape hatch.
-3. Sweep existing comments for violations (excluding the F-002 one T-017 owns); fix each —
-   reword to present tense, or attach a card id.
+3. Sweep existing comments for violations (T-017 already removed the F-002 one); fix each —
+   reword to present tense, or attach a card id. Expect this to be a confirmation step: none
+   remain in shipped source today.
 4. Optionally add a one-line pointer to ADR-023 in `docs/09-CONVENTIONS.md`.
 
 ## Acceptance
@@ -77,17 +79,17 @@ substrate meets the same cold-read bar the cards already do (ADR-007).
 - [ ] CI **fails** when a forward-looking comment lacks a card id and **passes** when one is
       present — a fixture proves both — and the guard is low-false-positive (the existing tree
       passes after the sweep).
-- [ ] Existing violations are cleared or carry a card id; the F-002 comment is left to T-017,
-      not duplicated here.
+- [ ] Existing violations are cleared or carry a card id (T-017 already removed the F-002
+      comment — not duplicated here).
 - [ ] CI is green with the guard enabled.
 
 ## Dependencies
 
-- **Depends on:** T-017 (it removes the F-002 comment the guard would otherwise flag).
+- **Depends on:** T-017 (Done — it removed the F-002 comment the guard would otherwise flag).
 
 ## Out of scope
 
-Fixing the F-002 comment itself (T-017), a general doc/comment-staleness linter beyond the
+Fixing the F-002 comment itself (already done in T-017), a general doc/comment-staleness linter beyond the
 forward-looking marker set, and rewriting present-tense comments.
 
 ## References

@@ -13,7 +13,7 @@
 // has errors, so it doubles as a CI gate. The same core validateVault backs the
 // `mos validate` CLI for any repo (F-029).
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
   loadConfig,
@@ -29,17 +29,13 @@ import {
 const IGNORE = new Set(['node_modules', '.git', '.angular', '.turbo', 'dist', '.cache']);
 
 function walk(dir, acc = []) {
-  for (const name of readdirSync(dir)) {
-    if (IGNORE.has(name)) continue;
-    const p = join(dir, name);
-    let st;
-    try {
-      st = statSync(p);
-    } catch {
-      continue;
-    }
-    if (st.isDirectory()) walk(p, acc);
-    else acc.push(p);
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (IGNORE.has(entry.name)) continue;
+    const p = join(dir, entry.name);
+    // Recurse only into real directories and collect only real files; skipping
+    // symlinks avoids cycles and keeps the walk inside the vault.
+    if (entry.isDirectory()) walk(p, acc);
+    else if (entry.isFile()) acc.push(p);
   }
   return acc;
 }
@@ -90,7 +86,11 @@ export function validateVault(root) {
   const hidden = [];
   for (const card of cards) {
     const column = placeCard(card, config).column;
-    (column == null ? hidden : board[column]).push(card);
+    // A status mapping to a column outside board.columns is a config error core
+    // already reports; route it off-board (Object.hasOwn, not `in`, dodges
+    // prototype keys like `constructor`) so the report renders that error
+    // instead of crashing on a missing column bucket.
+    (column == null || !Object.hasOwn(board, column) ? hidden : board[column]).push(card);
   }
   for (const column of config.board.columns) {
     board[column] = sortWithinColumn(board[column], config);
@@ -142,19 +142,15 @@ function discover(start) {
     if (existsSync(join(dir, '.mos', 'config.json'))) found.push(dir);
     let entries;
     try {
-      entries = readdirSync(dir);
+      entries = readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
-    for (const name of entries) {
-      if (IGNORE.has(name) || name === '.mos') continue;
-      let st;
-      try {
-        st = statSync(join(dir, name));
-      } catch {
-        continue;
-      }
-      if (st.isDirectory()) rec(join(dir, name));
+    for (const entry of entries) {
+      if (IGNORE.has(entry.name) || entry.name === '.mos') continue;
+      // Don't follow symlinked directories — a link back up the tree would
+      // cycle (and rediscover the same vault under a new path).
+      if (entry.isDirectory()) rec(join(dir, entry.name));
     }
   })(start);
   return found;

@@ -9,6 +9,7 @@ import { HELP, parseArgs } from './args';
 import { findVault } from './find-vault';
 import { initVault, InitRefusedError } from './init';
 import { startServer } from './serve';
+import { runValidate } from './validate';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +45,13 @@ if (args.command === 'help') {
     }
     throw err;
   }
+} else if (args.command === 'validate') {
+  const { output, exitCode } = runValidate({ dir: args.dir, cwd: process.cwd() });
+  // The report (exit 0/1) prints to stdout like `bun run validate`; only the
+  // no-vault diagnostic (exit 2) is an operational error → stderr.
+  if (exitCode === 2) console.error(output);
+  else console.log(output);
+  process.exit(exitCode);
 } else if (args.command === 'serve') {
   const start = resolve(args.dir ?? process.cwd());
   const vaultDir = findVault(start);
