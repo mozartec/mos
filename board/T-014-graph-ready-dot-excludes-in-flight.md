@@ -2,14 +2,14 @@
 id: T-014
 type: task
 title: Graph ready dot shouldn't mark already-started (in-flight) cards
-status: Todo
+status: Done
 priority: P3
 phase: Future
 owner: mozart
 dependsOn: [F-026]
 touches: [web]
 created: 2026-06-14T12:29:13Z
-updated: 2026-06-14T12:29:13Z
+updated: 2026-06-16T23:48:04Z
 ---
 
 # T-014 — Graph ready dot shouldn't mark already-started (in-flight) cards
@@ -73,12 +73,12 @@ arises to also drop in-flight from the *batch/skill* notion of ready, raise it s
 
 ## Acceptance
 
-- [ ] An In Progress card whose dependencies are done shows no ready dot on the graph
+- [x] An In Progress card whose dependencies are done shows no ready dot on the graph
       (`svg circle[data-ready]` absent for it), while a not-started ready card still shows one.
-- [ ] The F-026 safe/hollow split and collision markers are unchanged for not-started and
+- [x] The F-026 safe/hollow split and collision markers are unchanged for not-started and
       in-flight cards respectively; core `readySet` and selectors are untouched (unit tests
       still green).
-- [ ] A vault with no `areas` renders the graph exactly as before this task.
+- [x] A vault with no `areas` renders the graph exactly as before this task.
 
 ## Dependencies
 
