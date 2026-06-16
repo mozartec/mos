@@ -26,6 +26,7 @@ mos init && mos serve
 | --- | --- |
 | `mos serve [dir] [--port <n>]` | Serve the vault at `dir` (default: the nearest vault at or above the current directory). Live-reloads on file changes. |
 | `mos init [dir]` | Scaffold a vault: starter `.mos/config.json`, one example card, an `AGENTS.md` write guide. One-time bootstrap — refuses to touch an existing vault. |
+| `mos validate [dir]` | Validate the vault(s) at or under `dir` (default: the current directory) against `.mos/config.json`. Exits non-zero if any vault has errors — usable as a CI check. |
 | `mos --version` / `mos --help` | Version / usage. |
 
 ## What a vault is

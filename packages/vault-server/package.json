@@ -1,7 +1,7 @@
 {
   "name": "@mos/vault-server",
   "version": "0.0.0",
-  "description": "Shared read-only vault file server: the /vault list/read/watch endpoints as a fetch-style handler plus the debounced file watcher. Consumed by the dev server (Bun, ADR-006) and the CLI (Node, ADR-012). No write endpoints (ADR-002).",
+  "description": "Shared read-only vault file server: the /vault list/read/watch endpoints as a fetch-style handler plus the debounced file watcher. Consumed by the dev server (Bun) and the CLI (Node). No write endpoints.",
   "private": true,
   "type": "module",
   "exports": {
