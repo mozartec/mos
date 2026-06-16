@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-026]
 touches: [core, config, scripts, docs]
 created: 2026-06-14T08:53:28Z
-updated: 2026-06-14T08:53:28Z
+updated: 2026-06-16T10:58:16Z
 ---
 
 # F-028 — Config-named in-flight column(s) — beyond the positional penultimate rule
@@ -47,8 +47,10 @@ with the positional rule as the default.
   `parallelOverlaysActive`, and the positional rule's docstring (already flags this gap).
 - [`packages/core/src/parallel.ts`](../packages/core/src/parallel.ts) — `inFlightCollisions`,
   `safeToStart` (today assume a single column).
-- [`scripts/validate-vault.mjs`](../scripts/validate-vault.mjs) — the zero-dependency
-  validator inlines the same one-liner (it can't import core's TS); keep the two in step.
+- [`scripts/validate-vault.mjs`](../scripts/validate-vault.mjs) — post-T-017 this imports
+  core directly (`placeCard` et al. from `@mos/core`) and inlines no placement logic, so it
+  inherits the widened in-flight rule for free — no separate copy to keep in step; the only
+  validator-specific work is the new `board.inFlightColumns` config warning.
 
 ## Constraints (must honor)
 
@@ -66,8 +68,9 @@ with the positional rule as the default.
 2. Core: `inFlightColumns(config): string[]` (plural) honoring config, positional fallback;
    reframe `inFlightColumn`/`parallelOverlaysActive` and the F-026 selectors over the set.
    Unit tests for the multi-column board the positional rule misses.
-3. Validator: read the same config (keep the inline copy faithful to core); warn on a named
-   column that isn't in `board.columns`.
+3. Validator: it already reads core's placement (T-017), so the widened rule applies
+   automatically; add only the new check — warn on a `board.inFlightColumns` entry absent
+   from `board.columns` (decide whether that lives in core's `validateVault` or the script).
 4. Web: no new UI — board/graph overlays already render whatever the selectors return; add a
    regression test on a multi-active-column board.
 
