@@ -9,6 +9,7 @@ import { HELP, parseArgs } from './args';
 import { findVault } from './find-vault';
 import { initVault, InitRefusedError } from './init';
 import { startServer } from './serve';
+import { runValidate } from './validate';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +45,11 @@ if (args.command === 'help') {
     }
     throw err;
   }
+} else if (args.command === 'validate') {
+  const { output, exitCode } = runValidate({ dir: args.dir, cwd: process.cwd() });
+  if (exitCode === 0) console.log(output);
+  else console.error(output);
+  process.exit(exitCode);
 } else if (args.command === 'serve') {
   const start = resolve(args.dir ?? process.cwd());
   const vaultDir = findVault(start);

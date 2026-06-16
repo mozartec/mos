@@ -23,6 +23,7 @@
       },
       "devDependencies": {
         "@eslint/js": "^10.0.1",
+        "@mos/core": "workspace:*",
         "@mos/vault-server": "workspace:*",
         "@mos/web": "workspace:*",
         "@types/bun": "^1.2.17",

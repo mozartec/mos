@@ -2,14 +2,14 @@
 id: F-029
 type: feature
 title: mos validate — surface the vault validator as a CLI command
-status: Draft
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 dependsOn: [T-017]
 touches: [cli]
 created: 2026-06-14T18:29:34Z
-updated: 2026-06-14T18:29:34Z
+updated: 2026-06-16T10:58:16Z
 ---
 
 # F-029 — mos validate — surface the vault validator as a CLI command
@@ -80,15 +80,15 @@ read-only command over core's `validateVault` (graduated in T-017).
 
 ## Acceptance
 
-- [ ] `mos validate` validates the nearest/discovered vault(s) and exits 0 when clean,
+- [x] `mos validate` validates the nearest/discovered vault(s) and exits 0 when clean,
       non-zero when any vault has errors.
-- [ ] `mos validate <dir>` validates that vault; its output matches `bun run validate`'s
+- [x] `mos validate <dir>` validates that vault; its output matches `bun run validate`'s
       report for the same vault.
-- [ ] The command calls core's `validateVault` (T-017), not a copy of the script.
-- [ ] `mos --help` lists `validate`; the supported spec range is visible (report or
+- [x] The command calls core's `validateVault` (T-017), not a copy of the script.
+- [x] `mos --help` lists `validate`; the supported spec range is visible (report or
       `--version`), and a newer-spec vault shows the T-017 warning.
-- [ ] New CLI tests pass, and the command works in the built bundle.
-- [ ] `validate` performs no writes (ADR-002).
+- [x] New CLI tests pass, and the command works in the built bundle.
+- [x] `validate` performs no writes (ADR-002).
 
 ## Dependencies
 

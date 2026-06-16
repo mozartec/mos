@@ -8,6 +8,9 @@ Usage:
   mos init [dir]                 Turn <dir> (default: the current directory) into
                                  a vault: starter config, example card, agent guide.
                                  Refuses if the folder already is a vault.
+  mos validate [dir]             Validate the vault(s) at or under <dir> (default:
+                                 the current directory) against .mos/config.json;
+                                 exits non-zero if any vault has errors.
   mos --version                  Print the version.
   mos --help                     Show this help.
 
@@ -24,9 +27,15 @@ export interface InitArgs {
   dir?: string;
 }
 
+export interface ValidateArgs {
+  command: 'validate';
+  dir?: string;
+}
+
 export type CliArgs =
   | ServeArgs
   | InitArgs
+  | ValidateArgs
   | { command: 'help' }
   | { command: 'version' }
   | { error: string };
@@ -65,6 +74,12 @@ export function parseArgs(argv: string[]): CliArgs {
       return { error: 'init takes at most one argument: the target directory' };
     }
     return { command: 'init', dir: argv[1] };
+  }
+  if (argv[0] === 'validate') {
+    if (argv.length > 2 || (argv[1] !== undefined && argv[1].startsWith('-'))) {
+      return { error: 'validate takes at most one argument: the vault directory' };
+    }
+    return { command: 'validate', dir: argv[1] };
   }
   return { error: `Unknown command '${argv[0]}'` };
 }
