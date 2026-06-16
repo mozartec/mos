@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-023]
 touches: [web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-12T20:08:00Z
+updated: 2026-06-16T10:33:34Z
 ---
 
 # F-020 — Cards lens — a flat, filterable index of every card
@@ -24,9 +24,9 @@ bar.
 - A **Cards** entry joins the lens navigation (Wiki · Board · Cards · Graph), routed at
   `/cards` (lazy, like the others — ADR-004).
 - A dense list/table of all cards: id (mono), type badge, title, status, priority,
-  owner, sprint, updated — columns derived from the config's `fields` registry and type
+  owner, scope, updated — columns derived from the config's `fields` registry and type
   definitions, not hardcoded.
-- The F-019 filter bar on top (type, priority, owner, text) plus status/sprint filters
+- The F-023 filter bar on top (type, priority, owner, text) plus status/scope filters
   and column sorting; all state URL-persisted; a result count.
 - Container cards appear with their children-progress chip once F-022 lands; until then
   they render as plain rows.
@@ -40,7 +40,7 @@ bar.
 - [`apps/web/src/app/app.routes.ts`](../apps/web/src/app/app.routes.ts) and
   [`apps/web/src/app/app.html`](../apps/web/src/app/app.html) — lens routing/navigation
   to extend.
-- F-019's filter bar component — reuse, don't fork.
+- F-023's filter bar component — reuse, don't fork.
 - [`docs/13-DESIGN_SYSTEM.md`](../docs/13-DESIGN_SYSTEM.md) — list density, mono ids,
   badge idioms.
 
@@ -75,7 +75,7 @@ bar.
 
 ## Dependencies
 
-- **Depends on:** F-019 (shared filter bar). **Blocks:** —
+- **Depends on:** F-023 (shared filter bar). **Blocks:** —
 
 ## Out of scope
 
