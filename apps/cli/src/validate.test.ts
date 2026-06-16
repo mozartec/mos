@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, it } from 'bun:test';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { runValidate } from './validate';
+import { discoverVaults, runValidate } from './validate';
 
 const tmpRoots: string[] = [];
 
@@ -93,6 +93,13 @@ describe('runValidate', () => {
     const { output, exitCode } = runValidate({ dir: root, cwd: root });
     expect(exitCode).toBe(0);
     expect(output).toContain('VAULT: Fixture');
+  });
+
+  it('does not follow symlinked directories (no cycle, no duplicate vaults)', async () => {
+    const root = await makeVault({ '.mos/config.json': CONFIG, 'board/T-1.md': card('T-1') });
+    await symlink(root, join(root, 'self'), 'dir'); // a link back to the vault root
+    expect(discoverVaults(root)).toEqual([root]);
+    expect(runValidate({ dir: root, cwd: root }).exitCode).toBe(0);
   });
 
   it('exits 2 when no vault is found', async () => {

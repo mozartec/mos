@@ -10,7 +10,7 @@
  * two entry points read the same; both call the one core validator, never a copy
  * of the rules.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, type Dirent } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import {
   buildModel,
@@ -52,21 +52,17 @@ export function discoverVaults(start: string): string[] {
   const found: string[] = [];
   const rec = (dir: string): void => {
     if (isVault(dir)) found.push(dir);
-    let entries: string[];
+    let entries: Dirent[];
     try {
-      entries = readdirSync(dir);
+      entries = readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
-    for (const name of entries) {
-      if (IGNORE.has(name) || name === '.mos') continue;
-      let dirent;
-      try {
-        dirent = statSync(join(dir, name));
-      } catch {
-        continue;
-      }
-      if (dirent.isDirectory()) rec(join(dir, name));
+    for (const entry of entries) {
+      if (IGNORE.has(entry.name) || entry.name === '.mos') continue;
+      // Don't follow symlinked directories — a link back up the tree would
+      // cycle (and rediscover the same vault under a new path).
+      if (entry.isDirectory()) rec(join(dir, entry.name));
     }
   };
   rec(start);
@@ -74,17 +70,13 @@ export function discoverVaults(start: string): string[] {
 }
 
 function walk(dir: string, acc: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    if (IGNORE.has(name)) continue;
-    const p = join(dir, name);
-    let dirent;
-    try {
-      dirent = statSync(p);
-    } catch {
-      continue;
-    }
-    if (dirent.isDirectory()) walk(p, acc);
-    else acc.push(p);
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (IGNORE.has(entry.name)) continue;
+    const p = join(dir, entry.name);
+    // Recurse only into real directories and collect only real files; skipping
+    // symlinks avoids cycles and keeps the walk inside the vault.
+    if (entry.isDirectory()) walk(p, acc);
+    else if (entry.isFile()) acc.push(p);
   }
   return acc;
 }

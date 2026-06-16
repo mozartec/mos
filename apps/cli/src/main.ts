@@ -47,8 +47,10 @@ if (args.command === 'help') {
   }
 } else if (args.command === 'validate') {
   const { output, exitCode } = runValidate({ dir: args.dir, cwd: process.cwd() });
-  if (exitCode === 0) console.log(output);
-  else console.error(output);
+  // The report (exit 0/1) prints to stdout like `bun run validate`; only the
+  // no-vault diagnostic (exit 2) is an operational error → stderr.
+  if (exitCode === 2) console.error(output);
+  else console.log(output);
   process.exit(exitCode);
 } else if (args.command === 'serve') {
   const start = resolve(args.dir ?? process.cwd());
