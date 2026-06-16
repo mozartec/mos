@@ -64,6 +64,16 @@ describe('runValidate', () => {
     expect(output).toContain('ERROR(S)');
   });
 
+  it('reports — does not crash — when a status maps to a column outside board.columns', async () => {
+    // 'Todoo' is not in board.columns; placeCard returns it, so the report's
+    // column layout must route it off-board rather than index a missing bucket.
+    const badConfig = CONFIG.replace('"Todo":"Todo"', '"Todo":"Todoo"');
+    const root = await makeVault({ '.mos/config.json': badConfig, 'board/T-1.md': card('T-1') });
+    const { output, exitCode } = runValidate({ dir: root, cwd: root });
+    expect(exitCode).toBe(1);
+    expect(output).toContain("unknown column 'Todoo'");
+  });
+
   it('warns (non-fatally) when a vault targets a newer spec than supported', async () => {
     const root = await makeVault({
       '.mos/config.json': CONFIG.replace('0.4', '0.5'),

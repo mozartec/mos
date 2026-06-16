@@ -90,7 +90,11 @@ export function validateVault(root) {
   const hidden = [];
   for (const card of cards) {
     const column = placeCard(card, config).column;
-    (column == null ? hidden : board[column]).push(card);
+    // A status mapping to a column outside board.columns is a config error core
+    // already reports; route it off-board (Object.hasOwn, not `in`, dodges
+    // prototype keys like `constructor`) so the report renders that error
+    // instead of crashing on a missing column bucket.
+    (column == null || !Object.hasOwn(board, column) ? hidden : board[column]).push(card);
   }
   for (const column of config.board.columns) {
     board[column] = sortWithinColumn(board[column], config);
