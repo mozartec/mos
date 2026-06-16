@@ -236,8 +236,10 @@ describe('buildModel', () => {
     const { model } = buildModel(parsedFiles, repoConfig);
     const actualCount = Object.keys(model.cards).length;
 
+    // The validator now imports @mos/core's TypeScript source, so it runs under
+    // Bun rather than node (T-017) — the same reason `test:scripts` moved to bun.
     const output = execFileSync(
-      process.execPath,
+      'bun',
       [join(repoRoot, 'scripts', 'validate-vault.mjs'), vaultRoot],
       { encoding: 'utf8' },
     );

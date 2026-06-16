@@ -1,7 +1,8 @@
-// validate-vault.test.mjs — pin the validator's contract (T-011).
+// validate-vault.test.mjs — pin the validator's contract (T-011, T-017).
 //
-// Zero dependencies: node's built-in runner only.
-//   node --test scripts/validate-vault.test.mjs
+// Run under Bun, because the script-under-test now imports @mos/core's
+// TypeScript source (T-017 graduated the checks into core):
+//   bun test scripts/validate-vault.test.mjs       # or: bun run test:scripts
 //
 // Every guarantee here was proven by throwaway temp-dir vaults during PR #49's
 // review and re-proven by hand each round; this file makes them committed tests
@@ -210,7 +211,7 @@ test('duplicate touches entries are deduped: one error, not two', () => {
 
 // --- block lists under scalar fields: clean diagnostics, no crash -------------
 
-test('block list under scalar id: diagnosed as no-scalar-id, no crash', () => {
+test('block list under scalar id: diagnosed as no-id, no crash', () => {
   const root = makeVault(baseConfig(), {
     'cards/a.md': card('id:', '  - T-1', 'type: item', 'title: A', 'status: Open'),
   });
@@ -218,7 +219,10 @@ test('block list under scalar id: diagnosed as no-scalar-id, no crash', () => {
   assert.doesNotThrow(() => {
     res = validateVault(root);
   });
-  assert.ok(has(res.errors, 'card has no scalar id'), res.errors.join('\n'));
+  // Core's real YAML parser reads `id:` + a block list as the array ['T-1'], not
+  // a scalar; buildModel can't take an id from it and reports "card has no id".
+  // (The old inlined parser said "no scalar id" — same guarantee, core's wording.)
+  assert.ok(has(res.errors, 'card has no id'), res.errors.join('\n'));
 });
 
 test('block list under scalar parent: diagnosed as not-a-single-id, no crash', () => {

@@ -48,7 +48,14 @@ export function placeCard(card: Card, config: VaultConfig): CardPlacement {
     };
   }
 
-  const column = typeDef.states[card.status];
+  // Placement is on the app's and the validator's hot path, so it must diagnose
+  // bad config, never crash or mislead. `states` may be absent on a malformed
+  // type (TypeDef claims it's required), and Object.hasOwn keeps a status of
+  // `toString`/`constructor` from resolving to a prototype function/object off the
+  // chain — either way an out-of-vocabulary status reports "unknown status".
+  const states = typeDef.states as Record<string, string | null> | undefined;
+  const column =
+    states != null && Object.hasOwn(states, card.status) ? states[card.status] : undefined;
   if (column === undefined) {
     return {
       column: null,

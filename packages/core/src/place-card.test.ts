@@ -324,3 +324,43 @@ describe('parallelOverlaysActive', () => {
     expect(parallelOverlaysActive(cfg(['Backlog', 'Done'], areas))).toBe(false); // no in-flight column
   });
 });
+
+describe('placeCard — malformed config', () => {
+  it('diagnoses, never throws, when a type carries no states map', () => {
+    // A malformed config (a type with no `states`) must not crash placement —
+    // it is on the app's and the validator's hot path (T-017 RISK B).
+    const badConfig: VaultConfig = {
+      ...testConfig,
+      types: { story: { parent: null } as unknown as VaultConfig['types'][string] },
+    };
+    const card: Card = {
+      id: 'S-1',
+      type: 'story',
+      title: 'S',
+      status: 'Todo',
+      path: 'board/s.md',
+      fields: {},
+    };
+    expect(() => placeCard(card, badConfig)).not.toThrow();
+    const result = placeCard(card, badConfig);
+    expect(result.column).toBeNull();
+    expect(result.error).toContain("Unknown status 'Todo'");
+  });
+
+  it('reports a prototype-key status as unknown, never leaks a prototype value', () => {
+    // `status: toString` must not resolve to Object.prototype.toString (a function
+    // that would then break board layout) — Object.hasOwn keeps it out (T-017 #3).
+    const card: Card = {
+      id: 'F-1',
+      type: 'feature',
+      title: 'F',
+      status: 'toString',
+      path: 'board/f.md',
+      fields: {},
+    };
+    const result = placeCard(card, testConfig);
+    expect(result.column).toBeNull();
+    expect(typeof result.column).not.toBe('function');
+    expect(result.error).toContain("Unknown status 'toString'");
+  });
+});
