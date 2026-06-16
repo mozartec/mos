@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-023, F-021]
 touches: [core, web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-12T20:08:00Z
+updated: 2026-06-16T10:33:34Z
 ---
 
 # F-022 — Subcards on the board — leaves in columns, containers as progress
@@ -38,8 +38,9 @@ of occupying columns (ADR-019).
 
 - ADR-019 in [`docs/08-DECISIONS.md`](../docs/08-DECISIONS.md) — the decision this
   implements, including why containers leave the columns.
-- [`packages/core`](../packages/core) — parent/child resolution exists (graph lens,
-  F-021's `childrenOf`); the board population rule changes where columns are computed.
+- [`packages/core`](../packages/core) — parent→child resolution comes from F-021's
+  `childrenOf` (a dependency of this card; core's graph today resolves only dependency
+  edges, not hierarchy); the board population rule changes where columns are computed.
 - [`apps/web/src/views/board/board-view.ts`](../apps/web/src/views/board/board-view.ts)
   and [`apps/web/src/components/card`](../apps/web/src/components/card) — column
   population and the card component gaining the breadcrumb chip.
@@ -84,7 +85,7 @@ of occupying columns (ADR-019).
 
 ## Dependencies
 
-- **Depends on:** F-019 (board/backlog), F-021 (peek as the chip's target). **Blocks:** —
+- **Depends on:** F-023 (board/backlog), F-021 (peek as the chip's target). **Blocks:** —
 
 ## Out of scope
 
@@ -93,4 +94,4 @@ Inline expansion of children inside board cards, swimlane/group-by-parent layout
 
 ## References
 
-ADR-001, ADR-002, ADR-003, ADR-019; `docs/13-DESIGN_SYSTEM.md`; F-019, F-021.
+ADR-001, ADR-002, ADR-003, ADR-019; `docs/13-DESIGN_SYSTEM.md`; F-023, F-021.

@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-023]
 touches: [core, web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-12T20:08:00Z
+updated: 2026-06-16T10:33:34Z
 ---
 
 # F-021 — Card page & side peek — two ways to open a card
@@ -23,7 +23,7 @@ document viewer.
 ## Outcome
 
 - **Card page** at a card route (id-addressed, e.g. `/card/F-004`): structured header —
-  mono id, type badge, title, status/priority/owner/sprint chips (config-driven fields,
+  mono id, type badge, title, status/priority/owner/scope chips (config-driven fields,
   as on board cards) — then **relations** (parent breadcrumb, `dependsOn` with each
   dependency's status, *dependents* computed from the reverse edges, children with a
   done-progress summary) — then the rendered markdown body.
@@ -42,11 +42,14 @@ document viewer.
 - ADR-019 in [`docs/08-DECISIONS.md`](../docs/08-DECISIONS.md) — children/progress
   presentation on the detail surfaces.
 - [`apps/web/src/views/reader/reader-view.ts`](../apps/web/src/views/reader/reader-view.ts)
-  — current card-opening flow, `from`/`sprint` back-navigation params to honor.
+  — current card-opening flow; the `path`/`from` params plus the originating board's
+  scope + filter state it passes back (the reader has no `sprint` param — F-023 made
+  scope config-named), to honor.
 - [`apps/web/src/components/markdown-reader`](../apps/web/src/components/markdown-reader)
   — the renderer both surfaces reuse (id links, relative links — F-017 behavior).
-- [`packages/core`](../packages/core) — references/edges already resolved for the graph
-  lens; dependents/children come from there, not view-side re-derivation.
+- [`packages/core`](../packages/core) — references and dependency edges are already
+  resolved for the graph lens, so *dependents* come from core (`deriveBlocks`), not
+  view-side re-derivation; parent→**children** resolution is new here (`childrenOf`).
 - [`docs/13-DESIGN_SYSTEM.md`](../docs/13-DESIGN_SYSTEM.md) — peek motion (240ms in /
   180ms out, reduced-motion collapse), elevation, chip idioms.
 - [`apps/web/AGENTS.md`](../apps/web/AGENTS.md) — a11y bar (focus trap and restore are
@@ -90,7 +93,7 @@ document viewer.
 
 ## Dependencies
 
-- **Depends on:** F-019 (board/backlog hosts; shared open behavior). **Blocks:** F-022's
+- **Depends on:** F-023 (board/backlog hosts; shared open behavior). **Blocks:** F-022's
   breadcrumb-chip navigation target.
 
 ## Out of scope
