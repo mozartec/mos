@@ -304,3 +304,75 @@ describe('validateVault — per-card rules (direct)', () => {
     );
   });
 });
+
+describe('validateVault — malformed / adversarial config never crashes', () => {
+  it('skips a non-object field def instead of throwing (#1)', () => {
+    const cfg = baseConfig({
+      fields: { id: { type: 'id' }, estimate: null, dependsOn: { type: 'id', list: true } },
+    });
+    const cards = {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'dependsOn: [T-99]'),
+    };
+    // the null `estimate` def is skipped (no crash); the valid dependsOn check still fires.
+    expect(() => run(cfg, cards)).not.toThrow();
+    expect(run(cfg, cards).errors).toContain("T-1: dependsOn 'T-99' does not resolve to a card");
+  });
+
+  it('reports a null scopeField def as not registered, not a crash (#2)', () => {
+    const cfg = baseConfig({
+      fields: { sprint: null },
+      board: {
+        include: ['cards/**/*.md'],
+        columns: ['Todo', 'Doing', 'Done'],
+        scopeField: 'sprint',
+      },
+    });
+    expect(() => run(cfg)).not.toThrow();
+    expect(run(cfg).errors).toContain("board.scopeField: 'sprint' is not a registered field");
+  });
+
+  it('does not let a "not a card" filename swallow a real error (#4)', () => {
+    const { errors } = run(baseConfig(), {
+      'cards/why this is not a card.md': card('type: item', 'title: A', 'status: Open'),
+    });
+    expect(errors).toContainEqual(expect.stringContaining('card has no id'));
+  });
+});
+
+describe('validateVault — prototype-safe lookups (#5)', () => {
+  it('flags a __proto__ dependsOn id as unresolved', () => {
+    const cfg = baseConfig({
+      fields: { id: { type: 'id' }, dependsOn: { type: 'id', list: true } },
+    });
+    const { errors } = run(cfg, {
+      'cards/a.md': card(
+        'id: T-1',
+        'type: item',
+        'title: A',
+        'status: Open',
+        'dependsOn: ["__proto__"]',
+      ),
+    });
+    expect(errors).toContain("T-1: dependsOn '__proto__' does not resolve to a card");
+  });
+
+  it('flags a prototype-key status as not allowed', () => {
+    const { errors } = run(baseConfig(), {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: toString'),
+    });
+    expect(errors).toContain("T-1: status 'toString' not allowed for type 'item'");
+  });
+
+  it('flags a __proto__ parent as not found, not a prototype object', () => {
+    const cfg = baseConfig({
+      types: {
+        feature: { parent: null, states: { Open: 'Todo', Active: 'Doing', Closed: 'Done' } },
+        item: { parent: 'feature', states: { Open: 'Todo', Active: 'Doing', Closed: 'Done' } },
+      },
+    });
+    const { errors } = run(cfg, {
+      'cards/a.md': card('id: T-1', 'type: item', 'title: A', 'status: Open', 'parent: __proto__'),
+    });
+    expect(errors).toContain("T-1: parent '__proto__' not found");
+  });
+});

@@ -346,4 +346,21 @@ describe('placeCard — malformed config', () => {
     expect(result.column).toBeNull();
     expect(result.error).toContain("Unknown status 'Todo'");
   });
+
+  it('reports a prototype-key status as unknown, never leaks a prototype value', () => {
+    // `status: toString` must not resolve to Object.prototype.toString (a function
+    // that would then break board layout) — Object.hasOwn keeps it out (T-017 #3).
+    const card: Card = {
+      id: 'F-1',
+      type: 'feature',
+      title: 'F',
+      status: 'toString',
+      path: 'board/f.md',
+      fields: {},
+    };
+    const result = placeCard(card, testConfig);
+    expect(result.column).toBeNull();
+    expect(typeof result.column).not.toBe('function');
+    expect(result.error).toContain("Unknown status 'toString'");
+  });
 });
