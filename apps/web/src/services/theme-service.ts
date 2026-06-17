@@ -45,7 +45,7 @@ export class ThemeService {
     if (stored) {
       return stored;
     }
-    // The unit-test DOM (and a future SSR pass) may not provide matchMedia;
+    // A non-browser DOM (e.g. the unit-test jsdom) may not provide matchMedia;
     // fall back to the light theme when the OS preference is unknown.
     return this.document.defaultView?.matchMedia?.('(prefers-color-scheme: dark)')?.matches
       ? DARK

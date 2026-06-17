@@ -12,8 +12,8 @@
  *
  * So we reproduce the bridge's proven output ourselves: each icon becomes a
  * `string` const holding its `<svg>` markup, sourced verbatim from the package.
- * Only the icons listed in ICONS reach the bundle. This file is the seed of a
- * future first-party `@mos/icons` package.
+ * Only the icons listed in ICONS reach the bundle, which is the app's single
+ * source of icon markup.
  *
  * Usage: `bun run icons:generate` (from apps/web). Re-run after adding a name
  * to ICONS or bumping `@tabler/icons`. The output is committed.

@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T22:15:00Z
+updated: 2026-06-16T23:48:46Z
 ---
 
 # Conventions
@@ -163,6 +163,17 @@ Field names are configurable per vault via `meta.timestamps`; the types come fro
 
 Top-level docs are `NN-NAME.md`; the number is sort order, not a stable id. Write in prose;
 use tables for genuinely tabular content. Keep intent here and truth in code.
+
+## Comments
+
+Code comments state **present mechanics only**. Forward-looking intent — "for now",
+"interim", "future", "graduates into", `TODO`/`FIXME`, … — lives behind a **card id**, never
+a bare comment ("stubbed until F-002" is fine; "the future X" is not), because in an
+AI-generated repo a comment is orphaned the moment it's written and a stale promise misleads
+the next agent. A cheap CI guard
+([`scripts/check-forward-comments.mjs`](../scripts/check-forward-comments.mjs)) enforces this
+over code files; markdown prose (docs, ADRs, roadmaps) is exempt and may discuss what's coming
+([ADR-023](08-DECISIONS.md#adr-023--intent-lives-in-tracked-decisions-not-comments)).
 
 ## Links
 

@@ -16,7 +16,8 @@
     "check-types": "turbo run check-types",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "test:scripts": "bun test scripts/validate-vault.test.mjs",
+    "test:scripts": "bun test scripts/validate-vault.test.mjs scripts/check-forward-comments.test.mjs",
+    "check:comments": "bun scripts/check-forward-comments.mjs",
     "validate": "bun scripts/validate-vault.mjs",
     "prepare": "husky"
   },
