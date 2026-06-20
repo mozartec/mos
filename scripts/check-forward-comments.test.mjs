@@ -7,9 +7,23 @@
 // real source tree. Marker words live only inside those string fixtures, never
 // in this file's own comments, so the guard stays green when it scans itself.
 
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { findForwardComments } from './check-forward-comments.mjs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { findForwardComments, collectFiles } from './check-forward-comments.mjs';
+
+const tmpDirs = [];
+after(() => {
+  for (const d of tmpDirs) rmSync(d, { recursive: true, force: true });
+});
+
+function makeTmp() {
+  const d = mkdtempSync(join(tmpdir(), 'mos-fwd-'));
+  tmpDirs.push(d);
+  return d;
+}
 
 test('flags a forward-looking comment that carries no card id', () => {
   const findings = findForwardComments('// stubbed for now\nconst a = 1;\n');
@@ -76,4 +90,34 @@ test('reports the marker line inside a block comment, not the opening line', () 
   const findings = findForwardComments('/**\n * line two\n * the future here\n */\n');
   assert.equal(findings.length, 1);
   assert.equal(findings[0].line, 3);
+});
+
+test('collectFiles accepts a single code file without throwing', () => {
+  const f = join(makeTmp(), 'x.ts');
+  writeFileSync(f, '// stubbed for now\n');
+  assert.deepEqual(collectFiles(f), [f]);
+  assert.equal(findForwardComments(readFileSync(f, 'utf8')).length, 1);
+});
+
+test('collectFiles walks a directory and applies the extension filter', () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'a.ts'), '// ok\n');
+  writeFileSync(join(dir, 'b.txt'), '// the future here\n');
+  const found = collectFiles(dir).map((p) => p.split('/').pop());
+  assert.deepEqual(found, ['a.ts']);
+});
+
+test('collectFiles skips ignored directories', () => {
+  const dir = makeTmp();
+  writeFileSync(join(dir, 'kept.ts'), '// ok\n');
+  mkdirSync(join(dir, 'node_modules'));
+  writeFileSync(join(dir, 'node_modules', 'dep.ts'), '// the future here\n');
+  const found = collectFiles(dir).map((p) => p.split('/').pop());
+  assert.deepEqual(found, ['kept.ts']);
+});
+
+test('collectFiles skips a non-code file passed explicitly', () => {
+  const md = join(makeTmp(), 'notes.md');
+  writeFileSync(md, '// the future here\n');
+  assert.deepEqual(collectFiles(md), []);
 });

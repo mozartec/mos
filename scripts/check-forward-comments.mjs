@@ -20,7 +20,7 @@
 // passes; keep the set small, since a noisy guard gets disabled. The contract is
 // pinned in scripts/check-forward-comments.test.mjs.
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, extname } from 'node:path';
 
 const IGNORE = new Set([
@@ -163,24 +163,41 @@ export function findForwardComments(text) {
   return findings;
 }
 
-function walk(dir, acc = []) {
+function walkDir(dir, acc) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (IGNORE.has(entry.name)) continue;
     const p = join(dir, entry.name);
-    if (entry.isDirectory()) walk(p, acc);
+    // Recurse via Dirent (not statSync) so symlinks are neither walked nor
+    // collected — that avoids cycles through a link back up the tree.
+    if (entry.isDirectory()) walkDir(p, acc);
     else if (entry.isFile() && SCAN_EXT.has(extname(entry.name))) acc.push(p);
   }
+}
+
+/**
+ * Resolve one path argument to the code files to scan. A directory is walked
+ * (honouring IGNORE and SCAN_EXT); a single file is included when its extension
+ * is in SCAN_EXT — so pointing the guard at one file behaves the same as finding
+ * it in a walk, and non-code files (markdown, …) are skipped either way.
+ *
+ * @param {string} target
+ * @param {string[]} acc
+ * @returns {string[]}
+ */
+export function collectFiles(target, acc = []) {
+  if (statSync(target).isDirectory()) walkDir(target, acc);
+  else if (SCAN_EXT.has(extname(target))) acc.push(target);
   return acc;
 }
 
 // CLI entry — gated on import.meta.main so importing this module (the test
-// suite) runs no walk, printing, or process.exit.
+// suite) runs no scan, printing, or process.exit.
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const roots = args.length ? args : [process.cwd()];
   let total = 0;
   for (const root of roots) {
-    for (const file of walk(root)) {
+    for (const file of collectFiles(root)) {
       const rel = relative(process.cwd(), file);
       for (const { line, marker } of findForwardComments(readFileSync(file, 'utf8'))) {
         console.error(`${rel}:${line}  un-carded forward-looking comment ("${marker}")`);
