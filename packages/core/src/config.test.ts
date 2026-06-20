@@ -182,6 +182,25 @@ describe('loadConfig', () => {
       expect(errors).toContain('field estimate: definition must be an object');
     });
 
+    it('stores a field named __proto__ as data, never polluting config.fields (proto-safe, T-020)', () => {
+      // JSON string form on purpose: JSON.parse makes `__proto__` an own data
+      // property (the real config.json attack vector). An object literal would
+      // instead set the literal's own prototype, so it wouldn't exercise this.
+      const { config } = loadConfig(
+        '{"board":{"columns":["Done"]},' +
+          '"fields":{"__proto__":{"priority":{"type":"enum","values":["INJECTED"]}},' +
+          '"owner":{"type":"string"}}}',
+      );
+      // The malicious key must not become config.fields' prototype: a computed
+      // lookup of an unconfigured field (e.g. getPriorityRank's
+      // `config.fields['priority']`) must stay undefined, not resolve a phantom
+      // def through a poisoned chain.
+      expect(Object.getPrototypeOf(config.fields)).toBe(null);
+      expect(config.fields['priority']).toBeUndefined();
+      // The real field alongside it is intact.
+      expect(config.fields['owner']).toEqual({ type: 'string' });
+    });
+
     it('rejects an enum field with neither values nor source', () => {
       const { errors } = loadConfig({
         board: { columns: ['Done'] },

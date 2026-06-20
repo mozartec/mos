@@ -448,7 +448,13 @@ function asStringArray(v: unknown): string[] {
  */
 function normalizeFields(v: unknown, errors: string[]): Record<string, FieldDef> {
   if (!isObject(v)) return {};
-  const out: Record<string, unknown> = {};
+  // Null-prototype accumulator: a field key like `__proto__` (an own data
+  // property on a JSON-parsed config) must be stored as data, not invoke the
+  // inherited `__proto__` setter — plain `{}` would let `out[name] = def` poison
+  // `out`'s prototype, leaking phantom defs into computed lookups like
+  // `config.fields['priority']`. The original code never hit this because it
+  // passed the parse result straight through; rebuilding the map reintroduces it.
+  const out: Record<string, unknown> = Object.create(null);
   for (const [name, def] of Object.entries(v)) {
     if (isObject(def)) {
       out[name] = def;
@@ -457,7 +463,7 @@ function normalizeFields(v: unknown, errors: string[]): Record<string, FieldDef>
     }
   }
   // Each kept entry is an object; its deeper shape (a known `type`, etc.) is
-  // checked in `validate`. The single cast mirrors the original `as Record`.
+  // checked in `validate`. The value type widens through `unknown` for the cast.
   return out as Record<string, FieldDef>;
 }
 
