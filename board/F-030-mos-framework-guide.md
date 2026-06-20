@@ -2,13 +2,13 @@
 id: F-030
 type: feature
 title: Ship the mos framework guide (.mos/AGENTS.md), scaffolded by mos init
-status: Draft
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 touches: [config, cli, docs]
 created: 2026-06-14T20:00:00Z
-updated: 2026-06-14T20:00:00Z
+updated: 2026-06-20T12:00:00Z
 ---
 
 # F-030 — Ship the mos framework guide (.mos/AGENTS.md), scaffolded by mos init
@@ -86,17 +86,17 @@ repo-agnostic answer to "what is mos and how do I operate this vault."
 
 ## Acceptance
 
-- [ ] `mos init <dir>` produces `<dir>/.mos/AGENTS.md`, and the scaffolded root `AGENTS.md`
+- [x] `mos init <dir>` produces `<dir>/.mos/AGENTS.md`, and the scaffolded root `AGENTS.md`
       references it.
-- [ ] The guide is fully portable — no reference to this repo's ADRs/packages/dogfooding; a
+- [x] The guide is fully portable — no reference to this repo's ADRs/packages/dogfooding; a
       cold agent in a fresh vault can operate from it plus the config.
-- [ ] It includes a Versioning section covering the spec / CLI / skills axes and how they
+- [x] It includes a Versioning section covering the spec / CLI / skills axes and how they
       relate.
-- [ ] Canonicality is explicit: the guide owns "how to operate," `VAULT_SPEC` owns the formal
+- [x] Canonicality is explicit: the guide owns "how to operate," `VAULT_SPEC` owns the formal
       contract, each points at the other — no duplicated source of truth.
-- [ ] This repo dogfoods it (`.mos/AGENTS.md` present, root `AGENTS.md` references it,
+- [x] This repo dogfoods it (`.mos/AGENTS.md` present, root `AGENTS.md` references it,
       repo-specific content stays in root).
-- [ ] The repo validates clean.
+- [x] The repo validates clean.
 
 ## Dependencies
 

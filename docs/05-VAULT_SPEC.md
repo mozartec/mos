@@ -17,6 +17,11 @@ version it targets via `specVersion` in `.mos/config.json`, and the app states w
 versions it supports. Bump this only when the format itself changes. See
 [`11-RELEASING.md`](11-RELEASING.md) for the versioning policy.
 
+This document is the **formal contract** — exact fields, validation, semantics. The
+**operational guide** (how to operate a vault day to day) is the portable framework guide
+`mos init` scaffolds at `.mos/AGENTS.md`, which targets a spec version and points here for
+the format. The two are deliberately split so they don't fork into two drifting truths.
+
 `0.2` adds an optional **field-types registry** (§5a) and **created/updated timestamps**
 (§4a). `0.3` adds an optional **card-color palette and icon set** (§5b): a type may set a
 `color`, and a field may set an `icon` or per-value `valueColors`. `0.4` adds two optional

@@ -15,10 +15,11 @@ afterEach(async () => {
 });
 
 describe('initVault', () => {
-  it('scaffolds a config, an example card, and an agent guide in an empty folder', async () => {
+  it('scaffolds a config, the framework guide, an example card, and an agent guide in an empty folder', async () => {
     const result = initVault(dir);
     expect(result.created).toEqual([
       '.mos/config.json',
+      '.mos/AGENTS.md',
       'board/T-001-explore-the-board.md',
       'AGENTS.md',
     ]);
@@ -44,6 +45,33 @@ describe('initVault', () => {
     expect(card).toMatch(/created: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/);
   });
 
+  it('writes a portable framework guide at .mos/AGENTS.md that the root AGENTS.md references', async () => {
+    initVault(dir);
+
+    const guide = await readFile(join(dir, '.mos/AGENTS.md'), 'utf-8');
+    // Owns "how to operate": lenses, the config-driven rule, areas/touches, write rules.
+    expect(guide).toContain('# mos framework guide');
+    expect(guide).toMatch(/## The three lenses/);
+    expect(guide).toMatch(/Config drives all of it/);
+    expect(guide).toMatch(/## Areas & touches/);
+    // Versioning section covering the spec / CLI / skills axes.
+    expect(guide).toMatch(/## Versioning/);
+    expect(guide).toMatch(/Spec version/);
+    expect(guide).toMatch(/CLI \/ app version/);
+    expect(guide).toMatch(/Skills version/);
+    // States the spec version it targets and points at the formal contract (no duplication).
+    expect(guide).toContain('spec version 0.4');
+    expect(guide).toMatch(/VAULT_SPEC/);
+    // Portable: no reference to mos's own repo internals (ADRs, packages, the .agents setup).
+    expect(guide).not.toMatch(/ADR-\d/);
+    expect(guide).not.toMatch(/\.agents\//);
+    expect(guide).not.toMatch(/packages\/core/);
+
+    // The scaffolded root AGENTS.md points at the guide.
+    const agents = await readFile(join(dir, 'AGENTS.md'), 'utf-8');
+    expect(agents).toContain('.mos/AGENTS.md');
+  });
+
   it('refuses to touch an existing vault', async () => {
     initVault(dir);
     expect(() => initVault(dir)).toThrow(InitRefusedError);
@@ -55,7 +83,7 @@ describe('initVault', () => {
     await writeFile(join(dir, 'board/T-001-explore-the-board.md'), 'mine');
 
     const result = initVault(dir);
-    expect(result.created).toEqual(['.mos/config.json']);
+    expect(result.created).toEqual(['.mos/config.json', '.mos/AGENTS.md']);
     expect(result.skipped).toEqual(['board/T-001-explore-the-board.md', 'AGENTS.md']);
     expect(await readFile(join(dir, 'AGENTS.md'), 'utf-8')).toBe('my own rules');
   });
