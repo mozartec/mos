@@ -2,14 +2,14 @@
 id: T-018
 type: task
 title: Make the mos skills self-contained — no host-repo references
-status: Todo
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-029]
 touches: [skills]
 created: 2026-06-14T18:29:34Z
-updated: 2026-06-14T18:29:34Z
+updated: 2026-06-20T19:54:46Z
 ---
 
 # T-018 — Make the mos skills self-contained — no host-repo references
@@ -96,16 +96,16 @@ external tool a skill may name is the **mos CLI** (now that F-029 adds `mos vali
 
 ## Acceptance
 
-- [ ] `grep -rE 'ADR-|VAULT_SPEC|bun run|scripts/validate|\.mjs' skills/*/SKILL.md
+- [x] `grep -rE 'ADR-|VAULT_SPEC|bun run|scripts/validate|\.mjs' skills/*/SKILL.md
       skills/*/scripts/*.py` returns nothing; the only external tool named is the mos CLI.
-- [ ] Each removed citation's rule is still stated inline or was non-load-bearing — itemized
+- [x] Each removed citation's rule is still stated inline or was non-load-bearing — itemized
       one-per-line in the PR body (guarantee preservation).
-- [ ] `mos-refine-batch`'s validation step uses `mos validate` / `npx @mozartec/mos-cli
+- [x] `mos-refine-batch`'s validation step uses `mos validate` / `npx @mozartec/mos-cli
       validate` with a by-hand fallback and treats the result as advisory (no hard gate);
       `mos-ship-card` §6 mirrors the hint.
-- [ ] `.agents/skills/mos-*` and `skills-lock.json` are regenerated from `skills/`; installed
+- [x] `.agents/skills/mos-*` and `skills-lock.json` are regenerated from `skills/`; installed
       copies byte-match source; `.claude/skills/*` are still symlinks.
-- [ ] The skills pass their evals against the fixture vault (behavior unchanged), and this
+- [x] The skills pass their evals against the fixture vault (behavior unchanged), and this
       repo validates clean.
 
 ## Dependencies

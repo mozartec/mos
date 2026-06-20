@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""refine_batch.py — survey a mos backlog for refinement (ADR-022).
+"""refine_batch.py — survey a mos backlog for refinement.
 
 Zero dependencies. Run with Python 3:
     python3 refine_batch.py [<vaultDir>] [--phase P] [--limit N] [--json]
@@ -13,20 +13,20 @@ This script is the *read-only pre-compute* for the mos-refine-batch skill — it
 a card. It front-loads the mechanical work so the agent spends its judgment on shaping,
 not parsing:
 
-  - finds each type's INITIAL state (the first state the type declares in config). Per
-    ADR-022, refinement may rewrite prose / split / add enabler cards ONLY for cards
-    still in that initial state; everything else is frontmatter-only (ADR-002). This is
+  - finds each type's INITIAL state (the first state the type declares in config).
+    Refinement may rewrite prose / split / add enabler cards ONLY for cards
+    still in that initial state; everything else is frontmatter-only. This is
     the boundary, computed mechanically so any agent applies it identically.
   - over an explicit horizon (default: the whole backlog; --phase / --limit narrow it),
     classifies every card and reports, per refinable card:
-      * Pass 1 (readiness) — which cold-start sections (09-CONVENTIONS §Card readiness)
-        the body is missing;
+      * Pass 1 (readiness) — which cold-start sections (the vault's card-readiness
+        convention) the body is missing;
       * Pass 2 (surfaces)  — whether `touches` is declared, empty, or missing;
       * Pass 3 (shape)     — the overlap CLUSTERS: areas declared by two or more
         refinable cards. Those clusters are exactly the cards a refinement pass should
         reshape into a sequenced enabler plus disjoint leaves, instead of a serialized
         pick order. An area declared by many cards is flagged as a possible hub for the
-        agent to confirm with the forced-file test + git co-occurrence (VAULT_SPEC §5c).
+        agent to confirm with the forced-file test + git co-occurrence.
 
   With no `areas` configured the vault plans no surfaces: passes 1-2 still run and pass 3
   reports that overlap is UNKNOWN rather than guessing (the honest degrade).
@@ -39,8 +39,8 @@ from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
 
-# The cold-start sections a ready card carries (09-CONVENTIONS §Card readiness). A tiny
-# card may legitimately skip some; the agent decides — the script only reports the gaps.
+# The cold-start sections a ready card carries (the vault's card-readiness convention). A
+# tiny card may legitimately skip some; the agent decides — the script only reports the gaps.
 READY_SECTIONS = ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"]
 
 
@@ -77,7 +77,7 @@ def parse_frontmatter(text: str):
         if mm:
             v = mm.group(2).strip()
             if v == "":
-                # A bare `key:` may introduce a block-style list (VAULT_SPEC §5a).
+                # A bare `key:` may introduce a block-style list.
                 items = []
                 while i + 1 < len(lines):
                     im = re.match(r"^\s*-\s*(.*)$", lines[i + 1])
@@ -136,7 +136,7 @@ def missing_sections(body: str):
 
 
 def initial_state(type_def):
-    """A type's initial state = the FIRST state it declares (ADR-022). json preserves
+    """A type's initial state = the FIRST state it declares. json preserves
     insertion order, so the first key of the states map is it."""
     states = type_def.get("states", {})
     return next(iter(states), None)
@@ -153,7 +153,7 @@ def load(vault: Path):
                 {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
     # Types that can be a CONTAINER: some other type names them as its `parent`. Only a
-    # card of such a type can be split into a container + child cards (ADR-019); a leaf
+    # card of such a type can be split into a container + child cards; a leaf
     # type (no child type points at it) is split into siblings or an enabler instead.
     parent_types = {t.get("parent") for t in types.values() if t.get("parent")}
 
@@ -261,7 +261,7 @@ def main():
         return
 
     print(f"\n=== Refine backlog in: {name} ===\n")
-    print("  Refinable = card in its type's INITIAL state (ADR-022 — prose may be")
+    print("  Refinable = card in its type's INITIAL state (prose may be")
     print("  reshaped). Initial states: " +
           ", ".join(f"{t}:{s}" for t, s in inits.items()) + "\n")
 
@@ -285,7 +285,7 @@ def main():
     if clusters:
         print("  Overlap clusters — reshape these into an enabler + disjoint leaves,")
         print("  not a serialized order. An area shared by many cards is a possible hub")
-        print("  (confirm with the forced-file test + git co-occurrence, VAULT_SPEC §5c):")
+        print("  (confirm with the forced-file test + git co-occurrence):")
         for a, ids in sorted(clusters.items(), key=lambda kv: (-len(kv[1]), kv[0])):
             hub = "  ← possible HUB" if len(ids) >= 3 else ""
             print(f"    {a:<10} shared by {', '.join(ids)}{hub}")
