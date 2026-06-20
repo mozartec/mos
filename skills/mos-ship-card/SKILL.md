@@ -98,9 +98,10 @@ Then give every finding exactly one disposition — none are dropped silently:
 ## 6. Finish, commit, PR
 
 1. Run the project's full checks **once**, including the vault validator if it has one —
-   prefer the mos CLI: `mos validate <vaultDir>` (installed), else `npx @mozartec/mos-cli
-   validate <vaultDir>` (full package name; bare `npx mos` fetches the wrong package); no
-   CLI, no problem — the validator is advisory, relay any spec mismatch but don't gate on it.
+   prefer the mos CLI: `mos validate <vaultDir>` (installed), else
+   `npx @mozartec/mos-cli validate <vaultDir>` (full package name; bare `npx mos` fetches
+   the wrong package); no CLI, no problem — the validator is advisory, relay any spec
+   mismatch but don't gate on it.
 2. Close the card: `python3 <skill-dir>/scripts/ship_card.py <id> --finish` — sets the
    Done status, bumps `updated`, ticks the card's own `## Acceptance` boxes. Always
    close via the script; never hand-edit the status, timestamp, or boxes.

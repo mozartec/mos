@@ -139,10 +139,11 @@ Refinement is a large, judgment-heavy write across many cards. Don't apply it bl
    adjust the plan — don't charge ahead.
 3. After applying, validate that the board still renders — every card maps to a column,
    parents resolve, `touches` names resolve, timestamps are UTC. Prefer the mos CLI if
-   present: `mos validate <vaultDir>` (installed), else `npx @mozartec/mos-cli validate
-   <vaultDir>` (use the full package name; bare `npx mos` fetches the wrong package). No
-   CLI? Do the check by hand against the rules above. Validation is **advisory** — relay
-   any spec-mismatch warning, but never gate the reshape on it.
+   present: `mos validate <vaultDir>` (installed), else
+   `npx @mozartec/mos-cli validate <vaultDir>` (use the full package name; bare `npx mos`
+   fetches the wrong package). No CLI? Do the check by hand against the rules above.
+   Validation is **advisory** — relay any spec-mismatch warning, but never gate the
+   reshape on it.
 
 ## Write rules (always)
 
