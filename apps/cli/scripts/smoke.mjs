@@ -1,9 +1,9 @@
 // Pack-and-install smoke test (T-008): prove the *published artifact* works,
 // not the workspace. Packs the CLI with `npm pack`, installs the tarball into
-// a clean temp project, scaffolds a vault with `mos init`, serves it with
-// `mos serve`, and probes the running server — the page, the vault endpoints,
-// a live SSE event, and the read-only 405. Plain Node ≥ 20, no test runner,
-// so it exercises exactly what a consumer gets.
+// a clean temp project, scaffolds a vault with `mos init`, validates it with
+// `mos validate`, serves it with `mos serve`, and probes the running server —
+// the page, the vault endpoints, a live SSE event, and the read-only 405. Plain
+// Node ≥ 20, no test runner, so it exercises exactly what a consumer gets.
 import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -66,7 +66,26 @@ if (!existsSync(join(consumerDir, '.mos/config.json')))
 if (!initOutput.includes('vault scaffolded')) fail('mos init did not report success');
 ok('mos init scaffolded a vault');
 
-// 4. `mos serve --port 0` — parse the bound port from its own output.
+// 4. `mos validate` — the third command, run against the just-scaffolded vault
+// through the installed bin. Read-only; exits 0 when clean. Proves the adoption
+// path's CI gate, not just init + serve.
+let validateOutput;
+try {
+  validateOutput = execFileSync('node', [mosBin, 'validate', consumerDir], { encoding: 'utf-8' });
+} catch (err) {
+  fail(
+    `mos validate did not exit 0 on the scaffolded vault (exit ${err.status}):\n${err.stdout ?? ''}${err.stderr ?? ''}`,
+  );
+}
+if (!validateOutput.includes('ALL VAULTS VALID')) {
+  fail(`mos validate did not report the scaffolded vault clean:\n${validateOutput}`);
+}
+if (!validateOutput.includes('[Backlog]') || !validateOutput.includes('T-001')) {
+  fail(`mos validate report does not place the scaffolded card on a column:\n${validateOutput}`);
+}
+ok('mos validate reports the scaffolded vault clean, card on its column');
+
+// 5. `mos serve --port 0` — parse the bound port from its own output.
 server = spawn('node', [mosBin, 'serve', consumerDir, '--port', '0'], {
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -89,7 +108,7 @@ const port = await new Promise((resolve, reject) => {
 ok(`mos serve is up on port ${port}`);
 const base = `http://127.0.0.1:${port}`;
 
-// 5. Probe the surfaces.
+// 6. Probe the surfaces.
 const page = await fetch(`${base}/`);
 const pageText = await page.text();
 if (page.status !== 200 || !pageText.includes('<app-root')) fail('GET / did not serve the web app');
@@ -111,7 +130,7 @@ const post = await fetch(`${base}/vault/files`, { method: 'POST' });
 if (post.status !== 405) fail(`POST /vault/files returned ${post.status}, want 405 (read-only)`);
 ok('non-GET is rejected with 405');
 
-// 6. SSE: a vault edit must reach a connected watcher.
+// 7. SSE: a vault edit must reach a connected watcher.
 const sse = await fetch(`${base}/vault/watch`);
 if (sse.headers.get('content-type') !== 'text/event-stream')
   fail('/vault/watch is not an SSE stream');
@@ -134,7 +153,7 @@ if (!sseEvent.includes('T-001')) fail(`SSE event does not name the edited card: 
 await reader.cancel();
 ok('SSE watcher reported the vault edit');
 
-// 7. EADDRINUSE is a one-line human error, not a stack trace.
+// 8. EADDRINUSE is a one-line human error, not a stack trace.
 const clash = spawn('node', [mosBin, 'serve', consumerDir, '--port', String(port)], {
   stdio: ['ignore', 'pipe', 'pipe'],
 });

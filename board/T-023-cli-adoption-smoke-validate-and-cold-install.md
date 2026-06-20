@@ -2,14 +2,14 @@
 id: T-023
 type: task
 title: CLI release readiness — smoke covers `mos validate` + cold install; npm README + emitted guide current
-status: Todo
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-029, F-030]
 touches: [cli, config]
 created: 2026-06-20T21:15:27Z
-updated: 2026-06-20T21:52:47Z
+updated: 2026-06-20T22:06:21Z
 ---
 
 # T-023 — CLI release readiness — smoke covers `mos validate` + cold install; npm README + emitted guide current
@@ -120,16 +120,16 @@ T-025's job (`docs`); this card owns the CLI readme (`cli`).
 
 ## Acceptance
 
-- [ ] `smoke.mjs` runs `mos validate` on the `init`-scaffolded vault and asserts a clean
+- [x] `smoke.mjs` runs `mos validate` on the `init`-scaffolded vault and asserts a clean
       result; init → serve → validate are all exercised against the packed, installed CLI.
-- [ ] The smoke flow invokes the published `mos` bin (the adopter's entry point), not only a
+- [x] The smoke flow invokes the published `mos` bin (the adopter's entry point), not only a
       direct dist path.
-- [ ] `apps/cli/README.md` reads standalone for the npm page — pitch, install, the command table
+- [x] `apps/cli/README.md` reads standalone for the npm page — pitch, install, the command table
       (incl. `validate` + `--version`/`--help`), vault explainer, read-only — all accurate for
       0.3.0, with only absolute GitHub cross-links; it is the canonical command reference.
-- [ ] `frameworkGuide(SPEC_VERSION)` output equals the committed `.mos/AGENTS.md` byte-for-byte,
+- [x] `frameworkGuide(SPEC_VERSION)` output equals the committed `.mos/AGENTS.md` byte-for-byte,
       and the guide's spec-version + command references match the shipped surface.
-- [ ] `bun run --filter @mozartec/mos-cli smoke` passes; full `lint && test && build && validate`
+- [x] `bun run --filter @mozartec/mos-cli smoke` passes; full `lint && test && build && validate`
       is green.
 
 ## Dependencies
