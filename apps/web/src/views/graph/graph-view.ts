@@ -16,6 +16,7 @@ import {
   globToRegExp,
   inFlightAreas,
   inFlightCollisions,
+  inFlightColumn,
   loadConfig,
   parallelOverlaysActive,
   parseFile,
@@ -51,6 +52,13 @@ export interface PositionedNode {
   critical: boolean;
   /** In the ready set (F-012-S-04): badge — every dependency is done. */
   ready: boolean;
+  /**
+   * Paint the ready dot? Ready **and** not already started (T-014): an in-flight
+   * card is unblocked, so it's in the ready set, but work on it is underway — a
+   * "ready / safe to start" dot reads oddly there, so it gets none. The ready-set
+   * semantics (`ready`) are unchanged; only the dot is gated.
+   */
+  showReadyDot: boolean;
   /** Ready and clear of every in-flight surface (F-026) — safe to start now. */
   safe: boolean;
   /** Paint the ready dot solid (safe / parallelism off) vs hollow (would overlap). */
@@ -237,6 +245,7 @@ export class GraphView {
     if (config === null) return [];
     const parallelActive = this.parallelActive();
     const claimed = this.claimedAreas();
+    const inFlight = inFlightColumn(config);
     const result: PositionedNode[] = [];
     for (const node of this.graph().nodes) {
       const card = this.model().cards[node.id];
@@ -244,6 +253,9 @@ export class GraphView {
       if (placement.error !== undefined || placement.column === null) continue;
 
       const ready = this.readyIds().has(node.id);
+      // An in-flight card is unblocked (so it's in the ready set) but already
+      // underway — suppress its ready dot (T-014). Collision markers stay.
+      const showReadyDot = ready && placement.column !== inFlight;
       const safe = ready && parallelActive && this.safeIds().has(node.id);
       // Solid dot when safe, or when parallelism is off (pre-F-026 behaviour);
       // hollow when ready but its surface isn't clear of in-flight work.
@@ -260,6 +272,7 @@ export class GraphView {
         path: card.path,
         critical: this.criticalIds().has(node.id),
         ready,
+        showReadyDot,
         safe,
         dotFilled,
         readyTitle: this.readyTitle(card, config, parallelActive, ready, safe, claimed),

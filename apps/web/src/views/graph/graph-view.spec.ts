@@ -254,11 +254,13 @@ describe('GraphView', () => {
       AREAS_CONFIG,
     );
     const host = fixture.nativeElement as HTMLElement;
-    // All three are unblocked, so all carry a ready dot (an in-flight card is
-    // "ready" in the dependency sense); only the disjoint Todo card is *safe*.
-    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(3);
+    // Both not-started cards carry a ready dot; the in-flight T-001 does not —
+    // it's underway, not "ready/safe to start" (T-014). Only the disjoint Todo
+    // card is *safe*.
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(2);
     expect(host.querySelectorAll('svg circle[data-safe]')).toHaveLength(1);
     const byId = Object.fromEntries(fixture.componentInstance['nodes']().map((n) => [n.id, n]));
+    expect(byId['T-001'].showReadyDot).toBe(false); // in-flight → no dot
     expect(byId['T-WEB'].safe).toBe(true);
     expect(byId['T-CORE'].safe).toBe(false);
     expect(byId['T-CORE'].ready).toBe(true);
@@ -333,12 +335,54 @@ describe('GraphView', () => {
       'board/T-003.md': makeCard('T-003', 'Todo'),
     });
     const host = fixture.nativeElement as HTMLElement;
+    // No F-026 overlays appear without `areas`: no collision markers, no safe split.
     expect(host.querySelectorAll('svg path[data-collision]')).toHaveLength(0);
     expect(host.querySelectorAll('svg circle[data-safe]')).toHaveLength(0);
-    // The pre-F-026 ready dot and its legend label are unchanged (all 3 unblocked).
-    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(3);
+    // In-flight dot suppression is mode-independent (T-014): only the not-started
+    // T-003 keeps a ready dot; the two In Progress cards lose theirs. The legend's
+    // zero-config "Ready to start" label is unchanged.
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(1);
     expect(host.querySelector('[aria-label="Graph legend"]')?.textContent).toContain(
       'Ready to start',
     );
+  });
+
+  // ── T-014: an already-started (in-flight) card gets no ready dot ───────────
+
+  it('suppresses the ready dot on an in-flight card but keeps it on a not-started ready card', async () => {
+    const fixture = await createGraph({
+      'board/T-001.md': makeCard('T-001', 'Done'),
+      'board/T-002.md': makeCard('T-002', 'In Progress', ['T-001']), // deps done, underway
+      'board/T-003.md': makeCard('T-003', 'Todo', ['T-001']), // deps done, not started
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const byId = Object.fromEntries(fixture.componentInstance['nodes']().map((n) => [n.id, n]));
+    // The in-flight card is still in the ready set (core readySet unchanged)…
+    expect(byId['T-002'].ready).toBe(true);
+    // …but paints no dot, while the not-started ready card does.
+    expect(byId['T-002'].showReadyDot).toBe(false);
+    expect(byId['T-003'].showReadyDot).toBe(true);
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(1);
+  });
+
+  it('keeps the collision marker on an in-flight card while dropping its ready dot (parallel mode)', async () => {
+    const fixture = await createGraph(
+      {
+        'board/T-001.md': makeCard('T-001', 'In Progress', [], ['core']), // in-flight, collides
+        'board/T-002.md': makeCard('T-002', 'In Progress', [], ['core']), // in-flight, collides
+        'board/T-WEB.md': makeCard('T-WEB', 'Todo', [], ['web']), // not started, safe
+      },
+      AREAS_CONFIG,
+    );
+    const host = fixture.nativeElement as HTMLElement;
+    // Collision markers on the in-flight cards are unaffected by T-014…
+    expect(host.querySelectorAll('svg path[data-collision]')).toHaveLength(2);
+    // …but their ready dots are gone; only the not-started card keeps one.
+    expect(host.querySelectorAll('svg circle[data-ready]')).toHaveLength(1);
+    const byId = Object.fromEntries(fixture.componentInstance['nodes']().map((n) => [n.id, n]));
+    expect(byId['T-001'].showReadyDot).toBe(false);
+    expect(byId['T-001'].collision).toBe(true);
+    expect(byId['T-WEB'].showReadyDot).toBe(true);
+    expect(byId['T-WEB'].safe).toBe(true);
   });
 });

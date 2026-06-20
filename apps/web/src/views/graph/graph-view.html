@@ -98,7 +98,7 @@
                   "
                   [attr.data-critical]="node.critical ? '' : null"
                 />
-                @if (node.ready) {
+                @if (node.showReadyDot) {
                   <circle
                     [attr.cx]="node.x + NODE_W - 8"
                     [attr.cy]="node.y + 8"
