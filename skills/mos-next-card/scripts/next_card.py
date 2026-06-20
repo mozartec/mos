@@ -4,7 +4,7 @@
 Zero dependencies. Run with Python 3:
     python3 next_card.py [<vaultDir>] [--sprint S1] [--json]
     python3 next_card.py [<vaultDir>] --parallel [N]   # a conflict-free batch of
-                                                       # up to N ready cards (ADR-021)
+                                                       # up to N ready cards
 
 A "vault" is any directory containing .mos/config.json. With no path, the script
 discovers the nearest vault at or above the current directory; without one it refuses
@@ -61,7 +61,7 @@ def parse_frontmatter(text: str):
         if mm:
             v = mm.group(2).strip()
             if v == "":
-                # A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
+                # A bare `key:` may introduce a block-style list:
                 #   key:
                 #     - entry
                 items = []
@@ -82,7 +82,7 @@ def parse_list(raw):
     """A frontmatter list value, deduped (insertion order kept): a block list
     (already a list from parse_frontmatter), an inline `[a, b]`, or a bare single
     value; None when absent, [] when declared empty. Mirrors the validator's
-    parseList so a vault parses identically here and in `bun run validate`."""
+    parseList so a vault parses identically here and in the mos vault validator."""
     if raw is None or raw == "":
         return None
     if isinstance(raw, list):
@@ -135,7 +135,7 @@ def load(vault: Path):
     includes = [glob_to_re(g) for g in cfg["board"].get("include", [])]
     sprints = cfg.get("sprints", []) or []
     types = cfg["types"]
-    areas = cfg.get("areas", {}) or {}  # vault-defined surfaces (ADR-021); {} => unscoped
+    areas = cfg.get("areas", {}) or {}  # vault-defined surfaces; {} => unscoped
 
     cards = {}
     touches = {}  # id -> declared area names (list, maybe []), or None when undeclared
@@ -199,7 +199,7 @@ def rank_key(columns, sprints, prio_rank):
 
 
 def parallel_batch(candidates, touches, areas, n):
-    """Greedy, deterministic conflict-free batch (ADR-021). `candidates` are the
+    """Greedy, deterministic conflict-free batch. `candidates` are the
     ready cards already in pick order; `touches[id]` is a card's declared area
     names (possibly []), or None when undeclared. Visiting in rank order, a card
     joins the batch when its areas are disjoint from every member already in it;
@@ -282,7 +282,7 @@ def print_batch(name, n, result, cards, touches, diagnostics):
             print(f"    {cid:<12} {cards[cid]['title']}")
 
     if diagnostics:
-        print("\n  Diagnostics (surfaced, not swallowed — ADR-021):")
+        print("\n  Diagnostics (surfaced, not swallowed):")
         for d in diagnostics:
             print(f"    - {d}")
     print()
@@ -330,7 +330,7 @@ def main():
     if parallel_n is not None:
         result = parallel_batch(ready, touches, areas, parallel_n)
         # Unresolved dependency ids drop their edge (they don't block readiness)
-        # but must be surfaced, not swallowed (ADR-021).
+        # but must be surfaced, not swallowed.
         diagnostics = [
             f"{c['id']}: unresolved dependency {', '.join(c['missing_deps'])} "
             "(edge dropped — does not block readiness)"

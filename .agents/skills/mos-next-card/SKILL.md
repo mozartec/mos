@@ -55,7 +55,7 @@ Read the nearest `AGENTS.md` too; it holds the vault's working rules.
 
 If the ask is "what can I run *at the same time* / in parallel / as a batch," pass
 `--parallel [N]` (default 3). A **batch** is ready cards whose declared `touches` (the
-areas a card expects to modify, config `areas` → VAULT_SPEC §5c, ADR-021) are **pairwise
+areas a card expects to modify, named from the config's `areas`) are **pairwise
 disjoint** — unblocked *and* collision-free. Selection is greedy in the same rank order,
 so higher-priority work claims its surface first.
 

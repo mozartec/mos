@@ -68,7 +68,7 @@ def parse_frontmatter(text: str):
         if mm:
             v = mm.group(2).strip()
             if v == "":
-                # A bare `key:` may introduce a block-style list (VAULT_SPEC §5a):
+                # A bare `key:` may introduce a block-style list:
                 #   key:
                 #     - entry
                 items = []
@@ -89,7 +89,7 @@ def parse_list(raw):
     """A frontmatter list value, deduped (insertion order kept): a block list
     (already a list from parse_frontmatter), an inline `[a, b]`, or a bare single
     value; None when absent, [] when declared empty. Mirrors the validator's
-    parseList so a vault parses identically here and in `bun run validate`."""
+    parseList so a vault parses identically here and in the mos vault validator."""
     if raw is None or raw == "":
         return None
     if isinstance(raw, list):
@@ -267,7 +267,7 @@ def main():
     missing_sections = [s for s in READINESS_SECTIONS if s not in card["sections"]]
     parent_file = cards[card["parent"]]["rel"] if card["parent"] in cards else None
 
-    # Surface overlap (ADR-021): cards already in flight — in the column before the
+    # Surface overlap: cards already in flight — in the column before the
     # last, the counterpart of "last column is done" — whose declared `touches`
     # share an area with this card. Compared by name, like the validator; a card
     # with no `touches` (or `touches: []`) raises nothing, so vaults that declare no

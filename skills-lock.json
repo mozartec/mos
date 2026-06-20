@@ -23,19 +23,19 @@
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/mos-next-card/SKILL.md",
-      "computedHash": "1767098ade797fd5c3b47bfca24e477bda102ea9a6701ee405aa55a5c1bae372"
+      "computedHash": "3103fc74b6099333e4dcdfb145315aa8598125733474a7e041be9ee3c5e59c40"
     },
     "mos-refine-batch": {
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/mos-refine-batch/SKILL.md",
-      "computedHash": "b5fc12cc7df997bfc6319102358e2e0729f68124320639359979b098ab27fd80"
+      "computedHash": "a912a2be902821838d85e06cacf66af6db4201b5098ab77b81698e66fe5f50a7"
     },
     "mos-ship-card": {
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/mos-ship-card/SKILL.md",
-      "computedHash": "942546d7454f819d4efeb1a134685d6da0043a8fdfbaf7e0e3953e66a5468d0c"
+      "computedHash": "41d5d1a4b487aad7db93c060bb37ccd0ff805502c3312f043f0235b967a4f38e"
     },
     "turborepo": {
       "source": "vercel/turborepo",
