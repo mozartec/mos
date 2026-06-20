@@ -7,6 +7,12 @@ mos is a local-first tool that renders a folder of markdown as a wiki and a Kanb
 The folder is the source of truth; the app is read-only; writes happen via the agent
 layer. (One-paragraph version; the full story is [`docs/01-VISION.md`](docs/01-VISION.md).)
 
+For how mos works in general — the lenses, what a card/type/state/column is, areas &
+`touches`, parallel batches, the write conventions, and the versioning axes — read the
+portable framework guide at [`.mos/AGENTS.md`](.mos/AGENTS.md). It is repo-agnostic (the
+same file `mos init` scaffolds into any vault). This file adds only what is specific to
+*this* repo — the dogfooding, the `.agents/`/`.claude/`/`skills/` topology, the ADRs.
+
 ## This repo is two things at once
 
 - A **codebase** — the mos app (once code lands, under `src/`).
