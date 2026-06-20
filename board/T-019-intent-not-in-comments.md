@@ -2,14 +2,14 @@
 id: T-019
 type: task
 title: Intent lives in tracked decisions, not comments (ADR + CI guard + sweep)
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 dependsOn: [T-017]
-touches: [ci, docs]
+touches: [ci, docs, scripts, core, web]
 created: 2026-06-14T20:00:00Z
-updated: 2026-06-16T10:33:34Z
+updated: 2026-06-17T00:02:26Z
 ---
 
 # T-019 — Intent lives in tracked decisions, not comments (ADR + CI guard + sweep)
@@ -75,13 +75,13 @@ substrate meets the same cold-read bar the cards already do (ADR-007).
 
 ## Acceptance
 
-- [ ] ADR-023 exists in `docs/08-DECISIONS.md`, stating the rule and its rationale.
-- [ ] CI **fails** when a forward-looking comment lacks a card id and **passes** when one is
+- [x] ADR-023 exists in `docs/08-DECISIONS.md`, stating the rule and its rationale.
+- [x] CI **fails** when a forward-looking comment lacks a card id and **passes** when one is
       present — a fixture proves both — and the guard is low-false-positive (the existing tree
       passes after the sweep).
-- [ ] Existing violations are cleared or carry a card id (T-017 already removed the F-002
+- [x] Existing violations are cleared or carry a card id (T-017 already removed the F-002
       comment — not duplicated here).
-- [ ] CI is green with the guard enabled.
+- [x] CI is green with the guard enabled.
 
 ## Dependencies
 

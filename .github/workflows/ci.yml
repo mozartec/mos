@@ -58,5 +58,8 @@ jobs:
       - name: Test scripts
         run: bun run test:scripts
 
+      - name: Check forward-looking comments (ADR-023)
+        run: bun run check:comments
+
       - name: Validate vault
         run: bun run validate

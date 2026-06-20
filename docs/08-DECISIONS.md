@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T19:10:00Z
+updated: 2026-06-16T23:48:46Z
 ---
 
 # Decisions (ADRs)
@@ -529,3 +529,51 @@ turns "four parallel features that all collide" into "one enabler, then three sa
 leaves." Decided cards keep their no-drift guarantee, and the boundary is mechanical — a
 status check — so any agent can apply it cold. Until F-027 ships, the blanket no-prose
 rule stays in force.
+
+## ADR-023 — Intent lives in tracked decisions, not comments
+
+**Status:** Accepted · **Date:** 2026-06-16
+
+**Context.** [ADR-007](#adr-007--the-repository-is-the-memory-cards-target-cold-any-model-agents)
+made the repository the durable memory and held every *card* to a cold-read bar, but the
+*comment* layer was left untouched. In an AI-generated repo that gap bites: the agent that
+writes a comment isn't coming back to update it, and the next agent reads it as
+authoritative — so every comment is effectively orphaned the moment it's written. A comment
+that describes present mechanics ages gracefully; a comment that promises *future* work is
+guaranteed to rot and actively mislead. The concrete miss that prompted this: a comment in
+`scripts/validate-vault.mjs` promised the validator *"graduates into core (F-002)"* — a
+future that never happened once F-002 shipped narrowly, and the stale promise misdirected
+planning until T-017 removed it.
+
+**Decision.** **Comments state present mechanics only.** Forward-looking intent — "for now",
+"interim", "temporary", "eventually", "someday", "future", "graduates into", `TODO`/`FIXME`
+and the like — must live behind a **card id**, not a bare comment. A note that points at
+tracked work (e.g. "stubbed until F-002") is fine; a bare promise is not. This is enforced,
+cheaply, by a CI guard ([`scripts/check-forward-comments.mjs`](../scripts/check-forward-comments.mjs),
+wired into [`ci.yml`](../.github/workflows/ci.yml)) with a deliberately narrow contract:
+
+- It scans **comments only** (string contents and code are skipped), in **code files only**
+  (`.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`). Markdown prose is **not** scanned — docs, ADRs,
+  and roadmaps are *meant* to discuss what's coming.
+- It flags a **small, curated marker set**, tuned against the existing tree so a clean repo
+  passes (a noisy guard gets disabled). Acronyms (`TODO`/`FIXME`/`XXX`/`HACK`/`TBD`) match
+  case-sensitively so the `Todo` *status* word is never a hit; phrases match case-insensitively.
+  `will` and `later` are **excluded** as too broad — present-tense behaviour uses them ("the
+  parser will throw", "validity is checked later in the flow").
+- The **escape hatch** is a card id (`F-`/`T-`/story) in the same comment block as the marker.
+  An **ADR id does not count** — an ADR records a principle, not the work that would resolve
+  the note — so "the future X (ADR-002)" is still flagged. The contract is pinned by a fixture
+  test ([`scripts/check-forward-comments.test.mjs`](../scripts/check-forward-comments.test.mjs))
+  proving both the fail and the pass.
+
+**Consequences.** The substrate now meets the same cold-read bar the cards already do — ADR-007
+extended to the comment layer — and reviewers can stop trusting forward-looking comments because
+the un-carded ones don't survive CI. Wiring the guard in immediately earned its keep: it caught
+three stale comments the originating card expected not to exist (`packages/core/src/vault-source.ts`
+called the now-shipped `HttpVaultSource` "future", and `apps/web/scripts/generate-icons.mjs` and
+`apps/web/src/services/theme-service.ts` carried similar bare promises), all reworded to present
+tense. The cost is a cheap heuristic, not a complete linter: the block-level hatch means a marker
+sharing a block with an *unrelated* card id still slips through, and the comment-only scan ignores
+prose — so, as in
+[ADR-021](#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches),
+the declared rule is the floor the guard protects, not a proof every comment is honest.

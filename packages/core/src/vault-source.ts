@@ -3,10 +3,10 @@
  *
  * All filesystem, HTTP, or Tauri access lives behind an implementation of this
  * type — never in the UI or in core logic (ADR-001, ADR-002). The core defines
- * only the type; concrete sources live in the app that uses them (for example
- * `StaticVaultSource` and the future `HttpVaultSource` in `apps/web/src/sources`,
- * or `TauriVaultSource` in `apps/desktop`). Swapping one for another changes
- * nothing in the UI or the core.
+ * only the type; concrete sources live in the app that uses them — for example
+ * `StaticVaultSource` and `HttpVaultSource` in `apps/web/src/sources`, with a
+ * Tauri source to follow for the deferred desktop app (F-007). Swapping one for
+ * another changes nothing in the UI or the core.
  */
 export interface VaultSource {
   /** List every vault-relative file path the source can read. */
