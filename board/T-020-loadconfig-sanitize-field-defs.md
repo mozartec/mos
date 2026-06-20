@@ -2,14 +2,14 @@
 id: T-020
 type: task
 title: Sanitize invalid field defs in loadConfig — FieldDef stops being a runtime lie
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 dependsOn: [T-017]
 touches: [core]
 created: 2026-06-16T09:21:38Z
-updated: 2026-06-16T09:21:38Z
+updated: 2026-06-16T23:52:48Z
 ---
 
 # T-020 — Sanitize invalid field defs in loadConfig — FieldDef stops being a runtime lie
@@ -74,12 +74,12 @@ fix — the root is that `loadConfig` lets a malformed def through, so `filters.
 
 ## Acceptance
 
-- [ ] A config with a non-object field def (e.g. `fields:{x:null}`) loads with that entry
+- [x] A config with a non-object field def (e.g. `fields:{x:null}`) loads with that entry
       absent from `config.fields`; no core consumer crashes reading it.
-- [ ] The dropped-def diagnostic policy is decided and pinned by a `config.test.ts` case.
-- [ ] Valid configs are unchanged (defaults + valid defs intact); `bun run validate` output
+- [x] The dropped-def diagnostic policy is decided and pinned by a `config.test.ts` case.
+- [x] Valid configs are unchanged (defaults + valid defs intact); `bun run validate` output
       for this repo is byte-for-byte the same.
-- [ ] Full gate green: `bun run lint && bun run test && bun run build && bun run validate`
+- [x] Full gate green: `bun run lint && bun run test && bun run build && bun run validate`
       plus `bun run test:scripts`.
 
 ## Dependencies

@@ -219,7 +219,7 @@ export function loadConfig(input: string | object): LoadConfigResult {
     return { config: defaultConfig(), errors };
   }
 
-  const config = normalize(raw);
+  const config = normalize(raw, errors);
   validate(config, errors);
   return { config, errors };
 }
@@ -242,7 +242,7 @@ function defaultConfig(): VaultConfig {
 }
 
 /** Fill every optional key with its documented default. */
-function normalize(obj: Record<string, unknown>): VaultConfig {
+function normalize(obj: Record<string, unknown>, errors: string[]): VaultConfig {
   const vault = isObject(obj['vault']) ? obj['vault'] : {};
   const meta = isObject(obj['meta']) ? obj['meta'] : {};
   const timestamps = isObject(meta['timestamps']) ? meta['timestamps'] : {};
@@ -259,7 +259,7 @@ function normalize(obj: Record<string, unknown>): VaultConfig {
         updatedField: asString(timestamps['updatedField'], 'updated'),
       },
     },
-    fields: isObject(obj['fields']) ? (obj['fields'] as Record<string, FieldDef>) : {},
+    fields: normalizeFields(obj['fields'], errors),
     wiki: {
       include: asStringArray(wiki['include']),
       exclude: asStringArray(wiki['exclude']),
@@ -435,6 +435,36 @@ function asString(v: unknown, fallback: string): string {
 /** `v` as a string array, dropping non-string members; `[]` if not an array. */
 function asStringArray(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
+
+/**
+ * The `fields` registry sanitized to a genuine `Record<string, FieldDef>`: every
+ * entry that isn't an object is **dropped** (not cast through), so downstream
+ * consumers reading `def.type`/`def.list`/`def.values` never meet a non-object
+ * the type claims can't exist (T-020). A dropped entry is reported as an error —
+ * surfacing the malformed def rather than letting it vanish silently — keeping the
+ * diagnostic consistent with how a malformed `areas`/type entry is flagged. The
+ * surviving objects' own checks (unknown type/icon/color) stay in {@link validate}.
+ */
+function normalizeFields(v: unknown, errors: string[]): Record<string, FieldDef> {
+  if (!isObject(v)) return {};
+  // Null-prototype accumulator: a field key like `__proto__` (an own data
+  // property on a JSON-parsed config) must be stored as data, not invoke the
+  // inherited `__proto__` setter — plain `{}` would let `out[name] = def` poison
+  // `out`'s prototype, leaking phantom defs into computed lookups like
+  // `config.fields['priority']`. The original code never hit this because it
+  // passed the parse result straight through; rebuilding the map reintroduces it.
+  const out: Record<string, unknown> = Object.create(null);
+  for (const [name, def] of Object.entries(v)) {
+    if (isObject(def)) {
+      out[name] = def;
+    } else {
+      errors.push(`field ${name}: definition must be an object`);
+    }
+  }
+  // Each kept entry is an object; its deeper shape (a known `type`, etc.) is
+  // checked in `validate`. The value type widens through `unknown` for the cast.
+  return out as Record<string, FieldDef>;
 }
 
 /**

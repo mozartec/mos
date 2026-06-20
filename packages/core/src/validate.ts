@@ -178,9 +178,9 @@ function validateScope(config: VaultConfig, errors: string[], warnings: string[]
   let raw: unknown[];
   const field = config.board.scopeField;
   if (field !== undefined) {
-    // Read the def defensively: `config.fields` is cast in loadConfig without
-    // per-entry validation, so a non-object (e.g. null) can survive — the old
-    // script's `!def || typeof def !== 'object'` guarded this; the port must too.
+    // Read the def defensively: loadConfig now drops non-object field defs
+    // (T-020), but validateVault is pure and may be handed a directly-built
+    // config, so a non-object (e.g. null) here is reported, not crashed on.
     const def = (config.fields as Record<string, unknown>)[field];
     if (!isObject(def)) {
       errors.push(`board.scopeField: '${field}' is not a registered field`);
@@ -385,8 +385,9 @@ function validateCards(
     }
 
     // Every id in a list-of-id field (e.g. dependsOn) must resolve to a card.
-    // `def` is read defensively (a non-object field def can survive loadConfig);
-    // Object.hasOwn so a `__proto__` id is unresolved, not a prototype match.
+    // `def` is read defensively: loadConfig now drops non-object defs (T-020),
+    // but a directly-built config may still carry one. Object.hasOwn so a
+    // `__proto__` id is unresolved, not a prototype match.
     for (const [fieldName, def] of Object.entries(config.fields as Record<string, unknown>)) {
       if (!isObject(def) || def['type'] !== 'id' || def['list'] !== true) continue;
       for (const id of asList(card.fields[fieldName])) {
@@ -470,9 +471,9 @@ function buildListEnumAllowed(
   config: VaultConfig,
 ): Map<string, { allowed: Set<string>; source: string | undefined }> {
   const result = new Map<string, { allowed: Set<string>; source: string | undefined }>();
-  // `config.fields` is cast in loadConfig without per-entry validation, so read
-  // each def defensively — a non-object (e.g. null) must skip, not throw (the old
-  // script's `def?.type` guarded this; the port must too).
+  // Read each def defensively: loadConfig now drops non-object field defs
+  // (T-020), but validateVault is pure and may receive a directly-built config,
+  // so a non-object (e.g. null) must skip, not throw.
   for (const [fieldName, def] of Object.entries(config.fields as Record<string, unknown>)) {
     if (!isObject(def) || def['type'] !== 'enum' || def['list'] !== true) continue;
     const values = def['values'] as (string | ScopeValue)[] | undefined;
