@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-029, F-030]
 touches: [docs]
 created: 2026-06-20T21:15:27Z
-updated: 2026-06-20T21:15:27Z
+updated: 2026-06-20T21:52:47Z
 ---
 
 # T-025 — Consolidate the usage/adoption docs — one source per fact, add install/upgrade, keep it brief
@@ -24,21 +24,34 @@ and brief: each fact lives in exactly one canonical place and everything else li
 adoption walkthrough gains a short upgrade section, and net lines come down. Prefer trimming to
 adding — don't over-document.
 
+## Two README surfaces (not duplication to delete)
+
+The repo ships **two purpose-built readmes** and we keep them separate (decided in T-023):
+root [`README.md`](../README.md) is the **GitHub project landing** (the whole product — format +
+app + skills), and [`apps/cli/README.md`](../apps/cli/README.md) is the **npm package page** (npm
+renders the package readme, not the repo root). Each must stand alone for its platform, so the
+one-line pitch + the install/quickstart are **deliberately repeated in both** — that overlap is
+intentional, not something this card removes. Everything *else* is single-sourced and linked. The
+CLI readme is `cli` (T-023's area) — **don't edit it here**; treat it as canonical and link to it.
+
 ## Canonical home per fact (everything else links, never restates)
 
 - **Commands** (`init`/`serve`/`validate`, flags) → [`apps/cli/README.md`](../apps/cli/README.md)
-  — already the current, npm-facing reference (it documents `validate`). **Read-only here**
-  (it's `cli`, T-023's area): link to it, don't copy its command table.
+  — the npm-facing, current reference (documents `validate` + `--version`/`--help`). Root README
+  and `12-ADOPTING.md` **link** to it; neither restates the command table.
 - **How to operate a vault** (write rules, lenses) → the framework guide (`.mos/AGENTS.md`,
   source in `init.ts`). **Read-only here** (`cli`/`config`, T-023): link, don't restate.
 - **The format/spec** → [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md).
-- **What mos is / why** → one short statement in `README.md`; the deeper version in
-  [`docs/01-VISION.md`](../docs/01-VISION.md). Said once, not three times.
+- **What mos is / why** → one short statement in `README.md` (and the same short pitch in the CLI
+  readme — the accepted overlap); the deeper version in
+  [`docs/01-VISION.md`](../docs/01-VISION.md). Said once per surface, not scattered across docs.
 
 ## Outcome
 
-- `README.md` is a brief front door: what mos is (one short pass), the fastest start, and
-  pointers — no restated command table, no duplicated adoption walkthrough.
+- `README.md` is a brief front door that still stands alone as the GitHub landing: a short pitch,
+  a minimal start (the pitch + install/quickstart is the accepted overlap with the npm readme), and
+  pointers — but **no** restated command table and **no** duplicated adoption walkthrough (link to
+  the CLI readme and `12-ADOPTING.md` for those). Trim duplication, don't gut it to a bare link.
 - `docs/12-ADOPTING.md` is the single adoption walkthrough, trimmed of anything that duplicates
   the CLI readme or the framework guide (link instead), and it **gains a concise Installing &
   upgrading section**:
@@ -100,9 +113,11 @@ adding — don't over-document.
 
 ## Acceptance
 
-- [ ] The one-line pitch, the install commands, and the adoption steps each appear in exactly
-      one canonical place; other docs link rather than restate.
-- [ ] `README.md` is a brief front door — no duplicated command table or adoption walkthrough.
+- [ ] The command reference and the adoption walkthrough each live in exactly one canonical place
+      (CLI readme; `12-ADOPTING.md`); other docs link rather than restate. The pitch +
+      install/quickstart may appear once per README surface (root + npm) and nowhere else.
+- [ ] `README.md` is a brief front door that still stands alone as the GitHub landing — no
+      duplicated command table or adoption walkthrough, but not gutted to a bare link.
 - [ ] `docs/12-ADOPTING.md` has a concise Installing & upgrading section (CLI `@latest`,
       re-running `npx skills add` + `skills-lock.json`, `specVersion` bump), verified against the
       shipped commands/version.
