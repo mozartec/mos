@@ -12,6 +12,31 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.3.0](https://github.com/mozartec/mos/compare/v0.2.1...v0.3.0) (2026-06-20)
+
+
+### Features
+
+* **board:** collision badges & safe-to-start overlays (F-026) ([#58](https://github.com/mozartec/mos/issues/58)) ([644cfc3](https://github.com/mozartec/mos/commit/644cfc37126729d0c8ce4d377f627272b9325175))
+* **board:** scoped board, backlog & config-driven filters (F-023) ([#56](https://github.com/mozartec/mos/issues/56)) ([a3f9804](https://github.com/mozartec/mos/commit/a3f980459f8bc042b4f1a044a2cacfd150c75e04))
+* **cli:** add `mos validate` command (F-029) ([#67](https://github.com/mozartec/mos/issues/67)) ([8529978](https://github.com/mozartec/mos/commit/85299783cba33ee6e32e8b5fd1198e9430429f40))
+* **cli:** scaffold portable framework guide at .mos/AGENTS.md (F-030) ([#71](https://github.com/mozartec/mos/issues/71)) ([1e70b40](https://github.com/mozartec/mos/commit/1e70b40e6fc578171e5277db7d013137b710863c))
+* **core:** areas & touches — declared file surfaces (F-024) ([#49](https://github.com/mozartec/mos/issues/49)) ([0f37e34](https://github.com/mozartec/mos/commit/0f37e342a1c3224c3a7d3e0437b1ebf0d953d15a))
+* **scripts:** validator flags overlapping area globs (T-012) ([#61](https://github.com/mozartec/mos/issues/61)) ([0a830c2](https://github.com/mozartec/mos/commit/0a830c2639057fbf387886629e323cd1dd64f809))
+* **skills:** parallel-aware next-card & ship-card — batch picks and overlap pre-flight (F-025) ([#55](https://github.com/mozartec/mos/issues/55)) ([144d971](https://github.com/mozartec/mos/commit/144d971392496e12e9f8ba0a773c1944bc040248))
+* **skills:** prefix first-party skills with the mos- namespace (T-013) ([#62](https://github.com/mozartec/mos/issues/62)) ([e9d2e46](https://github.com/mozartec/mos/commit/e9d2e46b43cf6fa8d2bd8517ee145198ddb1edef))
+* **skills:** refine-batch skill — shape the backlog for parallel work (F-027) ([#60](https://github.com/mozartec/mos/issues/60)) ([1a85413](https://github.com/mozartec/mos/commit/1a854136f3299d68a12b05a1b60742bd486ad73e))
+* **skills:** revise skills to 0.3.0 and refresh the installed copies ([#42](https://github.com/mozartec/mos/issues/42)) ([44673b4](https://github.com/mozartec/mos/commit/44673b4b8ebd9aca80277b299b936ce070facaed))
+* **skills:** ship-card 0.4.0 — self-review before finishing (T-011, conventions) ([#50](https://github.com/mozartec/mos/issues/50)) ([d50c67b](https://github.com/mozartec/mos/commit/d50c67b9801755defdc3bc453b63e8b4e56447a5))
+* **web:** adopt the Ink & Highlight design system (F-018) ([#46](https://github.com/mozartec/mos/issues/46)) ([8247e92](https://github.com/mozartec/mos/commit/8247e92e76e3862d5db8ed6df0248537e6d772f8))
+
+
+### Bug Fixes
+
+* **cli:** vault init stamps the current spec version (0.4) ([#51](https://github.com/mozartec/mos/issues/51)) ([d0d09a8](https://github.com/mozartec/mos/commit/d0d09a8081fcf3933f8bade3f48b5d372ef152d2))
+* **core:** sanitize non-object field defs in loadConfig (T-020) ([#69](https://github.com/mozartec/mos/issues/69)) ([cc6130f](https://github.com/mozartec/mos/commit/cc6130f692f4b1f461f63dcbb631b922841c6c76))
+* **web:** drop the graph ready dot on in-flight cards (T-014) ([#68](https://github.com/mozartec/mos/issues/68)) ([424ec92](https://github.com/mozartec/mos/commit/424ec9287c398da1b61985cef826eda5ca6b6ef7))
+
 ## [0.2.1](https://github.com/mozartec/mos/compare/v0.2.0...v0.2.1) (2026-06-11)
 
 
