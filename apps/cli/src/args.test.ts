@@ -9,9 +9,9 @@ describe('parseArgs', () => {
 
   it('parses serve with optional dir and port', () => {
     expect(parseArgs(['serve'])).toEqual({ command: 'serve', dir: undefined, port: DEFAULT_PORT });
-    expect(parseArgs(['serve', '../erp', '--port', '5050'])).toEqual({
+    expect(parseArgs(['serve', '../vault', '--port', '5050'])).toEqual({
       command: 'serve',
-      dir: '../erp',
+      dir: '../vault',
       port: 5050,
     });
   });
