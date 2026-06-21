@@ -102,6 +102,17 @@ describe('runValidate', () => {
     expect(runValidate({ dir: root, cwd: root }).exitCode).toBe(0);
   });
 
+  it('does not discover vaults inside hidden directories (e.g. .claude/worktrees)', async () => {
+    const root = await makeVault({
+      '.mos/config.json': CONFIG,
+      'board/T-1.md': card('T-1'),
+      // a git worktree's stale vault copy under .claude must not count as a vault
+      '.claude/worktrees/wt/.mos/config.json': CONFIG,
+      '.claude/worktrees/wt/board/T-1.md': card('T-1'),
+    });
+    expect(discoverVaults(root)).toEqual([root]);
+  });
+
   it('exits 2 when no vault is found', async () => {
     const root = await makeVault({ 'readme.md': '# not a vault' });
     const { output, exitCode } = runValidate({ dir: root, cwd: root });
