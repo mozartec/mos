@@ -12,6 +12,13 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.3.1](https://github.com/mozartec/mos/compare/v0.3.0...v0.3.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **cli:** vault discovery skips hidden dirs so .claude/worktrees aren't phantom vaults ([#75](https://github.com/mozartec/mos/issues/75)) ([34331c9](https://github.com/mozartec/mos/commit/34331c9bbbb7e634147f4542e4983ca316beec74))
+
 ## [0.3.0](https://github.com/mozartec/mos/compare/v0.2.1...v0.3.0) (2026-06-20)
 
 
