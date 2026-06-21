@@ -148,4 +148,3 @@ no area names, types, or states) — and calibrates the SKILL's reshape guidance
 [`skills/evals/refine-fixture-vault/`](../skills/evals/refine-fixture-vault/);
 [`skills/README.md`](../skills/README.md);
 [`docs/09-CONVENTIONS.md`](../docs/09-CONVENTIONS.md); F-027; F-014.
-</content>

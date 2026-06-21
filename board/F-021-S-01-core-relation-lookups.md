@@ -92,5 +92,3 @@ The detail component, routes, peek, and any rendering (F-021-S-02 / F-021-S-03);
 F-021; [`packages/core/src/edges.ts`](../packages/core/src/edges.ts);
 [`packages/core/src/place-card.ts`](../packages/core/src/place-card.ts);
 [ADR-001](../docs/08-DECISIONS.md#adr-001--the-markdown-folder-is-the-source-of-truth-no-database).
-</content>
-</invoke>

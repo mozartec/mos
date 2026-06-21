@@ -97,4 +97,3 @@ placement (F-022); any editing (ADR-002).
 F-021; F-021-S-01; F-023; [`docs/13-DESIGN_SYSTEM.md`](../docs/13-DESIGN_SYSTEM.md);
 [ADR-002](../docs/08-DECISIONS.md#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer),
 [ADR-019](../docs/08-DECISIONS.md#adr-019); F-017.
-</content>

@@ -92,4 +92,3 @@ The card-detail component itself and the page route (F-021-S-02); container boar
 F-021; F-021-S-02; F-023; [`docs/13-DESIGN_SYSTEM.md`](../docs/13-DESIGN_SYSTEM.md);
 [ADR-002](../docs/08-DECISIONS.md#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer),
 [ADR-004](../docs/08-DECISIONS.md#adr-004).
-</content>
