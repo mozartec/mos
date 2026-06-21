@@ -9,7 +9,7 @@ owner: mozart
 dependsOn: [F-029, F-030]
 touches: [docs]
 created: 2026-06-20T21:15:27Z
-updated: 2026-06-20T21:52:47Z
+updated: 2026-06-21T09:04:20Z
 ---
 
 # T-025 — Consolidate the usage/adoption docs — one source per fact, add install/upgrade, keep it brief
@@ -52,6 +52,11 @@ CLI readme is `cli` (T-023's area) — **don't edit it here**; treat it as canon
   a minimal start (the pitch + install/quickstart is the accepted overlap with the npm readme), and
   pointers — but **no** restated command table and **no** duplicated adoption walkthrough (link to
   the CLI readme and `12-ADOPTING.md` for those). Trim duplication, don't gut it to a bare link.
+- `README.md` carries an **npm version badge** for the published CLI at the top, linking to the
+  package page:
+  `[![npm](https://img.shields.io/npm/v/@mozartec/mos-cli)](https://www.npmjs.com/package/@mozartec/mos-cli)`
+  (now that `@mozartec/mos-cli` is live, the badge shows the current version and doubles as the
+  "it's on npm" signal).
 - `docs/12-ADOPTING.md` is the single adoption walkthrough, trimmed of anything that duplicates
   the CLI readme or the framework guide (link instead), and it **gains a concise Installing &
   upgrading section**:
@@ -102,7 +107,8 @@ CLI readme is `cli` (T-023's area) — **don't edit it here**; treat it as canon
    (README, 12-ADOPTING, 01-VISION, apps/cli/README, framework guide); assign each fact its
    canonical home (table above).
 2. Trim `README.md` to a front door: short pitch (defer to VISION), fastest start, pointers;
-   delete the restated command/adoption detail, replace with links.
+   delete the restated command/adoption detail, replace with links. Add the npm version badge
+   (shields.io, linked to the package page) at the top.
 3. Trim `docs/12-ADOPTING.md` to the one walkthrough; replace duplicated command/operate detail
    with links to the CLI readme and the framework guide.
 4. Add the Installing & upgrading section to `docs/12-ADOPTING.md` (CLI `@latest`, skills re-add
@@ -118,6 +124,7 @@ CLI readme is `cli` (T-023's area) — **don't edit it here**; treat it as canon
       install/quickstart may appear once per README surface (root + npm) and nowhere else.
 - [ ] `README.md` is a brief front door that still stands alone as the GitHub landing — no
       duplicated command table or adoption walkthrough, but not gutted to a bare link.
+- [ ] `README.md` shows an npm version badge for `@mozartec/mos-cli` linking to the package page.
 - [ ] `docs/12-ADOPTING.md` has a concise Installing & upgrading section (CLI `@latest`,
       re-running `npx skills add` + `skills-lock.json`, `specVersion` bump), verified against the
       shipped commands/version.
