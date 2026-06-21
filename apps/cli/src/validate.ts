@@ -26,8 +26,18 @@ import {
   validateVault as validateVaultCore,
 } from '@mos/core';
 
-/** Directories never worth walking when discovering vaults or reading cards. */
-const IGNORE = new Set(['node_modules', '.git', '.angular', '.turbo', 'dist', '.cache']);
+/**
+ * Directories never recursed into when discovering vaults or reading cards:
+ * dependency/build dirs plus any hidden directory (`.git`, `.claude/worktrees`,
+ * `.vscode`, …), mirroring the server's file walk so `mos validate` and the
+ * running app agree on what's in the vault. `.mos` is the kept exception — it
+ * holds the config. The former named entries (`.git`/`.angular`/`.turbo`/
+ * `.cache`) are themselves hidden, so the hidden-dir rule subsumes them.
+ */
+const IGNORE = new Set(['node_modules', 'dist']);
+function ignoredDir(name: string): boolean {
+  return IGNORE.has(name) || (name.startsWith('.') && name !== '.mos');
+}
 
 /** One vault's validation outcome plus the board view the report renders. */
 export interface VaultReport {
@@ -59,7 +69,8 @@ export function discoverVaults(start: string): string[] {
       return;
     }
     for (const entry of entries) {
-      if (IGNORE.has(entry.name) || entry.name === '.mos') continue;
+      // Discovery never descends into .mos either — no nested vault lives there.
+      if (ignoredDir(entry.name) || entry.name === '.mos') continue;
       // Don't follow symlinked directories — a link back up the tree would
       // cycle (and rediscover the same vault under a new path).
       if (entry.isDirectory()) rec(join(dir, entry.name));
@@ -71,7 +82,7 @@ export function discoverVaults(start: string): string[] {
 
 function walk(dir: string, acc: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (IGNORE.has(entry.name)) continue;
+    if (ignoredDir(entry.name)) continue;
     const p = join(dir, entry.name);
     // Recurse only into real directories and collect only real files; skipping
     // symlinks avoids cycles and keeps the walk inside the vault.
