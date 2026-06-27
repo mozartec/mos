@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import type { Type } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import axe from 'axe-core';
 import { App } from './app/app';
 import { BoardView } from './views/board/board-view';
+import { CardView } from './views/card/card-view';
 import { GraphView } from './views/graph/graph-view';
 import { ReaderView } from './views/reader/reader-view';
 import { WikiView } from './views/wiki/wiki-view';
@@ -106,5 +108,31 @@ describe('AXE accessibility audit', () => {
         await renderAndAudit(component, theme, loadedMarker);
       });
     }
+  }
+
+  // The card page is id-addressed (`/card/:id`), so it audits through a router
+  // harness rather than the bare-component loop above.
+  for (const theme of ['mos-paper', 'mos-carbon']) {
+    it(`card page has no AXE violations under ${theme}`, async () => {
+      await TestBed.configureTestingModule({
+        providers: [
+          provideRouter([{ path: 'card/:id', component: CardView }]),
+          { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(TEST_FILES) },
+        ],
+      }).compileComponents();
+
+      document.documentElement.dataset['theme'] = theme;
+      const harness = await RouterTestingHarness.create('/card/T-001');
+      await settle(harness.fixture);
+
+      const el = harness.routeNativeElement as HTMLElement;
+      expect(el.textContent ?? '').toContain('First task');
+
+      const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
+      const violations = results.violations.map(
+        (v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`,
+      );
+      expect(violations).toEqual([]);
+    });
   }
 });

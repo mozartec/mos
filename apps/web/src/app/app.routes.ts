@@ -5,7 +5,9 @@ import { Routes } from '@angular/router';
  * (ADR-004). The reader takes the file as a `path` query parameter — vault
  * paths contain slashes, which keeps them out of the URL path segments — plus a
  * `from` parameter and the originating board's own state (scope + filters), so
- * "back" restores the exact board view (F-004-S-04, F-023).
+ * "back" restores the exact board view (F-004-S-04, F-023). The card page is
+ * id-addressed (`/card/:id`) instead — a card's id is its stable handle — and
+ * board-card deep links to the reader redirect onto it (F-021-S-02).
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'wiki' },
@@ -20,6 +22,10 @@ export const routes: Routes = [
   {
     path: 'graph',
     loadComponent: () => import('../views/graph/graph-view').then((m) => m.GraphView),
+  },
+  {
+    path: 'card/:id',
+    loadComponent: () => import('../views/card/card-view').then((m) => m.CardView),
   },
   {
     path: 'reader',

@@ -1,0 +1,31 @@
+<section class="flex flex-col gap-3 p-4">
+  <div>
+    <a class="btn btn-ghost btn-sm" [routerLink]="backLink()" [queryParams]="backQueryParams()">
+      <span aria-hidden="true">←</span> Back to {{ backLabel() }}
+    </a>
+  </div>
+
+  @switch (loadState()) {
+    @case ('loading') {
+      <p class="text-base-content/60">Loading…</p>
+    }
+    @case ('error') {
+      <p class="text-error">Failed to load the vault: {{ loadError() }}</p>
+    }
+    @default {
+      @if (card(); as openCard) {
+        <app-card-detail
+          [card]="openCard"
+          [model]="model()"
+          [config]="config()"
+          [body]="body()"
+          [bodyError]="bodyError()"
+          (relationNavigate)="goToCard($event)"
+          (bodyNavigate)="onBodyNavigate($event)"
+        />
+      } @else {
+        <p role="alert" class="text-error">No card with id "{{ cardId() }}".</p>
+      }
+    }
+  }
+</section>

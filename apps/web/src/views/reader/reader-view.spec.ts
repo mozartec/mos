@@ -1,3 +1,4 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -29,25 +30,23 @@ const FILES: Record<string, string> = {
     '---',
     '',
     '# Story one',
-    '',
-    'See S-002.',
   ].join('\n'),
-  'board/S-002.md': [
-    '---',
-    'id: S-002',
-    'type: story',
-    'status: Todo',
-    '---',
-    '',
-    '# Story two',
-  ].join('\n'),
+  'docs/guide.md': ['# Guide', '', 'See the [other](other.md) doc.'].join('\n'),
+  'docs/other.md': '# Other doc',
 };
+
+/** A stand-in for the lazy card page, so a redirect resolves to a real route. */
+@Component({ selector: 'app-stub-card', template: 'card-page-stub' })
+class StubCardView {}
 
 describe('ReaderView', () => {
   async function openReader(url: string) {
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([{ path: 'reader', component: ReaderView }]),
+        provideRouter([
+          { path: 'reader', component: ReaderView },
+          { path: 'card/:id', component: StubCardView },
+        ]),
         { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(FILES) },
       ],
     });
@@ -58,49 +57,46 @@ describe('ReaderView', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('renders the file named by the path query param with the shared reader', async () => {
-    const harness = await openReader('/reader?path=board/S-001.md&from=board');
-    const el = harness.routeNativeElement as HTMLElement;
-    expect(el.querySelector('app-markdown-reader')).not.toBeNull();
-    expect(el.textContent).toContain('Story one');
+  it('redirects a board-card deep link to the card page, carrying from + board state', async () => {
+    await openReader('/reader?path=board/S-001.md&from=board&scope=S2&priority=P0');
+    const router = TestBed.inject(Router);
+    expect(router.url).toContain('/card/S-001');
+    expect(router.url).toContain('from=board');
+    expect(router.url).toContain('scope=S2');
+    expect(router.url).toContain('priority=P0');
+    // The card id replaces the path param — it isn't carried onto the card route.
+    expect(router.url).not.toContain('path=');
   });
 
-  it('back control returns to the board preserving its scope and filters', async () => {
-    const harness = await openReader('/reader?path=board/S-001.md&from=board&scope=S2&priority=P0');
+  it('renders a wiki doc with the shared reader (docs still open here)', async () => {
+    const harness = await openReader('/reader?path=docs/guide.md');
     const el = harness.routeNativeElement as HTMLElement;
-    const back = el.querySelector('a.btn') as HTMLAnchorElement;
-    expect(back.textContent).toContain('Back to Board');
-    const href = back.getAttribute('href') ?? '';
-    expect(href.startsWith('/board?')).toBe(true);
-    expect(href).toContain('scope=S2');
-    expect(href).toContain('priority=P0');
+    expect(el.querySelector('app-markdown-reader')).not.toBeNull();
+    expect(el.textContent).toContain('Guide');
   });
 
   it('back control defaults to the wiki when not opened from the board', async () => {
-    const harness = await openReader('/reader?path=board/S-001.md');
+    const harness = await openReader('/reader?path=docs/guide.md');
     const el = harness.routeNativeElement as HTMLElement;
     const back = el.querySelector('a.btn') as HTMLAnchorElement;
     expect(back.getAttribute('href')).toBe('/wiki');
   });
 
-  it('internal navigation swaps the path query param and keeps from + board state', async () => {
-    const harness = await openReader('/reader?path=board/S-001.md&from=board&scope=S2&priority=P0');
+  it('internal navigation between docs swaps the path query param', async () => {
+    const harness = await openReader('/reader?path=docs/guide.md');
     const component = harness.routeDebugElement!.componentInstance as ReaderView;
-    component['onNavigate']('board/S-002.md');
+    component['onNavigate']('docs/other.md');
     await settle(harness.fixture);
     const router = TestBed.inject(Router);
-    expect(router.url).toContain('path=board%2FS-002.md');
-    expect(router.url).toContain('from=board');
-    expect(router.url).toContain('scope=S2');
-    expect(router.url).toContain('priority=P0');
+    expect(router.url).toContain('path=docs%2Fother.md');
     const el = harness.routeNativeElement as HTMLElement;
-    expect(el.textContent).toContain('Story two');
+    expect(el.textContent).toContain('Other doc');
   });
 
   it('shows a visible error when the file cannot be read', async () => {
-    const harness = await openReader('/reader?path=board/MISSING.md');
+    const harness = await openReader('/reader?path=docs/MISSING.md');
     const el = harness.routeNativeElement as HTMLElement;
     const alert = el.querySelector('[role="alert"]');
-    expect(alert?.textContent).toContain('board/MISSING.md');
+    expect(alert?.textContent).toContain('docs/MISSING.md');
   });
 });
