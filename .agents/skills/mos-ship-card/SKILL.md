@@ -7,7 +7,7 @@ description: >
   defines; requires that file and refuses to start without it. When no card has been
   chosen yet, use mos-next-card instead.
 metadata:
-  version: 0.6.0
+  version: 0.6.1
 ---
 
 # mos-ship-card
@@ -31,6 +31,9 @@ from wherever the skill is installed):
 ```bash
 python3 <skill-dir>/scripts/ship_card.py <id> [--json]
 ```
+
+On Windows run it with `py -3` in place of `python3` (the `py` launcher — `python3`/`python`
+there are usually Microsoft Store stubs). This holds for every script invocation below too.
 
 It locates the card, prints the branch name, resolves parent/dependencies/children with
 file paths, and flags soft spots — including any **in-flight `touches` overlap** (a card
@@ -102,7 +105,7 @@ Then give every finding exactly one disposition — none are dropped silently:
    `npx @mozartec/mos-cli validate <vaultDir>` (full package name; bare `npx mos` fetches
    the wrong package); no CLI, no problem — the validator is advisory, relay any spec
    mismatch but don't gate on it.
-2. Close the card: `python3 <skill-dir>/scripts/ship_card.py <id> --finish` — sets the
+2. Close the card: `python3 <skill-dir>/scripts/ship_card.py <id> --finish` (`py -3` on Windows) — sets the
    Done status, bumps `updated`, ticks the card's own `## Acceptance` boxes. Always
    close via the script; never hand-edit the status, timestamp, or boxes.
 3. Fold that edit into the **final commit**. Commits and the PR title are Conventional

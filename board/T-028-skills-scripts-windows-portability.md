@@ -2,14 +2,14 @@
 id: T-028
 type: task
 title: mos CLI/scripts crash on Windows (cp1252 console encoding + python3 invocation)
-status: Todo
+status: Done
 priority: P1
 phase: Phase 2
 owner: mozart
 dependsOn: [F-014]
-touches: [skills]
+touches: [skills, scripts]
 created: 2026-06-27T15:15:31Z
-updated: 2026-06-27T15:15:31Z
+updated: 2026-06-27T17:52:02Z
 ---
 
 # T-028 — mos skill scripts crash on Windows (cp1252 console + python3 invocation)

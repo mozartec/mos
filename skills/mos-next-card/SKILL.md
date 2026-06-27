@@ -8,7 +8,7 @@ description: >
   conflict-free batch of cards safe to run in parallel — shipping a pick is mos-ship-card's
   job. Once a specific card is named, use mos-ship-card instead.
 metadata:
-  version: 0.5.0
+  version: 0.5.1
 ---
 
 # mos-next-card
@@ -30,6 +30,9 @@ is installed:
 python3 <skill-dir>/scripts/next_card.py [<vaultDir>] [--sprint <s>] [--json]
 python3 <skill-dir>/scripts/next_card.py [<vaultDir>] --parallel [N]   # batch mode
 ```
+
+On Windows run it with `py -3` in place of `python3` (the `py` launcher — `python3`/`python`
+there are usually Microsoft Store stubs).
 
 It discovers the nearest vault, parses every card, resolves `Depends on:` ids, and prints
 a ranked recommendation plus the blocked list. If Python isn't available, apply the model
