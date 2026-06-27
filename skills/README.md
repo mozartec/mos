@@ -12,7 +12,7 @@ The skills are **vault-agnostic**: everything they know about card types, states
 columns, and sprints is read from the target project's `.mos/config.json` at run time.
 No config → the skill tells the user the folder isn't a mos vault and refuses to start.
 The only prerequisites in the target project are that file and Python 3 for the bundled
-scripts.
+scripts (run them with `py -3` on Windows, `python3`/`python` elsewhere).
 
 | Skill | What it does |
 |---|---|

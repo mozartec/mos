@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """refine_batch.py — survey a mos backlog for refinement.
 
-Zero dependencies. Run with Python 3:
-    python3 refine_batch.py [<vaultDir>] [--phase P] [--limit N] [--json]
+Zero dependencies. Run with Python 3 (`py -3` on Windows, `python3`/`python` elsewhere):
+    py -3 refine_batch.py [<vaultDir>] [--phase P] [--limit N] [--json]
 
 A "vault" is any directory containing .mos/config.json. With no path, the script
 discovers the nearest vault at or above the current directory; without one it refuses
@@ -42,6 +42,19 @@ IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
 # The cold-start sections a ready card carries (the vault's card-readiness convention). A
 # tiny card may legitimately skip some; the agent decides — the script only reports the gaps.
 READY_SECTIONS = ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"]
+
+
+def _force_utf8_stdio():
+    """Emit UTF-8 on stdout/stderr so non-ASCII output can't crash on a non-UTF-8 console.
+    Windows defaults to cp1252, which has no glyph for the marks these scripts print
+    (✓ ✗ → ← ℹ ⚠ ∅), so a plain print() raises UnicodeEncodeError there. errors="replace"
+    stops a redirected non-UTF-8 stream from raising; on a UTF-8 console (macOS/Linux) the
+    bytes are unchanged. The hasattr guard covers streams that aren't reconfigurable
+    TextIOWrappers (e.g. a replaced sys.stdout). Duplicated verbatim across the three skill
+    scripts — each skill installs independently, so they can't share a module."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 def find_vault(start: Path):
@@ -202,6 +215,7 @@ def overlap_clusters(refinable):
 
 
 def main():
+    _force_utf8_stdio()
     args = list(sys.argv[1:])
     as_json = "--json" in args
     args = [a for a in args if a != "--json"]
