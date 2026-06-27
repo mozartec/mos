@@ -92,6 +92,10 @@ shared logic; I/O lives in the apps.
 - Commits follow Conventional Commits; PRs squash-merge; SemVer (0.x).
   See [`docs/11-RELEASING.md`](docs/11-RELEASING.md).
 - Spec/card/ADR style: [`docs/09-CONVENTIONS.md`](docs/09-CONVENTIONS.md).
+- **Diagram with Mermaid.** When a plan or other `.md` artifact would be clearer as a
+  diagram — flows, sequences, state machines, architecture — use a fenced ` ```mermaid `
+  block instead of ASCII arrows or prose. Reach for it where it genuinely aids comprehension;
+  don't force a diagram where plain text is clearer.
 
 ## Agent skills
 

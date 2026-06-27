@@ -7,9 +7,9 @@ priority: P3
 phase: Future
 owner: mozart
 dependsOn: [F-026]
-touches: [core, config, scripts, docs]
+touches: [core, web, docs, scripts]
 created: 2026-06-14T08:53:28Z
-updated: 2026-06-16T10:58:16Z
+updated: 2026-06-21T09:31:58Z
 ---
 
 # F-028 — Config-named in-flight column(s) — beyond the positional penultimate rule

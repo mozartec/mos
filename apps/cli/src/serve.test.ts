@@ -14,7 +14,7 @@ const url = (path: string) => `http://127.0.0.1:${running.port}${path}`;
 
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), 'mos-cli-'));
-  vaultDir = join(root, 'erp');
+  vaultDir = join(root, 'vault');
   webRoot = join(root, 'web');
   await mkdir(join(vaultDir, '.mos'), { recursive: true });
   await mkdir(join(vaultDir, 'board'), { recursive: true });

@@ -7,9 +7,8 @@ priority: P1
 phase: Phase 3
 owner: mozart
 dependsOn: [F-023]
-touches: [core, web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-16T10:33:34Z
+updated: 2026-06-21T09:31:58Z
 ---
 
 # F-021 — Card page & side peek — two ways to open a card
@@ -67,16 +66,22 @@ document viewer.
 - **URLs are contracts** (ADR-004 spirit): page and peek are both bookmarkable; existing
   reader deep links to cards keep working via redirect.
 
-## Plan
+## Delivered via (stories)
 
-1. Core: `childrenOf(id)`, `dependentsOf(id)` (+ progress rollup) with tests, if not
-   already exposed for the graph.
-2. Card-detail component (header, relations, body) shared by page and peek.
-3. Card route + redirect from reader-with-card-path; back-navigation params honored.
-4. Peek host on board/backlog/cards: URL-driven (`?peek=`), CDK overlay (or dialog
-   element), scrim, focus management, motion per design system.
-5. Specs: open/close/expand/back flows, focus restore, deep links (page + peek), redirect,
-   recipe-box fixture render.
+Ships as three stories — the core enabler lands first, then the two web surfaces build on
+it. Surfaces (`touches`) are declared per story; this container declares none of its own.
+
+1. **F-021-S-01** — core `childrenOf` / `dependentsOf` (+ children-progress rollup), pure
+   and unit-tested. The shared enabler (also what F-022's container progress reuses).
+   Touches `core`.
+2. **F-021-S-02** — the card-detail component (header, relations, body) and the `/card/:id`
+   page route, plus the reader → card redirect and F-023 back-navigation params. Depends on
+   F-021-S-01. Touches `web`.
+3. **F-021-S-03** — the URL-driven side-peek host (`?peek=`) over board/backlog/cards,
+   reusing the detail component, with focus trap/restore, scrim, motion, and the
+   expand → page control. Depends on F-021-S-02. Touches `web`.
+
+The Acceptance below is the feature roll-up; each story carries its own scoped acceptance.
 
 ## Acceptance
 
