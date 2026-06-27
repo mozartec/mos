@@ -34,9 +34,11 @@ export const DEPENDS_ON_FIELD = 'dependsOn';
  * defaults to the `dependsOn` convention and should be a list-of-`id` field in
  * the config registry (ADR-003) — a registry entry of a different shape is
  * reported, not ignored. Edges are emitted in card-id order so the result is
- * deterministic. Cycles (including self-references) are reported in `errors`
- * with the offending path; the edges themselves are still returned so a view
- * can render and flag them.
+ * deterministic, and a card that lists the same dependency twice yields a
+ * single edge — duplicates would double-count in any inverse view
+ * (`deriveBlocks`, `dependentsOf`). Cycles (including self-references) are
+ * reported in `errors` with the offending path; the edges themselves are still
+ * returned so a view can render and flag them.
  */
 export function buildEdges(
   model: VaultModel,
@@ -61,6 +63,7 @@ export function buildEdges(
     if (raw === undefined || raw === null) continue;
 
     const values = Array.isArray(raw) ? raw : [raw];
+    const seen = new Set<string>();
     for (const value of values) {
       if (typeof value !== 'string' || value === '') {
         errors.push(`${cardId}: ${fieldName} entry is not an id (${JSON.stringify(value)})`);
@@ -70,6 +73,8 @@ export function buildEdges(
         errors.push(`${cardId}: ${fieldName} '${value}' does not resolve to a card`);
         continue;
       }
+      if (seen.has(value)) continue; // a list repeating an id is one edge, not two
+      seen.add(value);
       edges.push({ from: cardId, to: value });
     }
   }

@@ -2,14 +2,14 @@
 id: F-021-S-01
 type: story
 title: Core relation lookups — childrenOf & dependentsOf
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-021
 estimate: S
 touches: [core]
 created: 2026-06-21T09:31:58Z
-updated: 2026-06-21T09:31:58Z
+updated: 2026-06-27T21:16:41Z
 ---
 
 # F-021-S-01 — Core relation lookups: childrenOf & dependentsOf
@@ -70,12 +70,12 @@ view-side. It is the shared enabler the rest of the feature builds on.
 
 ## Acceptance
 
-- [ ] `childrenOf` and `dependentsOf` are exported from the core barrel and pure (no I/O,
+- [x] `childrenOf` and `dependentsOf` are exported from the core barrel and pure (no I/O,
       no throw); an unresolved `parent` or id is handled, not crashed on.
-- [ ] The progress rollup computes n/m done via core's column mapping (done = last column),
+- [x] The progress rollup computes n/m done via core's column mapping (done = last column),
       not a hardcoded state.
-- [ ] Unit tests cover children / none / multi-level / unresolved parent / dependents.
-- [ ] `packages/core` tests are green.
+- [x] Unit tests cover children / none / multi-level / unresolved parent / dependents.
+- [x] `packages/core` tests are green.
 
 ## Dependencies
 

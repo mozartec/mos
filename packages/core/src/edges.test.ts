@@ -83,6 +83,15 @@ describe('buildEdges', () => {
     expect(errors).toEqual([]);
   });
 
+  it('collapses a dependsOn list that repeats an id into a single edge', () => {
+    const { edges, errors } = buildEdges(
+      model([{ id: 'T-001' }, { id: 'T-002', dependsOn: ['T-001', 'T-001'] }]),
+      config,
+    );
+    expect(errors).toEqual([]);
+    expect(edges).toEqual([{ from: 'T-002', to: 'T-001' }]);
+  });
+
   it('accepts a scalar value as a single-entry list', () => {
     const { edges, errors } = buildEdges(
       model([{ id: 'T-001' }, { id: 'T-002', dependsOn: 'T-001' }]),
