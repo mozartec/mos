@@ -55,6 +55,8 @@ export {
 } from './filters.js';
 export type { DependencyEdge, BuildEdgesResult } from './edges.js';
 export { buildEdges, deriveBlocks, DEPENDS_ON_FIELD } from './edges.js';
+export type { ChildrenProgress } from './relations.js';
+export { childrenOf, dependentsOf, childrenProgress } from './relations.js';
 export type { GraphNode, GraphEdge, DependencyGraph } from './graph.js';
 export { buildDependencyGraph, criticalPath, readySet } from './graph.js';
 export type {
