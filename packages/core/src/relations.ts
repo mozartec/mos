@@ -28,9 +28,9 @@ const PARENT_FIELD = 'parent';
  */
 export function childrenOf(model: VaultModel, id: string): Card[] {
   return Object.keys(model.cards)
+    .filter((cardId) => model.cards[cardId].fields[PARENT_FIELD] === id)
     .sort()
-    .map((cardId) => model.cards[cardId])
-    .filter((card) => card.fields[PARENT_FIELD] === id);
+    .map((cardId) => model.cards[cardId]);
 }
 
 /**
@@ -72,9 +72,6 @@ export function childrenProgress(
   id: string,
 ): ChildrenProgress {
   const children = childrenOf(model, id);
-  let done = 0;
-  for (const child of children) {
-    if (isCardDone(child, config)) done += 1;
-  }
+  const done = children.filter((child) => isCardDone(child, config)).length;
   return { done, total: children.length };
 }

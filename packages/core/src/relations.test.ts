@@ -116,6 +116,12 @@ describe('dependentsOf', () => {
     expect(ids(dependentsOf(m, edges, 'T-001'))).toEqual(['T-002', 'T-003']);
   });
 
+  it('does not double-count a dependent that lists the same id twice', () => {
+    const m = model([{ id: 'T-001' }, { id: 'T-002', dependsOn: ['T-001', 'T-001'] }]);
+    const { edges } = buildEdges(m, config);
+    expect(ids(dependentsOf(m, edges, 'T-001'))).toEqual(['T-002']);
+  });
+
   it('returns an empty list for a card with no incoming edges', () => {
     const m = model([{ id: 'T-001' }, { id: 'T-002', dependsOn: ['T-001'] }]);
     const { edges } = buildEdges(m, config);
