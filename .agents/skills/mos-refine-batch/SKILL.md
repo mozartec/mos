@@ -10,7 +10,7 @@ description: >
   decided cards stay frontmatter-only. It proposes a reshape and applies it on your
   confirmation — picking and shipping are mos-next-card's and mos-ship-card's jobs, not this one.
 metadata:
-  version: 0.2.0
+  version: 0.2.1
 ---
 
 # mos-refine-batch
@@ -47,6 +47,9 @@ installed:
 ```bash
 python3 <skill-dir>/scripts/refine_batch.py [<vaultDir>] [--phase P] [--limit N] [--json]
 ```
+
+On Windows run it with `py -3` in place of `python3` (the `py` launcher — `python3`/`python`
+there are usually Microsoft Store stubs).
 
 It discovers the nearest vault, finds each type's initial state, and for every refinable
 card in the horizon reports its readiness gaps, its `touches` state, and the **overlap

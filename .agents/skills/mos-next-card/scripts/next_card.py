@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """next_card.py — rank the actionable cards in a mos vault and recommend what to do next.
 
-Zero dependencies. Run with Python 3:
-    python3 next_card.py [<vaultDir>] [--sprint S1] [--json]
-    python3 next_card.py [<vaultDir>] --parallel [N]   # a conflict-free batch of
-                                                       # up to N ready cards
+Zero dependencies. Run with Python 3 (`py -3` on Windows, `python3`/`python` elsewhere):
+    py -3 next_card.py [<vaultDir>] [--sprint S1] [--json]
+    py -3 next_card.py [<vaultDir>] --parallel [N]   # a conflict-free batch of up to N cards
 
 A "vault" is any directory containing .mos/config.json. With no path, the script
 discovers the nearest vault at or above the current directory; without one it refuses
@@ -26,6 +25,19 @@ import json, os, re, sys
 from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
+
+
+def _force_utf8_stdio():
+    """Emit UTF-8 on stdout/stderr so non-ASCII output can't crash on a non-UTF-8 console.
+    Windows defaults to cp1252, which has no glyph for the marks these scripts print
+    (✓ ✗ → ← ℹ ⚠ ∅), so a plain print() raises UnicodeEncodeError there. errors="replace"
+    stops a redirected non-UTF-8 stream from raising; on a UTF-8 console (macOS/Linux) the
+    bytes are unchanged. The hasattr guard covers streams that aren't reconfigurable
+    TextIOWrappers (e.g. a replaced sys.stdout). Duplicated verbatim across the three skill
+    scripts — each skill installs independently, so they can't share a module."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 def find_vault(start: Path):
@@ -289,6 +301,7 @@ def print_batch(name, n, result, cards, touches, diagnostics):
 
 
 def main():
+    _force_utf8_stdio()
     args = [a for a in sys.argv[1:]]
     as_json = "--json" in args
     args = [a for a in args if a != "--json"]

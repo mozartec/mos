@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """ship_card.py — pre-flight a single mos card before you start shipping it.
 
-Zero dependencies. Run with Python 3:
-    python3 ship_card.py <card-id> [<vaultDir>] [--json]
-    python3 ship_card.py <card-id> --finish   # close the card: status -> Done state,
-                                              # bump updated, tick Acceptance boxes
+Zero dependencies. Run with Python 3 (`py -3` on Windows, `python3`/`python` elsewhere):
+    py -3 ship_card.py <card-id> [<vaultDir>] [--json]
+    py -3 ship_card.py <card-id> --finish   # close the card: Done state, bump updated, tick boxes
 
 A "vault" is any directory containing .mos/config.json. With no vaultDir the script
 discovers the nearest vault at or above the current directory; without one it refuses
@@ -28,6 +27,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
+
+
+def _force_utf8_stdio():
+    """Emit UTF-8 on stdout/stderr so non-ASCII output can't crash on a non-UTF-8 console.
+    Windows defaults to cp1252, which has no glyph for the marks these scripts print
+    (✓ ✗ → ← ℹ ⚠ ∅), so a plain print() raises UnicodeEncodeError there. errors="replace"
+    stops a redirected non-UTF-8 stream from raising; on a UTF-8 console (macOS/Linux) the
+    bytes are unchanged. The hasattr guard covers streams that aren't reconfigurable
+    TextIOWrappers (e.g. a replaced sys.stdout). Duplicated verbatim across the three skill
+    scripts — each skill installs independently, so they can't share a module."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
 
 # Body sections that signal a card is written to the "cold agent can execute it" bar.
 READINESS_SECTIONS = ["Acceptance", "Outcome", "Context", "Constraints", "Plan"]
@@ -211,11 +224,23 @@ def finish(columns, types, card):
     text, _ = set_frontmatter_field(text, "updated", now)
     text, ticked = tick_acceptance(text)
     card["path"].write_text(text, "utf-8")
-    print(f"✓ {card['id']}: status -> {done}, updated {now}, ticked {ticked} acceptance box(es) "
-          f"in {card['rel']}. Include this in your final commit.")
+    # The card is now written; the confirmation below is cosmetic and must never turn a
+    # completed mutation into a non-zero exit. _force_utf8_stdio handles the cp1252 encode
+    # crash, but a closed/broken stdout (output piped to a reader that exits early) buffers
+    # the bytes and only fails at the interpreter's shutdown flush — outside any try here —
+    # forcing exit 120. Closing stdout inside the try makes that flush happen where it's
+    # caught, so the finalizer has nothing left to fail on: a written card always exits 0.
+    # (close() flushes implicitly; an explicit flush() before it would raise and skip close.)
+    try:
+        print(f"✓ {card['id']}: status -> {done}, updated {now}, ticked {ticked} acceptance box(es) "
+              f"in {card['rel']}. Include this in your final commit.")
+        sys.stdout.close()
+    except (UnicodeEncodeError, OSError):
+        pass
 
 
 def main():
+    _force_utf8_stdio()
     args = sys.argv[1:]
     as_json = "--json" in args
     as_finish = "--finish" in args
