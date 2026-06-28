@@ -2,7 +2,7 @@
 id: F-021-S-02
 type: story
 title: Card page — detail component, /card route, reader redirect
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-021
@@ -10,7 +10,7 @@ estimate: M
 dependsOn: [F-021-S-01, F-023]
 touches: [web]
 created: 2026-06-21T09:31:58Z
-updated: 2026-06-21T09:31:58Z
+updated: 2026-06-27T23:42:11Z
 ---
 
 # F-021-S-02 — Card page: detail component, /card route, reader redirect
@@ -74,13 +74,13 @@ detail component is reused by the side peek (F-021-S-03), so it is built standal
 
 ## Acceptance
 
-- [ ] Direct navigation to a card route lands on the card page; the URL is shareable and
+- [x] Direct navigation to a card route lands on the card page; the URL is shareable and
       renders on load.
-- [ ] The header shows the type's configured fields; relations list parent, dependencies
+- [x] The header shows the type's configured fields; relations list parent, dependencies
       (with status), dependents, and children with a progress summary — all clickable.
-- [ ] Old reader links to board cards redirect to the card page; wiki docs still open in the
+- [x] Old reader links to board cards redirect to the card page; wiki docs still open in the
       reader exactly as before.
-- [ ] recipe-box renders with no code changes; AXE passes on the page.
+- [x] recipe-box renders with no code changes; AXE passes on the page.
 
 ## Dependencies
 

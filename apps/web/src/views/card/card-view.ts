@@ -22,27 +22,28 @@ import {
   type VaultModel,
 } from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
-import { MarkdownReader } from '../../components/markdown-reader/markdown-reader';
+import { CardDetail } from '../../components/card-detail/card-detail';
 
 /** Discriminated load state to drive the template honestly. */
 type LoadState = 'loading' | 'loaded' | 'error';
 
 /**
- * Reader view: the shared markdown reader as its own routable lens entry point
- * (F-004-S-04, ADR-004). Renders the file named by the `path` query parameter
- * with the same {@link MarkdownReader} the wiki uses, so internal links stay
- * live. The `from` query parameter drives the back control; when it is the
- * board, the board's own params (scope + filters) ride along and are restored.
- *
- * Read-only: the view shows the card; there is no edit affordance (ADR-002).
+ * Card page (F-021-S-02): the id-addressed lens for one card (`/card/:id`),
+ * lazy-loaded and bookmarkable like the other lenses (ADR-004). It parses the
+ * whole vault so relations and in-body links resolve, hands the resolved card to
+ * the shared {@link CardDetail}, and wires navigation — relation clicks and
+ * in-body card links walk the route (keeping a back-trail), in-body doc links
+ * fall through to the reader. A `from` query param drives "back", carrying the
+ * originating board's scope + filters so it restores exactly (F-023), like the
+ * reader. Read-only (ADR-002).
  */
 @Component({
-  selector: 'app-reader-view',
+  selector: 'app-card-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MarkdownReader, RouterLink],
-  templateUrl: './reader-view.html',
+  imports: [CardDetail, RouterLink],
+  templateUrl: './card-view.html',
 })
-export class ReaderView {
+export class CardView {
   private readonly source = inject(VAULT_SOURCE);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -53,20 +54,30 @@ export class ReaderView {
   protected readonly config = signal<VaultConfig>(loadConfig('{}').config);
   protected readonly model = signal<VaultModel>(createEmptyVaultModel());
 
-  /** Body of the currently displayed file ('' while loading or on read failure). */
+  /** Body of the open card ('' while loading or on read failure). */
   protected readonly body = signal<string>('');
 
-  /** Set when the requested file can't be read, so the miss is visible (T-007). */
+  /** Set when the card's file can't be read, so the miss is visible (T-007). */
   protected readonly bodyError = signal<string>('');
 
+  private readonly params = toSignal(this.route.paramMap, {
+    initialValue: this.route.snapshot.paramMap,
+  });
   private readonly queryParams = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
 
-  /** Vault-relative path of the file to display. */
-  protected readonly path = computed(() => this.queryParams().get('path'));
+  /** The `:id` route segment naming the card to show. */
+  protected readonly cardId = computed(() => this.params().get('id'));
 
-  /** Which lens opened the reader; decides where "back" goes. */
+  /** The resolved card, or null when no card in the vault carries this id. */
+  protected readonly card = computed<Card | null>(() => {
+    const id = this.cardId();
+    if (id === null) return null;
+    return this.model().cards[id] ?? null;
+  });
+
+  /** Which lens opened the page; decides where "back" goes (F-023). */
   private readonly from = computed(() => this.queryParams().get('from'));
 
   protected readonly backLink = computed(() => {
@@ -84,15 +95,15 @@ export class ReaderView {
 
   /**
    * Round-trip the board's state (scope + filters) so "back" lands on the same
-   * view it was opened from. The board forwards its query params when opening a
-   * card; here we hand them all back, minus the reader's own `path`/`from`.
+   * view it was opened from — the same contract the reader honors. Everything
+   * but the page's own `from` rides along.
    */
   protected readonly backQueryParams = computed(() => {
     if (this.from() !== 'board') return {};
     const params = this.queryParams();
     const restored: Record<string, string> = {};
     for (const key of params.keys) {
-      if (key === 'path' || key === 'from') continue;
+      if (key === 'from') continue;
       const value = params.get(key);
       if (value !== null) restored[key] = value;
     }
@@ -108,19 +119,19 @@ export class ReaderView {
   constructor() {
     void this.init();
 
-    // React to path changes (internal link clicks stay on this route). The
+    // React to id changes (relation/body clicks navigate this same route). The
     // initial load is handled by init() once config + model are in place.
     effect(() => {
-      this.path(); // track
+      this.cardId(); // track
       if (this.modelReady) void this.loadBody();
     });
 
-    // Live re-index: keep the model and the open file fresh (F-005-S-01).
+    // Live re-index: keep the model and the open card fresh (F-005-S-01).
     const unwatch = this.source.watch((path) => void this.onFileChange(path));
     inject(DestroyRef).onDestroy(unwatch);
   }
 
-  /** Patch the model for one changed file; re-render it if it's the open one. */
+  /** Patch the model for one changed file; re-render the open card if it changed. */
   private async onFileChange(path: string): Promise<void> {
     if (!this.modelReady) return;
     const posix = toPosixPath(path);
@@ -128,6 +139,8 @@ export class ReaderView {
       void this.init();
       return;
     }
+
+    const openPath = this.card()?.path;
 
     let parsed: ParsedFile | null;
     try {
@@ -137,7 +150,7 @@ export class ReaderView {
     }
     this.model.set(applyFileChange(this.model(), this.config(), posix, parsed).model);
 
-    if (this.path() === posix) {
+    if (openPath === posix) {
       if (parsed === null) {
         this.body.set('');
         this.bodyError.set(`Couldn't read "${posix}": the file is gone.`);
@@ -160,13 +173,12 @@ export class ReaderView {
       const { config } = loadConfig(configText);
       this.config.set(config);
 
-      // Parse the whole vault so internal links resolve to cards and docs alike.
+      // Parse the whole vault so relations and internal links resolve.
       const parsedFiles = await Promise.all(
         allPaths.map(async (path) => {
           const posix = toPosixPath(path);
           try {
-            const text = await this.source.readFile(posix);
-            return parseFile(posix, text);
+            return parseFile(posix, await this.source.readFile(posix));
           } catch {
             return null;
           }
@@ -180,11 +192,6 @@ export class ReaderView {
       this.model.set(model);
       this.modelReady = true;
 
-      // A board-card deep link redirects to the card page; plain docs render
-      // here as before (F-021-S-02). Do it before loadBody so the reader never
-      // paints a card it's about to leave.
-      if (this.redirectIfCard()) return;
-
       await this.loadBody();
       this.loadState.set('loaded');
     } catch (error: unknown) {
@@ -193,61 +200,22 @@ export class ReaderView {
     }
   }
 
-  /**
-   * If the open `path` is a board card, redirect to its id-addressed card page
-   * (replacing history so "back" skips the reader). A doc path matches no card,
-   * so the reader keeps rendering it. Returns whether it redirected.
-   */
-  private redirectIfCard(): boolean {
-    const current = this.path();
-    if (current === null || current === '') return false;
-    const card = this.cardForPath(current);
-    if (card === undefined) return false;
-    this.goToCardPage(card.id, { replaceUrl: true });
-    return true;
-  }
-
-  /** The board card a vault path resolves to, or undefined for a doc/unknown path. */
-  private cardForPath(path: string): Card | undefined {
-    const posix = toPosixPath(path);
-    return Object.values(this.model().cards).find((c) => toPosixPath(c.path) === posix);
-  }
-
-  /**
-   * Navigate to a card's page, carrying every current param but `path` so the
-   * back-trail (`from` + the board's scope/filters) survives. Deep-link entry
-   * replaces history (skip the reader); an in-reader click pushes (back returns
-   * to the doc).
-   */
-  private goToCardPage(cardId: string, options: { replaceUrl: boolean }): void {
-    const params = this.queryParams();
-    const carried: Record<string, string> = {};
-    for (const key of params.keys) {
-      if (key === 'path') continue;
-      const value = params.get(key);
-      if (value !== null) carried[key] = value;
-    }
-    void this.router.navigate(['/card', cardId], {
-      queryParams: carried,
-      replaceUrl: options.replaceUrl,
-    });
-  }
-
   private async loadBody(): Promise<void> {
-    const path = this.path();
-    if (path === null || path === '') {
+    const card = this.card();
+    if (card === null) {
       this.body.set('');
-      this.bodyError.set('No file selected.');
+      this.bodyError.set('');
       return;
     }
+    const path = card.path;
     try {
       const text = await this.source.readFile(path);
-      // A newer selection may have won the race while this read was in flight.
-      if (this.path() !== path) return;
+      // A newer card selection may have won the race while this read was in flight.
+      if (this.card()?.path !== path) return;
       this.body.set(parseFile(path, text).body);
       this.bodyError.set('');
     } catch (error: unknown) {
-      if (this.path() !== path) return;
+      if (this.card()?.path !== path) return;
       this.body.set('');
       this.bodyError.set(
         `Couldn't read "${path}": ${error instanceof Error ? error.message : String(error)}`,
@@ -255,22 +223,38 @@ export class ReaderView {
     }
   }
 
+  /** Open a related card by id, keeping the back-trail params (F-023). */
+  protected goToCard(id: string): void {
+    void this.router.navigate(['/card', id], { queryParams: this.currentQueryParams() });
+  }
+
   /**
-   * Internal link click. A link to a board card opens its structured page — like
-   * deep-link entry and the card page's own in-body links, never the card's raw
-   * markdown here. A doc link stays in the reader, swapping the file and keeping
-   * from + board state.
+   * An in-body link resolved to a vault path (F-017): a board card opens on its
+   * own page; any other file (a wiki doc) falls through to the reader, so docs
+   * still open in the reader exactly as before.
    */
-  protected onNavigate(path: string): void {
-    const card = this.cardForPath(path);
-    if (card !== undefined) {
-      this.goToCardPage(card.id, { replaceUrl: false });
+  protected onBodyNavigate(path: string): void {
+    const posix = toPosixPath(path);
+    const card = Object.values(this.model().cards).find((c) => toPosixPath(c.path) === posix);
+    if (card) {
+      this.goToCard(card.id);
       return;
     }
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { path },
-      queryParamsHandling: 'merge',
+    // Carry the back-trail so the reader's "Back to …" still points where the
+    // card was opened from (without `from`, it would wrongly default to Wiki).
+    void this.router.navigate(['/reader'], {
+      queryParams: { ...this.currentQueryParams(), path: posix },
     });
+  }
+
+  /** The current query params as a plain object, to carry across navigations. */
+  private currentQueryParams(): Record<string, string> {
+    const params = this.queryParams();
+    const out: Record<string, string> = {};
+    for (const key of params.keys) {
+      const value = params.get(key);
+      if (value !== null) out[key] = value;
+    }
+    return out;
   }
 }

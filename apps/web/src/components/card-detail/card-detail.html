@@ -1,0 +1,163 @@
+<article class="flex flex-col gap-5">
+  <!-- Header: id · type · status, then title and the configured field chips -->
+  <header class="flex flex-col gap-2 border-l-4 pl-4" [class]="accentClass()">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="font-mono text-xs font-semibold tracking-wider text-base-content/50">
+        {{ card().id }}
+      </span>
+      <span
+        class="badge rounded py-1 badge-sm text-[10px] font-bold tracking-wider uppercase"
+        [class]="typeBadgeClass()"
+      >
+        {{ typeLabel() }}
+      </span>
+      <span class="badge py-1 badge-sm font-semibold" [class]="statusBadgeClass()">
+        {{ status() }}
+      </span>
+    </div>
+
+    <h1 class="text-xl leading-tight font-semibold text-base-content">{{ card().title }}</h1>
+
+    @if (headerFields().length > 0) {
+      <dl class="mt-1 flex flex-wrap gap-x-6 gap-y-1.5 text-xs">
+        @for (field of headerFields(); track field.key) {
+          <div class="flex items-center gap-1.5">
+            @if (field.icon) {
+              <app-icon [icon]="field.icon" [size]="13" class="shrink-0 text-base-content/40" />
+            }
+            <dt class="font-medium text-base-content/50">{{ field.label }}</dt>
+            <dd class="flex min-w-0 items-center font-medium text-base-content/85">
+              @switch (field.type) {
+                @case ('datetime') {
+                  <span class="font-mono text-[11px]" [attr.title]="field.absoluteTime">
+                    {{ field.relativeTime }}
+                  </span>
+                }
+                @case ('date') {
+                  <span class="font-mono text-[11px]" [attr.title]="field.absoluteTime">
+                    {{ field.relativeTime }}
+                  </span>
+                }
+                @case ('enum') {
+                  @if (field.isList) {
+                    <span class="flex flex-wrap gap-1">
+                      @for (chip of field.listChips; track chip.value) {
+                        <span
+                          class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[10px] font-semibold tracking-tight"
+                          [class]="chip.chipClass"
+                        >
+                          {{ chip.value }}
+                        </span>
+                      }
+                    </span>
+                  } @else {
+                    <span
+                      class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[10px] font-semibold tracking-tight"
+                      [class]="field.chipClass"
+                    >
+                      {{ field.formattedValue }}
+                    </span>
+                  }
+                }
+                @case ('id') {
+                  <span class="flex flex-wrap gap-1">
+                    @for (val of field.listValues; track val) {
+                      <span
+                        class="rounded bg-base-200 px-1 py-0.5 font-mono text-[11px] text-base-content/85"
+                      >
+                        {{ val }}
+                      </span>
+                    }
+                  </span>
+                }
+                @default {
+                  <span class="truncate" [attr.title]="field.formattedValue">
+                    {{ field.formattedValue }}
+                  </span>
+                }
+              }
+            </dd>
+          </div>
+        }
+      </dl>
+    }
+  </header>
+
+  <!-- Relations: parent, dependencies, dependents, children (F-021-S-01 lookups) -->
+  @if (hasRelations()) {
+    <section class="panel-hairline flex flex-col gap-4 p-4" aria-labelledby="relations-heading">
+      <h2
+        id="relations-heading"
+        class="text-xs font-semibold tracking-wider text-base-content/50 uppercase"
+      >
+        Relations
+      </h2>
+
+      @if (parent(); as parentItem) {
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-base-content/50">Parent</span>
+          <app-relation-link [item]="parentItem" (navigate)="relationNavigate.emit($event)" />
+        </div>
+      }
+
+      @if (dependencies().length > 0) {
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-base-content/50">Depends on</span>
+          <ul class="flex flex-col gap-0.5">
+            @for (dep of dependencies(); track dep.id) {
+              <li>
+                <app-relation-link [item]="dep" (navigate)="relationNavigate.emit($event)" />
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (dependents().length > 0) {
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-base-content/50">Dependents</span>
+          <ul class="flex flex-col gap-0.5">
+            @for (dep of dependents(); track dep.id) {
+              <li>
+                <app-relation-link [item]="dep" (navigate)="relationNavigate.emit($event)" />
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (children().length > 0) {
+        <div class="flex flex-col gap-1">
+          <span class="flex items-center gap-2 text-xs font-medium text-base-content/50">
+            Children
+            <span class="badge badge-soft py-0.5 badge-xs font-semibold">
+              {{ progress().done }}/{{ progress().total }} done
+            </span>
+          </span>
+          <ul class="flex flex-col gap-0.5">
+            @for (child of children(); track child.id) {
+              <li>
+                <app-relation-link [item]="child" (navigate)="relationNavigate.emit($event)" />
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- Body: the shared markdown reader, so id/relative links stay live (F-017) -->
+  <section class="panel-hairline p-4" aria-label="Card body">
+    @if (bodyError()) {
+      <p role="alert" class="text-error">{{ bodyError() }}</p>
+    } @else {
+      <app-markdown-reader
+        [body]="body()"
+        [model]="model()"
+        [config]="config()"
+        [path]="card().path"
+        (navigate)="bodyNavigate.emit($event)"
+      />
+    }
+  </section>
+</article>
