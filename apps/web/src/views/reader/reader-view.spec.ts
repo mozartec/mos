@@ -82,6 +82,18 @@ describe('ReaderView', () => {
     expect(back.getAttribute('href')).toBe('/wiki');
   });
 
+  it('an in-reader link to a board card opens the card page, keeping the back-trail', async () => {
+    const harness = await openReader('/reader?path=docs/guide.md&from=board&scope=S2');
+    const component = harness.routeDebugElement!.componentInstance as ReaderView;
+    component['onNavigate']('board/S-001.md');
+    await settle(harness.fixture);
+    const router = TestBed.inject(Router);
+    expect(router.url).toContain('/card/S-001');
+    expect(router.url).toContain('from=board');
+    expect(router.url).toContain('scope=S2');
+    expect(router.url).not.toContain('path=');
+  });
+
   it('internal navigation between docs swaps the path query param', async () => {
     const harness = await openReader('/reader?path=docs/guide.md');
     const component = harness.routeDebugElement!.componentInstance as ReaderView;

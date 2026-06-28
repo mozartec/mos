@@ -100,7 +100,9 @@ export class CardDetail {
       : raw != null && raw !== ''
         ? [String(raw)]
         : [];
-    return ids.map((id) => this.toItem(id));
+    // Dedup as core does (`buildEdges`: a repeated id is one edge, not two) —
+    // duplicate `track dep.id` keys would otherwise throw NG0955.
+    return [...new Set(ids)].map((id) => this.toItem(id));
   });
 
   /** The cards that depend on this one (reverse edges), from core. */

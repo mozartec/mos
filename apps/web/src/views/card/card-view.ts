@@ -240,7 +240,11 @@ export class CardView {
       this.goToCard(card.id);
       return;
     }
-    void this.router.navigate(['/reader'], { queryParams: { path: posix } });
+    // Carry the back-trail so the reader's "Back to …" still points where the
+    // card was opened from (without `from`, it would wrongly default to Wiki).
+    void this.router.navigate(['/reader'], {
+      queryParams: { ...this.currentQueryParams(), path: posix },
+    });
   }
 
   /** The current query params as a plain object, to carry across navigations. */

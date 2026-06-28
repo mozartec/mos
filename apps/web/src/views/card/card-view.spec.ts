@@ -181,6 +181,18 @@ describe('CardView', () => {
     expect(TestBed.inject(Router).url).toContain('/card/S-002');
   });
 
+  it('an in-body doc link falls through to the reader, carrying the back-trail', async () => {
+    const harness = await openCard('/card/S-001?from=board&scope=S2');
+    const component = harness.routeDebugElement!.componentInstance as CardView;
+    component['onBodyNavigate']('docs/vision.md'); // resolves to no card
+    await settle(harness.fixture);
+    const url = TestBed.inject(Router).url;
+    expect(url).toContain('/reader');
+    expect(url).toContain('path=docs%2Fvision.md');
+    expect(url).toContain('from=board');
+    expect(url).toContain('scope=S2');
+  });
+
   it('back control restores the board scope and filters it was opened from', async () => {
     const harness = await openCard('/card/S-001?from=board&scope=S2&priority=P0');
     const back = (harness.routeNativeElement as HTMLElement).querySelector(

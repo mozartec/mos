@@ -97,7 +97,11 @@ export function buildRenderFields(
         });
       }
     } else if (type === 'id') {
-      const listValues = Array.isArray(rawVal) ? rawVal.map((v) => String(v)) : [String(rawVal)];
+      // Dedup like the enum branch: a repeated id would collide on the
+      // template's `track val` key and throw NG0955.
+      const listValues = [
+        ...new Set((Array.isArray(rawVal) ? rawVal : [rawVal]).map((v) => String(v))),
+      ];
       list.push({
         key,
         label,

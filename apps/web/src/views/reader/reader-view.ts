@@ -16,6 +16,7 @@ import {
   loadConfig,
   parseFile,
   toPosixPath,
+  type Card,
   type ParsedFile,
   type VaultConfig,
   type VaultModel,
@@ -182,7 +183,7 @@ export class ReaderView {
       // A board-card deep link redirects to the card page; plain docs render
       // here as before (F-021-S-02). Do it before loadBody so the reader never
       // paints a card it's about to leave.
-      if (this.redirectIfCard(model)) return;
+      if (this.redirectIfCard()) return;
 
       await this.loadBody();
       this.loadState.set('loaded');
@@ -193,19 +194,32 @@ export class ReaderView {
   }
 
   /**
-   * If the requested `path` is a board card, navigate to its id-addressed card
-   * page instead, carrying every param but `path` (so `from` + the board's scope
-   * and filters survive) and replacing history so "back" skips the reader. A doc
-   * path matches no card, so the reader keeps rendering it. Returns whether it
-   * redirected.
+   * If the open `path` is a board card, redirect to its id-addressed card page
+   * (replacing history so "back" skips the reader). A doc path matches no card,
+   * so the reader keeps rendering it. Returns whether it redirected.
    */
-  private redirectIfCard(model: VaultModel): boolean {
+  private redirectIfCard(): boolean {
     const current = this.path();
     if (current === null || current === '') return false;
-    const posix = toPosixPath(current);
-    const card = Object.values(model.cards).find((c) => toPosixPath(c.path) === posix);
+    const card = this.cardForPath(current);
     if (card === undefined) return false;
+    this.goToCardPage(card.id, { replaceUrl: true });
+    return true;
+  }
 
+  /** The board card a vault path resolves to, or undefined for a doc/unknown path. */
+  private cardForPath(path: string): Card | undefined {
+    const posix = toPosixPath(path);
+    return Object.values(this.model().cards).find((c) => toPosixPath(c.path) === posix);
+  }
+
+  /**
+   * Navigate to a card's page, carrying every current param but `path` so the
+   * back-trail (`from` + the board's scope/filters) survives. Deep-link entry
+   * replaces history (skip the reader); an in-reader click pushes (back returns
+   * to the doc).
+   */
+  private goToCardPage(cardId: string, options: { replaceUrl: boolean }): void {
     const params = this.queryParams();
     const carried: Record<string, string> = {};
     for (const key of params.keys) {
@@ -213,8 +227,10 @@ export class ReaderView {
       const value = params.get(key);
       if (value !== null) carried[key] = value;
     }
-    void this.router.navigate(['/card', card.id], { queryParams: carried, replaceUrl: true });
-    return true;
+    void this.router.navigate(['/card', cardId], {
+      queryParams: carried,
+      replaceUrl: options.replaceUrl,
+    });
   }
 
   private async loadBody(): Promise<void> {
@@ -239,8 +255,18 @@ export class ReaderView {
     }
   }
 
-  /** Internal link click: stay in the reader, swap the file, keep from + board state. */
+  /**
+   * Internal link click. A link to a board card opens its structured page — like
+   * deep-link entry and the card page's own in-body links, never the card's raw
+   * markdown here. A doc link stays in the reader, swapping the file and keeping
+   * from + board state.
+   */
   protected onNavigate(path: string): void {
+    const card = this.cardForPath(path);
+    if (card !== undefined) {
+      this.goToCardPage(card.id, { replaceUrl: false });
+      return;
+    }
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { path },

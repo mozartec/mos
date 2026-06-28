@@ -64,6 +64,34 @@ describe('CardDetail', () => {
     expect(button?.textContent).toContain('Done');
   });
 
+  it('dedups a repeated dependency id (no NG0955 duplicate track keys)', () => {
+    const { config: cfg } = loadConfig(CONFIG_TEXT);
+    const { model: mdl } = buildModel(
+      [
+        parseFile(
+          'board/T-001.md',
+          '---\nid: T-001\ntype: task\ntitle: Main\nstatus: Todo\ndependsOn: [T-002, T-002]\n---\n\n# Main',
+        ),
+        parseFile(
+          'board/T-002.md',
+          '---\nid: T-002\ntype: task\ntitle: Dep\nstatus: Done\n---\n\n# Dep',
+        ),
+      ],
+      cfg,
+    );
+    fixture = TestBed.createComponent(CardDetail);
+    fixture.componentRef.setInput('card', mdl.cards['T-001']);
+    fixture.componentRef.setInput('model', mdl);
+    fixture.componentRef.setInput('config', cfg);
+    fixture.componentRef.setInput('body', '# Main');
+    fixture.detectChanges(); // would throw NG0955 if the duplicate id weren't deduped
+    const el = fixture.nativeElement as HTMLElement;
+    const t002 = Array.from(el.querySelectorAll('app-relation-link button')).filter((b) =>
+      (b.textContent ?? '').includes('T-002'),
+    );
+    expect(t002.length).toBe(1);
+  });
+
   it('renders an unresolved dependency id inert, never as a dead link', () => {
     const el = render();
     const inert = el.querySelector('.reference-inert');
