@@ -85,6 +85,22 @@ function stripReadiness(vault) {
   writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
 }
 
+// Set one type's `card.readiness` (array can hold non-strings — exercises the malformed case).
+function setReadiness(vault, type, readiness) {
+  const cfgPath = join(vault, '.mos', 'config.json');
+  const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
+  cfg.types[type].card = { ...(cfg.types[type].card || {}), readiness };
+  writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+}
+
+// missingSections for TR-200 after pointing track's readiness at `readiness` and setting its body.
+function gapsFor(readiness, body) {
+  const vault = copyFixture();
+  setReadiness(vault, 'track', readiness);
+  setBody(vault, 'TR-200-flights-search.md', body);
+  return card(runJson(vault), 'TR-200').missingSections;
+}
+
 t('a complete card with mixed heading styles reports ZERO readiness gaps', () => {
   const vault = copyFixture();
   // track declares all six sections; write them in ATX, numbered, bold-label, and h3 forms —
@@ -169,4 +185,45 @@ t('dependsOn is read from frontmatter, not scraped from prose', () => {
   // Add a frontmatter dependsOn; leave the body with no "depends on" prose at all.
   writeFileSync(path, text.replace(/^touches:.*$/m, 'dependsOn: [TR-200]\n$&'));
   assert.deepEqual(card(runJson(vault), 'TR-202').dependsOn, ['TR-200']);
+});
+
+t('explicit `dependsOn: []` wins over body prose (frontmatter is authoritative)', () => {
+  const vault = copyFixture();
+  const path = join(vault, 'board', 'TR-202-cars-search.md');
+  const text = readFileSync(path, 'utf8');
+  // Explicit empty list in frontmatter + a "depends on" sentence in the body.
+  writeFileSync(
+    path,
+    text.replace(/^touches:.*$/m, 'dependsOn: []\n$&') + '\nThis depends on TR-200 for setup.\n',
+  );
+  assert.deepEqual(card(runJson(vault), 'TR-202').dependsOn, []);
+});
+
+// --- review findings: the flexible matcher must not mis-read common markdown shapes ---
+
+t('content under a deeper `###` subsection counts (not a false gap)', () => {
+  assert.deepEqual(gapsFor(['Plan'], '## Plan\n### Step 1\ndo it'), []);
+});
+
+t('a bold lead-in (`**Note:**`) is content, not the next section', () => {
+  assert.deepEqual(gapsFor(['Context'], '## Context\n**Note:** important.\nmore context'), []);
+});
+
+t('a hyphenated distinct heading does NOT satisfy a readiness name', () => {
+  // `## Plan-of-record` must not be read as the `Plan` section — that would hide a real gap.
+  assert.deepEqual(gapsFor(['Plan'], '## Plan-of-record\nx'), ['Plan']);
+});
+
+t('closed ATX (`## Plan ##`) and emphasized (`## **Plan**`) titles are recognized', () => {
+  assert.deepEqual(gapsFor(['Plan'], '## Plan ##\nreal content'), []);
+  assert.deepEqual(gapsFor(['Plan'], '## **Plan**\nreal content'), []);
+});
+
+t('a heading inside a ``` fence does not count as a section', () => {
+  assert.deepEqual(gapsFor(['Plan'], '## Acceptance\n```\n## Plan\nx\n```'), ['Plan']);
+});
+
+t('a malformed readiness entry (non-string) is skipped, not crashed', () => {
+  // ["Plan", 42] must not abort the run; valid entries are still evaluated.
+  assert.deepEqual(gapsFor(['Plan', 42], '## Plan\nreal content'), []);
 });

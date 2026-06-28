@@ -147,61 +147,108 @@ def depends_on_prose(body: str):
 # A readiness section heading, in any shape a vault's template might use. The script reports
 # against the sections a *type* declares in `card.readiness` (config) — never a fixed list —
 # so it adapts to each vault instead of imposing one project's card template.
-_ATX = re.compile(r"^\s{0,3}#{1,6}\s")  # an ATX heading line (## …)
+_ATX = re.compile(r"^\s{0,3}(#{1,6})\s")  # an ATX heading line (## …); group 1 = the # run
 _LABEL = re.compile(r"^\s{0,3}\*\*[^*]+\*\*\s*:?")  # a bold-label line (**…:** …)
-_ATX_TITLE = re.compile(r"^\s{0,3}#{1,6}\s+(?:\d+[.)]\s+)?(.+?)\s*$")  # ## 2. Title
+# ## 2. Title, tolerating a closing # run (closed ATX: `## Title ##`, # preceded by a space)
+_ATX_TITLE = re.compile(r"^\s{0,3}#{1,6}\s+(?:\d+[.)]\s+)?(.+?)(?:\s+#+)?\s*$")
 _BOLD_TITLE = re.compile(r"^\s{0,3}\*\*\s*(?:\d+[.)]\s*)?(.+?)\s*\*\*\s*:?\s*(.*)$")  # **Title:** rest
+_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")  # a fenced-code delimiter
 
 
 def _norm(s: str):
-    """Lower-case, drop a trailing colon — so `**Steps:**` and `## Steps` compare equal."""
-    return re.sub(r"\s*:\s*$", "", s.strip()).lower()
+    """Canonical form for comparing a heading to a readiness name: trim, unwrap a fully
+    emphasized title (`**Plan**` → `Plan`), drop a trailing colon, lower-case — so `## Plan`,
+    `**Plan:**`, and `## **Plan**` all compare equal to `Plan`."""
+    s = s.strip()
+    s = re.sub(r"^(\*\*|\*|__|_)(.+?)\1$", r"\2", s).strip()
+    s = re.sub(r"\s*:\s*$", "", s)
+    return s.lower()
 
 
 def _title_matches(heading: str, name: str):
-    """True when a heading names the readiness section `name`. Exact (case-insensitively),
-    or the name followed by a descriptive suffix after a separator — so `Context` matches
-    `## Context — read before starting` and `Constraints` matches `## Constraints (must honor)`."""
+    """True when a heading names the readiness section `name` — exactly (case-insensitively),
+    or `name` then a descriptive suffix after a *real* separator: a colon, or whitespace then
+    `—`/`-`/`(`. So `Context` matches `## Context — read before starting` and `Constraints`
+    matches `## Constraints (must honor)`, but `Plan` does NOT match `## Plan-of-record`."""
     h, n = _norm(heading), _norm(name)
-    return h == n or bool(re.match(re.escape(n) + r"\s*[—\-:(].*$", h))
+    return h == n or bool(re.match(re.escape(n) + r"(:|\s+[—\-(]).*$", h))
 
 
-def _is_boundary(line: str):
-    return bool(_ATX.match(line) or _LABEL.match(line))
+def _atx_level(line: str):
+    m = _ATX.match(line)
+    return len(m.group(1)) if m else None
+
+
+def _is_boundary(line: str, level: int):
+    """Does `line` end the section whose heading sat at `level`? An ATX section (level >= 1)
+    ends at the next ATX heading of the same-or-shallower level — a deeper `###` subsection is
+    its content, not a boundary, and bold lead-ins (`**Note:** …`) are content too. A bold-label
+    section (level 0) ends at the next ATX heading or the next bold label."""
+    lv = _atx_level(line)
+    if lv is not None:
+        return True if level == 0 else lv <= level
+    return level == 0 and bool(_LABEL.match(line))
+
+
+def _fenced_lines(lines):
+    """Indices inside (and delimiting) a fenced code block, so heading-shaped lines in a
+    markdown example don't read as real sections."""
+    fenced, inside, tok = set(), False, None
+    for i, line in enumerate(lines):
+        m = _FENCE.match(line)
+        if not inside:
+            if m:
+                inside, tok = True, m.group(1)[0]
+                fenced.add(i)
+        else:
+            fenced.add(i)  # everything within, including the closing fence line
+            if m and m.group(1)[0] == tok:
+                inside, tok = False, None
+    return fenced
 
 
 def section_present(body: str, name: str):
-    """True if `body` carries a non-empty section titled `name`. Heading matching is
-    flexible: ATX (`## Name`, `### Name`), numbered (`## 2. Name`), and bold-label
-    (`**Name:**`) forms, case-insensitive. A heading with no content before the next
-    section doesn't count — a bare `## Acceptance` is still a gap."""
+    """True if `body` carries a non-empty section titled `name`. Heading matching is flexible:
+    ATX (`## Name`, `### Name`, closed `## Name ##`), numbered (`## 2. Name`), and bold-label
+    (`**Name:**`) forms, case-insensitive. Content under a deeper subsection counts; a heading
+    with no content before the next same-or-shallower section doesn't (a bare `## Acceptance`
+    is still a gap). Heading-shaped lines inside ``` fences are ignored."""
     lines = body.split("\n")
+    fenced = _fenced_lines(lines)
     for i, line in enumerate(lines):
+        if i in fenced:
+            continue
         m = _ATX_TITLE.match(line)
         if m and _title_matches(m.group(1), name):
-            inline = ""
+            level, inline = _atx_level(line), ""
         else:
             mb = _BOLD_TITLE.match(line)
             if mb and _title_matches(mb.group(1), name):
-                inline = mb.group(2).strip()
+                level, inline = 0, mb.group(2).strip()
             else:
                 continue
         if inline:
             return True  # content on the same line as a bold label
-        for nxt in lines[i + 1:]:
-            if _is_boundary(nxt):
+        for j in range(i + 1, len(lines)):
+            if j in fenced:
+                if lines[j].strip():
+                    return True  # a code block under the heading is content
+                continue
+            if _is_boundary(lines[j], level):
                 break
-            if nxt.strip():
+            if lines[j].strip():
                 return True
     return False
 
 
 def missing_sections(body: str, readiness):
     """Declared readiness sections absent from `body`. `None` when the type declares no
-    `card.readiness` — the caller degrades to 'judge by reading' instead of fabricating gaps."""
+    `card.readiness` — the caller degrades to 'judge by reading' instead of fabricating gaps.
+    Non-string entries in a malformed `readiness` list are skipped, never crash the survey."""
     if not isinstance(readiness, list):
         return None
-    return [s for s in readiness if not section_present(body, s)]
+    sections = [s for s in readiness if isinstance(s, str) and s.strip()]
+    return [s for s in sections if not section_present(body, s)]
 
 
 def initial_state(type_def):
@@ -239,6 +286,7 @@ def load(vault: Path):
         init = initial_state(t)
         status = data.get("status", "")
         readiness = (t.get("card") or {}).get("readiness")  # per-type list, or absent
+        fm_deps = parse_list(data.get("dependsOn"))  # None when absent; [] is an explicit "none"
         cards[cid] = {
             "id": cid, "title": data.get("title", ""), "type": data["type"],
             "status": status, "priority": data.get("priority", ""),
@@ -250,8 +298,9 @@ def load(vault: Path):
             "missing": missing_sections(body, readiness),
             "readiness_declared": isinstance(readiness, list),
             "touches": parse_list(data.get("touches")),  # list / [] / None
-            # dependencies live in frontmatter; prose is only a fallback for a vault that wrote them inline
-            "deps": parse_list(data.get("dependsOn")) or depends_on_prose(body),
+            # dependencies live in frontmatter; prose is a fallback ONLY when the field is
+            # absent — an explicit `dependsOn: []` is a real "none" that wins over prose
+            "deps": fm_deps if fm_deps is not None else depends_on_prose(body),
             "rel": rel,
         }
     return cfg, columns, types, areas, prio_rank, cards
