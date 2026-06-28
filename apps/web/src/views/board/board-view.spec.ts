@@ -1,3 +1,4 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -106,6 +107,43 @@ function makeCard(id: string, type: string, status: string, fields: Record<strin
   for (const [key, value] of Object.entries(fields)) lines.push(`${key}: ${value}`);
   lines.push('---', '', `# ${id}`);
   return lines.join('\n');
+}
+
+/** Stand-in for the routes the peek's expand/doc controls navigate to. */
+@Component({ selector: 'app-stub', template: 'stub' })
+class StubView {}
+
+/** Two board cards (with titles, so the peek's dialog has an accessible name). */
+const PEEK_FILES: Record<string, string> = {
+  'board/A.md': makeCard('A', 'story', 'Todo', { priority: 'P1', title: 'Card A' }),
+  'board/B.md': makeCard('B', 'story', 'In Progress', { priority: 'P0', title: 'Card B' }),
+};
+
+/**
+ * A board wired for the side peek: real `/board` for query-param round-trips,
+ * stub `/card/:id` + `/reader` for expand/doc, and location mocks so a
+ * simulated browser-back is observable.
+ */
+async function createPeekBoard(url = '/board', files: Record<string, string> = PEEK_FILES) {
+  const source = new InMemoryVaultSource({ '.mos/config.json': UNSCOPED, ...files });
+  TestBed.configureTestingModule({
+    providers: [
+      provideRouter([
+        { path: 'board', component: BoardView },
+        { path: 'card/:id', component: StubView },
+        { path: 'reader', component: StubView },
+      ]),
+      { provide: VAULT_SOURCE, useValue: source },
+    ],
+  });
+  const harness = await RouterTestingHarness.create(url);
+  await settle(harness.fixture);
+  return {
+    harness,
+    component: harness.routeDebugElement!.componentInstance as BoardView,
+    host: harness.routeNativeElement as HTMLElement,
+    source,
+  };
 }
 
 describe('BoardView', () => {
@@ -425,23 +463,122 @@ describe('BoardView', () => {
     expect(localStorage.getItem('mos:scope::sprint')).toBeNull();
   });
 
-  // ── Reader round-trip ───────────────────────────────────────────────────────
+  // ── Side peek (F-021-S-03) ───────────────────────────────────────────────────
 
-  it('opens the reader carrying the board state for "back"', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(NOW);
-    const { component } = await createBoard({ config: SCOPED_DATED, url: '/board?scope=S1&priority=P0' });
-    const router = TestBed.inject(Router);
-    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-    component['onCardSelect']({
-      id: 'A',
-      type: 'story',
-      title: 'A',
-      status: 'Todo',
-      path: 'board/A.md',
-      fields: {},
+  const CLICKED_A = {
+    id: 'A',
+    type: 'story',
+    title: 'Card A',
+    status: 'Todo',
+    path: 'board/A.md',
+    fields: {},
+  };
+
+  describe('side peek', () => {
+    it('opens the peek for a clicked card, pushing ?peek= and keeping the board state', async () => {
+      const { component, host, harness } = await createPeekBoard('/board?priority=P1');
+      const router = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(router, 'navigate');
+
+      component['onCardSelect'](CLICKED_A);
+      await settle(harness.fixture);
+
+      // Pushed (not replaced) and merged onto the existing filter, so the
+      // board's own state survives and browser-back can return to the board.
+      expect(navigateSpy).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({
+          queryParams: { peek: 'A' },
+          queryParamsHandling: 'merge',
+          replaceUrl: false,
+        }),
+      );
+      expect(router.url).toContain('peek=A');
+      expect(router.url).toContain('priority=P1');
+
+      // A proper dialog rendered over the still-present board.
+      const dialog = host.querySelector('[role="dialog"]');
+      expect(dialog).not.toBeNull();
+      expect(dialog?.getAttribute('aria-modal')).toBe('true');
+      expect(dialog?.getAttribute('aria-label')).toBe('Card A');
+      expect(dialog?.textContent).toContain('Card A');
+      expect(host.querySelector('[aria-label="Board columns"]')).not.toBeNull();
     });
-    expect(navigateSpy).toHaveBeenCalledWith(['/reader'], {
-      queryParams: { path: 'board/A.md', from: 'board', scope: 'S1', priority: 'P0' },
+
+    it('renders the peek on load from a ?peek= deep link (shareable)', async () => {
+      const { host } = await createPeekBoard('/board?peek=B');
+      const dialog = host.querySelector('[role="dialog"]');
+      expect(dialog).not.toBeNull();
+      expect(dialog?.getAttribute('aria-label')).toBe('Card B');
+      expect(dialog?.textContent).toContain('Card B');
+    });
+
+    it('Esc closes the peek', async () => {
+      const { host, harness } = await createPeekBoard('/board?peek=A');
+      const panel = host.querySelector('.peek-panel') as HTMLElement;
+      panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await settle(harness.fixture);
+
+      expect(host.querySelector('[role="dialog"]')).toBeNull();
+      expect(TestBed.inject(Router).url).not.toContain('peek');
+    });
+
+    it('the backdrop closes the peek; a click inside the panel does not', async () => {
+      const { host, harness } = await createPeekBoard('/board?peek=A');
+      const panel = host.querySelector('.peek-panel') as HTMLElement;
+      // The scrim backdrop is the wrapper's own button (the toolbar buttons sit
+      // deeper, inside the panel).
+      const backdrop = host.querySelector('.fixed > button[aria-label="Close peek"]') as HTMLButtonElement;
+
+      panel.click(); // inside the panel — no close affordance there, stays open
+      await settle(harness.fixture);
+      expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+
+      backdrop.click(); // the scrim backdrop — closes
+      await settle(harness.fixture);
+      expect(host.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it('opening pushes a history entry, so browser back (URL without ?peek=) closes it', async () => {
+      const { component, host, harness } = await createPeekBoard('/board?priority=P1');
+      const navigateSpy = vi.spyOn(TestBed.inject(Router), 'navigate');
+      component['onCardSelect'](CLICKED_A);
+      await settle(harness.fixture);
+      // Pushed (not replaced) — the back button has a prior entry to return to.
+      expect(navigateSpy).toHaveBeenCalledWith([], expect.objectContaining({ replaceUrl: false }));
+      expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+
+      // Back restores that prior URL (no ?peek=); the peek is a pure function of
+      // the param, so it closes. (RouterTestingHarness doesn't wire history.back,
+      // so we drive the same URL transition the back button produces.)
+      await TestBed.inject(Router).navigateByUrl('/board?priority=P1');
+      await settle(harness.fixture);
+      expect(host.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it('the expand control navigates to the full card page, carrying board state', async () => {
+      const { host, harness } = await createPeekBoard('/board?priority=P1&peek=A');
+      const expandBtn = Array.from(host.querySelectorAll('.peek-panel button')).find((b) =>
+        (b.textContent ?? '').includes('Expand'),
+      ) as HTMLButtonElement;
+
+      expandBtn.click();
+      await settle(harness.fixture);
+
+      const url = TestBed.inject(Router).url;
+      expect(url).toContain('/card/A');
+      expect(url).toContain('from=board');
+      expect(url).toContain('priority=P1');
+      expect(url).not.toContain('peek');
+    });
+
+    it('a relation click swaps the peeked card (stays in the peek)', async () => {
+      const { component, host, harness } = await createPeekBoard('/board?peek=A');
+      // Drive the detail's relation output the way the template wires it.
+      component['openPeek']('B');
+      await settle(harness.fixture);
+      expect(TestBed.inject(Router).url).toContain('peek=B');
+      expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Card B');
     });
   });
 

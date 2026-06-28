@@ -1,0 +1,61 @@
+@if (cardId(); as id) {
+  <!-- Scrim wrapper: the element Angular tags with the enter/leave class, so its
+       own fade is what the animation waits on; the panel inside slides within
+       the same window. Esc is handled on the host (it bubbles from the trapped
+       panel). -->
+  <div
+    class="fixed inset-0 z-50 flex justify-end bg-neutral/50"
+    animate.enter="peek-enter"
+    animate.leave="peek-leave"
+  >
+    <!-- Backdrop close affordance: a real button, so it's focusable and
+         keyboard-operable; transparent, the wrapper paints the scrim. -->
+    <button
+      type="button"
+      class="absolute inset-0 cursor-default"
+      aria-label="Close peek"
+      (click)="closePeek.emit()"
+    ></button>
+
+    <div
+      class="peek-panel relative flex h-full w-full max-w-2xl flex-col border-l border-base-300 bg-base-100 shadow-2xl"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="dialogLabel()"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+    >
+      <!-- Peek chrome: expand to the full page, and close. -->
+      <div class="flex items-center justify-end gap-1 border-b border-base-300 px-3 py-2">
+        <button type="button" class="btn gap-1.5 btn-ghost btn-sm" (click)="expand.emit(id)">
+          <app-icon [icon]="iconExpand" [size]="16" />
+          Expand
+        </button>
+        <button
+          type="button"
+          class="btn btn-circle btn-ghost btn-sm"
+          (click)="closePeek.emit()"
+          aria-label="Close peek"
+        >
+          <app-icon [icon]="iconClose" [size]="18" />
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4">
+        @if (card(); as openCard) {
+          <app-card-detail
+            [card]="openCard"
+            [model]="model()"
+            [config]="config()"
+            [body]="body()"
+            [bodyError]="bodyError()"
+            (relationNavigate)="peekCard.emit($event)"
+            (bodyNavigate)="onBodyNavigate($event)"
+          />
+        } @else {
+          <p role="alert" class="text-error">No card with id "{{ id }}".</p>
+        }
+      </div>
+    </div>
+  </div>
+}

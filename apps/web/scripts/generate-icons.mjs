@@ -47,6 +47,8 @@ const ICONS = [
   'stack',
   'bookmark',
   'bolt',
+  'x',
+  'arrows-diagonal',
 ];
 
 /** Resolve the installed @tabler/icons package root via its `exports` map. */

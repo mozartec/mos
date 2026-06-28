@@ -135,4 +135,31 @@ describe('AXE accessibility audit', () => {
       expect(violations).toEqual([]);
     });
   }
+
+  // The side peek is a dialog overlaid on the board; audit it open (F-021-S-03)
+  // since the peek-open state is where its ARIA (role/modal/name) must hold.
+  for (const theme of ['mos-paper', 'mos-carbon']) {
+    it(`board with the side peek open has no AXE violations under ${theme}`, async () => {
+      await TestBed.configureTestingModule({
+        providers: [
+          provideRouter([{ path: 'board', component: BoardView }]),
+          { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(TEST_FILES) },
+        ],
+      }).compileComponents();
+
+      document.documentElement.dataset['theme'] = theme;
+      const harness = await RouterTestingHarness.create('/board?peek=T-001');
+      await settle(harness.fixture);
+
+      const el = harness.routeNativeElement as HTMLElement;
+      expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(el.textContent ?? '').toContain('First task');
+
+      const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
+      const violations = results.violations.map(
+        (v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`,
+      );
+      expect(violations).toEqual([]);
+    });
+  }
 });

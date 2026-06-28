@@ -188,3 +188,26 @@ describe('semantic tokens only (ADR-016)', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('side-peek motion (design system §Motion, F-021-S-03)', () => {
+  it('slides the peek in over 240ms and out over 180ms on the documented curve', () => {
+    expect(stylesCss).toMatch(/\.peek-enter\s*\{[^}]*animation:[^;]*240ms/);
+    expect(stylesCss).toMatch(
+      /\.peek-enter\s+\.peek-panel\s*\{[^}]*240ms[^}]*cubic-bezier\(0\.32,\s*0\.72,\s*0,\s*1\)/,
+    );
+    expect(stylesCss).toMatch(/\.peek-leave\s*\{[^}]*animation:[^;]*180ms/);
+    expect(stylesCss).toMatch(
+      /\.peek-leave\s+\.peek-panel\s*\{[^}]*180ms[^}]*cubic-bezier\(0\.32,\s*0\.72,\s*0,\s*1\)/,
+    );
+  });
+
+  it('collapses that motion under prefers-reduced-motion (the global rule covers the peek)', () => {
+    // The peek rides plain CSS animations, so the app-wide reduce rule — which
+    // forces animation-duration to (near-)zero — honors reduced motion for it
+    // without any peek-specific media query.
+    const reduceBlock = stylesCss.match(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?animation-duration:\s*0\.01ms\s*!important/,
+    );
+    expect(reduceBlock).not.toBeNull();
+  });
+});

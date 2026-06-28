@@ -34,6 +34,7 @@ import type {
 } from '@mos/core';
 import { VAULT_SOURCE } from '../../sources/vault-source.token';
 import { CardComponent } from '../../components/card/card';
+import { CardPeek } from '../../components/card-peek/card-peek';
 import { FilterBar } from '../../components/filter-bar/filter-bar';
 
 /** Discriminated load state to drive the template honestly. */
@@ -48,10 +49,11 @@ export interface BoardColumn {
 /**
  * URL query keys this view owns (scope switcher + reader plumbing). A facet
  * whose field name collides with one of these is dropped, so an oddly-named
- * vault field can't hijack `?scope=`/`?q=`/etc. These are a web/URL concern, so
- * the guard lives here rather than in the (URL-agnostic) core `buildFacets`.
+ * vault field can't hijack `?scope=`/`?q=`/`?peek=`/etc. These are a web/URL
+ * concern, so the guard lives here rather than in the (URL-agnostic) core
+ * `buildFacets`.
  */
-const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from']);
+const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from', 'peek']);
 
 /**
  * Board view. Loads the vault config and all board-scope files, builds the
@@ -68,7 +70,7 @@ const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from']);
 @Component({
   selector: 'app-board-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent, FilterBar],
+  imports: [CardComponent, CardPeek, FilterBar],
   templateUrl: './board-view.html',
 })
 export class BoardView {
@@ -88,6 +90,9 @@ export class BoardView {
   /** The board-scope vault model; live updates patch it incrementally (F-005-S-01). */
   private readonly model = signal<VaultModel>(createEmptyVaultModel());
 
+  /** Read-only view of the model, handed to the side peek for its relations. */
+  protected readonly peekModel = this.model.asReadonly();
+
   /** Message describing why the board failed to load, shown in the error state. */
   protected readonly loadError = signal<string>('');
 
@@ -95,6 +100,13 @@ export class BoardView {
   private readonly queryParams = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
+
+  /**
+   * The id of the card to open in the side peek, from `?peek=` (`null` when
+   * none). URL-driven so a peeked board is shareable and renders on load
+   * (ADR-004); `peek` is reserved so it never doubles as a filter (F-021-S-03).
+   */
+  protected readonly peekId = computed(() => this.queryParams().get('peek'));
 
   /** Picker `<option>` value for the Backlog scope (can't collide with a name). */
   protected readonly BACKLOG_SENTINEL = '__backlog__';
@@ -464,14 +476,61 @@ export class BoardView {
     });
   }
 
-  /** Open the card's file in the reader, carrying the board state for "back" (ADR-004). */
+  // ── Side peek (F-021-S-03) ───────────────────────────────────────────────────
+
+  /** Clicking a board/backlog card opens it in the side peek (over the board). */
   protected onCardSelect(card: Card): void {
-    const params: Record<string, string> = { path: card.path, from: 'board' };
+    this.openPeek(card.id);
+  }
+
+  /**
+   * Open a card in the peek by pushing `?peek=` — pushing (not replacing) so the
+   * browser back button closes the peek and returns to the bare board. The
+   * underlying scope/filters/scroll stay put: this is a same-route query merge,
+   * not a navigation away.
+   */
+  protected openPeek(id: string): void {
+    this.navigatePeek(id, false);
+  }
+
+  /** Close the peek by dropping `?peek=` (replace — no extra history entry). */
+  protected closePeek(): void {
+    this.navigatePeek(null, true);
+  }
+
+  private navigatePeek(peek: string | null, replaceUrl: boolean): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { peek },
+      queryParamsHandling: 'merge',
+      replaceUrl,
+    });
+  }
+
+  /** Expand the peek to the full card page, carrying board state for "back". */
+  protected expandPeek(id: string): void {
+    void this.router.navigate(['/card', id], { queryParams: this.carryBoardState() });
+  }
+
+  /** Leave the peek for a wiki doc in the reader, carrying board state for "back". */
+  protected openDoc(path: string): void {
+    void this.router.navigate(['/reader'], { queryParams: { ...this.carryBoardState(), path } });
+  }
+
+  /**
+   * The board's URL state (scope + filters) tagged with `from: 'board'`, minus
+   * the peek param — what a card page or the reader needs to restore "back" to
+   * this board exactly (the same contract `onCardSelect` used to hand the reader).
+   */
+  private carryBoardState(): Record<string, string> {
+    const params: Record<string, string> = {};
     const current = this.queryParams();
     for (const key of current.keys) {
+      if (key === 'peek') continue;
       const value = current.get(key);
       if (value !== null) params[key] = value;
     }
-    void this.router.navigate(['/reader'], { queryParams: params });
+    params['from'] = 'board';
+    return params;
   }
 }
