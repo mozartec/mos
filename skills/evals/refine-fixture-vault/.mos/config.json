@@ -42,13 +42,15 @@
       "label": "Track",
       "parent": null,
       "color": "purple",
-      "states": { "Sketch": "Sketch", "Lined Up": "Lined Up", "Underway": "Underway", "Landed": "Landed", "Parked": null }
+      "states": { "Sketch": "Sketch", "Lined Up": "Lined Up", "Underway": "Underway", "Landed": "Landed", "Parked": null },
+      "card": { "readiness": ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"] }
     },
     "leg": {
       "label": "Leg",
       "parent": "track",
       "color": "green",
-      "states": { "Sketch": "Sketch", "Underway": "Underway", "Landed": "Landed" }
+      "states": { "Sketch": "Sketch", "Underway": "Underway", "Landed": "Landed" },
+      "card": { "readiness": ["Outcome", "Plan", "Acceptance"] }
     },
     "errand": {
       "label": "Errand",

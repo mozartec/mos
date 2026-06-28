@@ -108,8 +108,11 @@ This repo ships first-party agent skills for working a mos board, authored in
 - **`mos-ship-card`** — point it at a card id (any type your config defines — feature, story,
   task, …) and it takes that card to an open PR: plan, raise doubts, branch, build, commit,
   push.
+- **`mos-refine-batch`** — reshape the backlog so parallel-safe work exists: raise
+  not-yet-started cards to readiness, fill their `touches`, and split overlap clusters into a
+  shared enabler plus disjoint leaves, so a real parallel batch can be picked.
 
-Both are vault-agnostic: they read your types, states, columns, and sprints from
+All three are vault-agnostic: they read your types, states, columns, and sprints from
 `.mos/config.json` at run time and refuse to start without it — nothing about this repo's
 vocabulary is hardcoded. Install them into any project with the
 [`skills`](https://github.com/vercel-labs/skills) CLI:

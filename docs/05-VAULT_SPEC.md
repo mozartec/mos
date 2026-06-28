@@ -147,6 +147,18 @@ A type may also set an optional **`color`** — a name from the curated palette 
 as the card's accent and type badge. It's optional and config-driven: mos never colors a
 type by its name, so a vault's own types (`epic`, `bug`, `chore`, ...) style themselves.
 
+A type's **`card`** object configures the card face and, optionally, readiness. `card.fields`
+(§5a) lists the frontmatter fields shown on the card; the optional **`card.readiness`** lists
+the body sections a *ready* card of that type carries (e.g. `["Outcome", "Plan",
+"Acceptance"]`). Readiness is **opt-in**: omit it and the body stays freeform (§4) with no
+required sections, which is the default for every type. When set, it is a machine-readable
+hint that backlog-shaping tooling (the `mos-refine-batch` skill) reports against — mos still
+never writes or enforces card bodies (ADR-002): a missing section is *surfaced*, never
+auto-filled. Tooling matches a section by its heading, case-insensitively, accepting `##
+Name` / `### Name`, numbered `## 2. Name`, and bold-label `**Name:**` forms, and counts a
+section present only when it has content. A type that declares no `readiness` is reported as
+such, so the freeform-by-default body is never measured against a list it didn't opt into.
+
 ## 5a. Field types
 
 The optional top-level `fields` registry gives a frontmatter field a **data type**, so mos
@@ -421,7 +433,10 @@ warns on overlapping windows.
       "states": { "Draft": "Backlog", "Planned": "Planned",
                   "In Progress": "In Progress", "Done": "Done",
                   "Deferred": null, "Dropped": null },
-      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"] }
+      // `readiness` is optional (opt-in): the body sections a ready card carries, reported
+      // against by refine tooling. Omit it and the body stays freeform (§5).
+      "card": { "fields": ["id", "phase", "priority", "owner", "sprint", "dependsOn", "touches", "created", "updated"],
+                "readiness": ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"] }
     },
     "story": {
       "label": "Story",

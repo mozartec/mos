@@ -97,8 +97,17 @@ export interface TypeDef {
   parent: string | null;
   /** Workflow state → board column (or `null` to hide from the board). */
   states: Record<string, string | null>;
-  /** Fields shown on the card face, in order. */
-  card?: { fields: string[] };
+  /** The card-face fields and, optionally, the type's readiness sections. */
+  card?: {
+    /** Frontmatter fields shown on the card face, in order. */
+    fields: string[];
+    /**
+     * Opt-in body sections a ready card of this type carries (e.g. `["Outcome", "Plan"]`);
+     * backlog-shaping tooling reports against these (ADR-024). Omit to keep the body
+     * freeform — the default. mos never writes or enforces card bodies (ADR-002).
+     */
+    readiness?: string[];
+  };
   /** Accent color for the card face and type badge (§5b). */
   color?: CardColor;
 }

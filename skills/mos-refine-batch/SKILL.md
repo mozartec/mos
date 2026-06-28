@@ -10,7 +10,7 @@ description: >
   decided cards stay frontmatter-only. It proposes a reshape and applies it on your
   confirmation — picking and shipping are mos-next-card's and mos-ship-card's jobs, not this one.
 metadata:
-  version: 0.2.1
+  version: 0.3.0
 ---
 
 # mos-refine-batch
@@ -57,7 +57,9 @@ clusters** — areas declared by two or more refinable cards. Those clusters are
 If Python isn't available, apply the model below by reading the config and cards yourself.
 
 Then read the nearest `AGENTS.md` — it carries the vault's non-negotiable constraints and
-its card template — before you rewrite anything.
+its card template — before you rewrite anything. The script checks bodies against each type's
+declared `card.readiness`; the template is where you read what each section should *contain*,
+and the readiness bar for any type that declares none.
 
 ## 2. The three passes
 
@@ -65,12 +67,16 @@ Run them in order over the named horizon; each builds on the last.
 
 ### Pass 1 — readiness
 
-Raise every refinable card to the **cold-start standard**:
-a cold mid-tier agent should execute it from the
-card plus its linked docs, no guessing. The script lists each card's missing sections
-(Outcome, Context, Constraints, Plan, Acceptance, Out of scope). Fill the gaps from the
-card's own intent and the docs it points to — not from invention. A tiny card may
-legitimately skip a section; that's your judgment, not a checkbox to force.
+Raise every refinable card to the **cold-start standard**: a cold mid-tier agent should
+execute it from the card plus its linked docs, no guessing. Readiness sections are declared
+**per card type** in config (`types.<type>.card.readiness`); the script reports, per card,
+which of its type's declared sections the body is missing — matching headings flexibly
+(`## Outcome`, numbered `## 2. Steps`, bold-label `**Steps:**`; a heading with no content
+under it still counts as missing). **If a type declares no `readiness`, the script says so —
+then judge readiness by reading the vault's card template** (its `AGENTS.md`/docs) rather
+than against a fixed list; mos bodies are freeform by default. Fill the gaps from the card's
+own intent and the docs it points to — not from invention. A tiny card may legitimately skip
+a section; that's your judgment, not a checkbox to force.
 
 ### Pass 2 — surfaces
 

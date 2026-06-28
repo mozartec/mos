@@ -66,6 +66,9 @@ in-flight column (for overlap checks) is `Doing` — the one before the last.
 → the single file `app/registry.ts`) and **module** areas (`flights`, `hotels`,
 `cars`, plus `guide` for prose). Initial state per type is `Sketch`; anything past it
 is decided (frontmatter-only). The split-capable type is `track` (children are `leg`s).
+Readiness is config-declared: `track` and `leg` set `card.readiness` (so the script
+reports missing sections against it); `errand` declares none (so the script prints a
+"readiness not declared — judge by reading" note instead of fabricating gaps).
 
 | Card | Purpose | `touches` |
 |---|---|---|
