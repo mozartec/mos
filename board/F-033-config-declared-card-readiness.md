@@ -7,9 +7,9 @@ priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-027]
-touches: [skills, docs, config]
+touches: [skills, docs, config, core]
 created: 2026-06-28T13:50:20Z
-updated: 2026-06-28T14:26:35Z
+updated: 2026-06-28T16:37:05Z
 ---
 
 # F-033 — Config-declared card readiness — make refine-batch adapt per vault
