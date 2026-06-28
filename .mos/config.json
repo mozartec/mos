@@ -66,7 +66,8 @@
         "Deferred": null,
         "Dropped": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "dependsOn", "touches", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "dependsOn", "touches", "created", "updated"],
+                "readiness": ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"] }
     },
     "story": {
       "label": "Story",
@@ -79,7 +80,8 @@
         "Blocked": "In Progress",
         "Done": "Done"
       },
-      "card": { "fields": ["id", "parent", "priority", "owner", "estimate", "dependsOn", "touches", "created", "updated"] }
+      "card": { "fields": ["id", "parent", "priority", "owner", "estimate", "dependsOn", "touches", "created", "updated"],
+                "readiness": ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"] }
     },
     "task": {
       "label": "Task",
@@ -92,7 +94,8 @@
         "Done": "Done",
         "Deferred": null
       },
-      "card": { "fields": ["id", "phase", "priority", "owner", "dependsOn", "touches", "created", "updated"] }
+      "card": { "fields": ["id", "phase", "priority", "owner", "dependsOn", "touches", "created", "updated"],
+                "readiness": ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"] }
     }
   }
 }

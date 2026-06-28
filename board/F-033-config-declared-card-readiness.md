@@ -2,14 +2,14 @@
 id: F-033
 type: feature
 title: Config-declared card readiness — make refine-batch adapt per vault
-status: Draft
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-027]
 touches: [skills, docs, config]
 created: 2026-06-28T13:50:20Z
-updated: 2026-06-28T13:50:20Z
+updated: 2026-06-28T14:26:35Z
 ---
 
 # F-033 — Config-declared card readiness — make refine-batch adapt per vault
@@ -156,25 +156,25 @@ how Pass 3 already degrades when no `areas` are declared.
 
 ## Acceptance
 
-- [ ] `types.<type>.card.readiness` is documented in
+- [x] `types.<type>.card.readiness` is documented in
       [`docs/05-VAULT_SPEC.md`](../docs/05-VAULT_SPEC.md) as an optional per-type array, with
       freeform body stated as the default; a new ADR records the decision.
-- [ ] A vault whose story/task templates differ from its epic template (bold labels, numbered
+- [x] A vault whose story/task templates differ from its epic template (bold labels, numbered
       headings) reports **zero** readiness gaps on cards that are actually complete.
-- [ ] A vault (or type) declaring no readiness still runs Passes 2–3 and prints
+- [x] A vault (or type) declaring no readiness still runs Passes 2–3 and prints
       `readiness not declared for <type> — judge by reading …` instead of fabricating gaps.
-- [ ] Heading matching is case-insensitive and accepts ATX (`##`/`###`), numbered (`## 2.
+- [x] Heading matching is case-insensitive and accepts ATX (`##`/`###`), numbered (`## 2.
       Steps`), and bold-label (`**Steps:**`) sections; a heading with empty content counts as
       a gap.
-- [ ] `dependsOn` is read from frontmatter (prose scrape removed or fallback-only).
-- [ ] `SKILL.md` no longer names the six sections, describes the per-type behavior and the
+- [x] `dependsOn` is read from frontmatter (prose scrape removed or fallback-only).
+- [x] `SKILL.md` no longer names the six sections, describes the per-type behavior and the
       degrade, and the `AGENTS.md`/script contradiction is gone.
-- [ ] The `touches`/overlap-cluster output and the no-`areas` degrade are unchanged on the
+- [x] The `touches`/overlap-cluster output and the no-`areas` degrade are unchanged on the
       existing fixture.
-- [ ] mos's `.mos/config.json` declares `card.readiness` for its types; this vault still
+- [x] mos's `.mos/config.json` declares `card.readiness` for its types; this vault still
       reports per-section gaps and `bun run validate` is green.
-- [ ] The root `README.md` lists `mos-refine-batch` alongside the other two skills.
-- [ ] Installed copies + `skills-lock.json` regenerated and byte-matching; evals run cold.
+- [x] The root `README.md` lists `mos-refine-batch` alongside the other two skills.
+- [x] Installed copies + `skills-lock.json` regenerated and byte-matching; evals run cold.
 
 ## Dependencies
 

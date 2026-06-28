@@ -19,8 +19,9 @@ not parsing:
     the boundary, computed mechanically so any agent applies it identically.
   - over an explicit horizon (default: the whole backlog; --phase / --limit narrow it),
     classifies every card and reports, per refinable card:
-      * Pass 1 (readiness) — which cold-start sections (the vault's card-readiness
-        convention) the body is missing;
+      * Pass 1 (readiness) — which of the type's declared `card.readiness` sections the
+        body is missing; a type that declares none is reported as such (judge by reading
+        the vault's conventions) rather than measured against a fixed list;
       * Pass 2 (surfaces)  — whether `touches` is declared, empty, or missing;
       * Pass 3 (shape)     — the overlap CLUSTERS: areas declared by two or more
         refinable cards. Those clusters are exactly the cards a refinement pass should
@@ -38,10 +39,6 @@ import json, os, re, sys
 from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
-
-# The cold-start sections a ready card carries (the vault's card-readiness convention). A
-# tiny card may legitimately skip some; the agent decides — the script only reports the gaps.
-READY_SECTIONS = ["Outcome", "Context", "Constraints", "Plan", "Acceptance", "Out of scope"]
 
 
 def _force_utf8_stdio():
@@ -135,7 +132,10 @@ def walk(root: Path):
 ID_RE = re.compile(r"\b([A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*)\b")
 
 
-def depends_on(body: str):
+def depends_on_prose(body: str):
+    """Fallback only: scrape `dependsOn` from body prose when frontmatter has none. mos
+    stores dependencies in the `dependsOn` frontmatter field — this catches a vault that
+    wrote them as prose instead."""
     deps = []
     for line in body.split("\n"):
         if re.search(r"depends on", line, re.I):
@@ -144,8 +144,64 @@ def depends_on(body: str):
     return [d for d in deps if d]
 
 
-def missing_sections(body: str):
-    return [s for s in READY_SECTIONS if f"## {s}" not in body]
+# A readiness section heading, in any shape a vault's template might use. The script reports
+# against the sections a *type* declares in `card.readiness` (config) — never a fixed list —
+# so it adapts to each vault instead of imposing one project's card template.
+_ATX = re.compile(r"^\s{0,3}#{1,6}\s")  # an ATX heading line (## …)
+_LABEL = re.compile(r"^\s{0,3}\*\*[^*]+\*\*\s*:?")  # a bold-label line (**…:** …)
+_ATX_TITLE = re.compile(r"^\s{0,3}#{1,6}\s+(?:\d+[.)]\s+)?(.+?)\s*$")  # ## 2. Title
+_BOLD_TITLE = re.compile(r"^\s{0,3}\*\*\s*(?:\d+[.)]\s*)?(.+?)\s*\*\*\s*:?\s*(.*)$")  # **Title:** rest
+
+
+def _norm(s: str):
+    """Lower-case, drop a trailing colon — so `**Steps:**` and `## Steps` compare equal."""
+    return re.sub(r"\s*:\s*$", "", s.strip()).lower()
+
+
+def _title_matches(heading: str, name: str):
+    """True when a heading names the readiness section `name`. Exact (case-insensitively),
+    or the name followed by a descriptive suffix after a separator — so `Context` matches
+    `## Context — read before starting` and `Constraints` matches `## Constraints (must honor)`."""
+    h, n = _norm(heading), _norm(name)
+    return h == n or bool(re.match(re.escape(n) + r"\s*[—\-:(].*$", h))
+
+
+def _is_boundary(line: str):
+    return bool(_ATX.match(line) or _LABEL.match(line))
+
+
+def section_present(body: str, name: str):
+    """True if `body` carries a non-empty section titled `name`. Heading matching is
+    flexible: ATX (`## Name`, `### Name`), numbered (`## 2. Name`), and bold-label
+    (`**Name:**`) forms, case-insensitive. A heading with no content before the next
+    section doesn't count — a bare `## Acceptance` is still a gap."""
+    lines = body.split("\n")
+    for i, line in enumerate(lines):
+        m = _ATX_TITLE.match(line)
+        if m and _title_matches(m.group(1), name):
+            inline = ""
+        else:
+            mb = _BOLD_TITLE.match(line)
+            if mb and _title_matches(mb.group(1), name):
+                inline = mb.group(2).strip()
+            else:
+                continue
+        if inline:
+            return True  # content on the same line as a bold label
+        for nxt in lines[i + 1:]:
+            if _is_boundary(nxt):
+                break
+            if nxt.strip():
+                return True
+    return False
+
+
+def missing_sections(body: str, readiness):
+    """Declared readiness sections absent from `body`. `None` when the type declares no
+    `card.readiness` — the caller degrades to 'judge by reading' instead of fabricating gaps."""
+    if not isinstance(readiness, list):
+        return None
+    return [s for s in readiness if not section_present(body, s)]
 
 
 def initial_state(type_def):
@@ -182,6 +238,7 @@ def load(vault: Path):
         cid = data["id"]
         init = initial_state(t)
         status = data.get("status", "")
+        readiness = (t.get("card") or {}).get("readiness")  # per-type list, or absent
         cards[cid] = {
             "id": cid, "title": data.get("title", ""), "type": data["type"],
             "status": status, "priority": data.get("priority", ""),
@@ -189,9 +246,12 @@ def load(vault: Path):
             "column": t["states"].get(status),  # None => hidden / unknown status
             "is_initial": status == init,       # refinable iff in its type's initial state
             "allows_children": data["type"] in parent_types,
-            "missing": missing_sections(body),
+            # None => the type declares no readiness (degrade); [] => declared and met
+            "missing": missing_sections(body, readiness),
+            "readiness_declared": isinstance(readiness, list),
             "touches": parse_list(data.get("touches")),  # list / [] / None
-            "deps": depends_on(body),
+            # dependencies live in frontmatter; prose is only a fallback for a vault that wrote them inline
+            "deps": parse_list(data.get("dependsOn")) or depends_on_prose(body),
             "rel": rel,
         }
     return cfg, columns, types, areas, prio_rank, cards
@@ -265,7 +325,9 @@ def main():
             "refinable": [
                 {"id": c["id"], "type": c["type"], "priority": c["priority"],
                  "phase": c["phase"], "title": c["title"], "allowsChildren": c["allows_children"],
-                 "missingSections": c["missing"], "touches": c["touches"], "rel": c["rel"]}
+                 # missingSections: null => type declares no readiness; [] => declared and met
+                 "readinessDeclared": c["readiness_declared"], "missingSections": c["missing"],
+                 "dependsOn": c["deps"], "touches": c["touches"], "rel": c["rel"]}
                 for c in refinable
             ],
             "overlapClusters": clusters,
@@ -284,8 +346,11 @@ def main():
     for c in refinable:
         flags = " · type allows children (split → container)" if c["allows_children"] else ""
         print(f"  {c['id']:<12} {c['priority'] or '--':<3} {c['title']}{flags}")
-        miss = ", ".join(c["missing"]) if c["missing"] else "none"
-        print(f"      readiness gaps: {miss}")
+        if c["missing"] is None:
+            print(f"      readiness: not declared for {c['type']} — judge by reading the vault's conventions")
+        else:
+            miss = ", ".join(c["missing"]) if c["missing"] else "none"
+            print(f"      readiness gaps: {miss}")
         ts = ("∅ (touches nothing)" if c["touches"] == []
               else ", ".join(c["touches"]) if c["touches"] else "— MISSING (surface unknown)")
         print(f"      touches: {ts}")

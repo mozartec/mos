@@ -577,3 +577,44 @@ sharing a block with an *unrelated* card id still slips through, and the comment
 prose — so, as in
 [ADR-021](#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches),
 the declared rule is the floor the guard protects, not a proof every comment is honest.
+
+## ADR-024 — Card readiness is opt-in and config-declared, not a built-in template
+
+**Status:** Accepted · **Date:** 2026-06-28
+
+**Context.** The card *body* is freeform by design (§4 of
+[`05-VAULT_SPEC.md`](05-VAULT_SPEC.md)): mos manages frontmatter and never rewrites prose
+([ADR-002](#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer)). The
+cold-start standard
+([ADR-007](#adr-007--the-repository-is-the-memory-cards-target-cold-any-model-agents)) lives
+as a *convention* — an expanded card template in
+[`09-CONVENTIONS.md`](09-CONVENTIONS.md) whose sections an author may skip when they don't
+apply. But the [mos-refine-batch](../skills/mos-refine-batch/SKILL.md) skill (F-027) needs a
+mechanical readiness signal to pre-compute, and its script took the cheap path: it hardcoded
+*this* vault's six-section template (`Outcome`/`Context`/`Constraints`/`Plan`/`Acceptance`/
+`Out of scope`) and flagged a gap whenever the literal `## <Section>` was absent. On any
+adopter vault with a different card shape — bold labels (`**Persona:**`), numbered headings
+(`## 2. Steps`), a leaner story/task template — that reported every complete card as missing
+all six sections. The hardcode also contradicted [ADR-003](#adr-003--a-card-is-folder-scope--a-recognized-frontmatter-type)
+(config-driven, never this repo's vocabulary) and stayed invisible because the skill's only
+fixture used the same template the script assumed.
+
+**Decision.** Readiness sections are **declared per card type in config**, optionally, as
+`types.<type>.card.readiness` — a list of the body sections a ready card of that type carries.
+It is **opt-in**: a type that omits it has no required sections and its body stays freeform —
+the default everywhere. When a type declares it, tooling reports which declared sections a
+body is missing, matching headings flexibly (case-insensitive; `##`/`###` ATX, numbered
+`## 2. Name`, and bold-label `**Name:**`; a heading counts present only with content). When a
+type declares none, tooling says so and defers to the agent reading the vault's template,
+rather than fabricating gaps — the honest degrade, mirroring how parallel-shaping degrades
+when no `areas` are declared
+([ADR-021](#adr-021--cards-declare-a-physical-surface-parallel-work-is-planned-as-conflict-free-batches)).
+Readiness stays a *report*: mos never writes or enforces card bodies (ADR-002 unchanged); a
+missing section is surfaced, never auto-filled.
+
+**Consequences.** Backlog-shaping keeps a mechanical readiness signal without imposing one
+project's template on every vault — the skill adapts to each vault's own card conventions, and
+freeform-by-default is preserved as a first-class choice. The cost is one more optional config
+key and the matcher's tolerance (it reports against headings, so a vault that writes readiness
+prose without headings opts out by simply not declaring `readiness`). This repo dogfoods the
+key for its own feature/story/task types; F-033 carries the spec, script, and skill changes.

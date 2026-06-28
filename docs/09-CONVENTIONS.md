@@ -242,6 +242,14 @@ What NOT to touch — this is where cold agents overreach.
 ADRs and docs.
 ```
 
+A vault can make this readiness checklist **machine-readable** by declaring the section names
+per card type in config as `types.<type>.card.readiness` (optional, opt-in;
+[ADR-024](08-DECISIONS.md#adr-024--card-readiness-is-opt-in-and-config-declared-not-a-built-in-template)).
+The [`mos-refine-batch`](../skills/mos-refine-batch/SKILL.md) skill then reports missing
+sections against it; a type that declares none keeps a freeform body and is judged by this
+template instead. This repo declares the six sections above for its `feature`/`story`/`task`
+types in [`.mos/config.json`](../.mos/config.json).
+
 ### Why layered, not dumped
 
 Keep `AGENTS.md` small (a map), durable knowledge in `docs/`, and task-specific context in
