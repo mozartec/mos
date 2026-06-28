@@ -1,12 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  afterRenderEffect,
   computed,
   effect,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { parseFile, toPosixPath, type Card, type VaultConfig, type VaultModel } from '@mos/core';
@@ -72,11 +75,21 @@ export class CardPeek {
     return this.model().cards[id] ?? null;
   });
 
-  /** Accessible name for the dialog — the card's title, else the bare id. */
-  protected readonly dialogLabel = computed(() => this.card()?.title ?? `Card ${this.cardId()}`);
+  /**
+   * Accessible name for the dialog — the card's title, else the bare id. `||`,
+   * not `??`: a card with no `title:` parses to an empty string (not null), and
+   * an empty `aria-label` would leave the modal unnamed (an AXE failure).
+   */
+  protected readonly dialogLabel = computed(() => this.card()?.title || `Card ${this.cardId()}`);
+
+  /** The dialog panel, for re-focusing it when the peeked card swaps. */
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
   /** Monotonic token: a newer body load invalidates an older one's writes. */
   private bodySeq = 0;
+
+  /** The card id focus was last (re-)armed for; gates the swap re-focus below. */
+  private rearmedFor: string | null = null;
 
   constructor() {
     // Load the body whenever the peeked card changes — on open, on a relation
@@ -86,6 +99,19 @@ export class CardPeek {
     effect(() => {
       this.card(); // track
       void this.loadBody();
+    });
+
+    // Keep focus inside the dialog across a relation/in-body swap. The element
+    // that was clicked is destroyed with the old card, and CDK auto-capture only
+    // fires on the first open — so when the id changes (not on open or close),
+    // pull focus back to the panel so it never escapes the trapped region.
+    afterRenderEffect(() => {
+      const id = this.cardId();
+      const panel = this.panel()?.nativeElement;
+      if (id !== null && panel && this.rearmedFor !== null && this.rearmedFor !== id) {
+        panel.focus();
+      }
+      this.rearmedFor = id;
     });
   }
 

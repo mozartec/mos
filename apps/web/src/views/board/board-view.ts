@@ -487,10 +487,20 @@ export class BoardView {
    * Open a card in the peek by pushing `?peek=` — pushing (not replacing) so the
    * browser back button closes the peek and returns to the bare board. The
    * underlying scope/filters/scroll stay put: this is a same-route query merge,
-   * not a navigation away.
+   * not a navigation away. (Only ever called from a clear board, since the scrim
+   * covers the cards while a peek is open.)
    */
   protected openPeek(id: string): void {
     this.navigatePeek(id, false);
+  }
+
+  /**
+   * Swap the peek to a related/linked card by *replacing* `?peek=`. A swap keeps
+   * the peek on the single history entry it pushed on open, so browser back
+   * still returns to the bare board rather than re-opening a prior peeked card.
+   */
+  protected swapPeek(id: string): void {
+    this.navigatePeek(id, true);
   }
 
   /** Close the peek by dropping `?peek=` (replace — no extra history entry). */

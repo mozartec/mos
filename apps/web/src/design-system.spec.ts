@@ -201,10 +201,13 @@ describe('side-peek motion (design system §Motion, F-021-S-03)', () => {
     );
   });
 
-  it('collapses that motion under prefers-reduced-motion (the global rule covers the peek)', () => {
-    // The peek rides plain CSS animations, so the app-wide reduce rule — which
-    // forces animation-duration to (near-)zero — honors reduced motion for it
-    // without any peek-specific media query.
+  it('collapses that motion under prefers-reduced-motion (peek rides CSS animations the rule kills)', () => {
+    // The collapse only honors the peek because the peek's motion is
+    // `animation:`-based: the app-wide reduce rule forces animation-duration to
+    // ~0, so assert both halves — the peek uses animations, and the rule kills
+    // them — not just that the boilerplate block exists.
+    expect(stylesCss).toMatch(/\.peek-enter\s*\{[^}]*animation:/);
+    expect(stylesCss).toMatch(/\.peek-leave\s*\{[^}]*animation:/);
     const reduceBlock = stylesCss.match(
       /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?animation-duration:\s*0\.01ms\s*!important/,
     );

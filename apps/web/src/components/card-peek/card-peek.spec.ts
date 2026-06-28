@@ -124,6 +124,23 @@ describe('CardPeek', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it('pulls focus back into the dialog when the peeked card swaps', async () => {
+    const fixture = await createHost('A-1');
+    const host = fixture.nativeElement as HTMLElement;
+    const panel = host.querySelector('.peek-panel') as HTMLElement;
+
+    // Focus a relation inside the dialog, as a user clicking through relations.
+    const inside = panel.querySelector('button') as HTMLButtonElement;
+    inside.focus();
+    expect(panel.contains(document.activeElement)).toBe(true);
+
+    // Swap to another card: the old relation button is destroyed, so without
+    // re-arming, focus would fall to <body> outside the still-open modal.
+    fixture.componentInstance.cardId.set('A-2');
+    await settle(fixture);
+    expect(panel.contains(document.activeElement)).toBe(true);
+  });
+
   it('hosts the shared detail surface: title, body, and a dialog name', async () => {
     const fixture = await createHost('A-1');
     const host = fixture.nativeElement as HTMLElement;

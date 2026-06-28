@@ -572,11 +572,15 @@ describe('BoardView', () => {
       expect(url).not.toContain('peek');
     });
 
-    it('a relation click swaps the peeked card (stays in the peek)', async () => {
+    it('a relation click swaps the peeked card in place (replaces, no new history)', async () => {
       const { component, host, harness } = await createPeekBoard('/board?peek=A');
+      const navigateSpy = vi.spyOn(TestBed.inject(Router), 'navigate');
       // Drive the detail's relation output the way the template wires it.
-      component['openPeek']('B');
+      component['swapPeek']('B');
       await settle(harness.fixture);
+      // Replaced (not pushed): the peek keeps its single history entry, so back
+      // returns to the bare board instead of re-opening A.
+      expect(navigateSpy).toHaveBeenCalledWith([], expect.objectContaining({ replaceUrl: true }));
       expect(TestBed.inject(Router).url).toContain('peek=B');
       expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Card B');
     });
