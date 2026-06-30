@@ -2,7 +2,7 @@
 id: F-021-S-03
 type: story
 title: Side peek — URL-driven overlay, focus management, motion
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-021
@@ -10,7 +10,7 @@ estimate: M
 dependsOn: [F-021-S-02, F-023]
 touches: [web]
 created: 2026-06-21T09:31:58Z
-updated: 2026-06-21T09:31:58Z
+updated: 2026-06-28T14:46:00Z
 ---
 
 # F-021-S-03 — Side peek: URL-driven overlay, focus management, motion
@@ -70,11 +70,11 @@ filters alive. The peek state lives in the URL, so a peeked board is shareable.
 
 ## Acceptance
 
-- [ ] Clicking a board/backlog/cards card opens the peek over an unchanged underlying view;
+- [x] Clicking a board/backlog/cards card opens the peek over an unchanged underlying view;
       `Esc`, scrim, and browser back all close it; focus returns to the card.
-- [ ] The peek state is in the URL (`?peek=`); a peeked-view URL is shareable and renders on
+- [x] The peek state is in the URL (`?peek=`); a peeked-view URL is shareable and renders on
       load; the expand control lands on the card page.
-- [ ] AXE passes with the peek open; focus trap/restore and reduced-motion are covered by
+- [x] AXE passes with the peek open; focus trap/restore and reduced-motion are covered by
       specs.
 
 ## Dependencies

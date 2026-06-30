@@ -158,6 +158,20 @@
           }
         </div>
       }
+
+      <!-- Side peek: clicking any board/backlog card opens it here, over the
+           board, with the underlying scope/filters/scroll kept alive (F-021-S-03). -->
+      @if (config(); as cfg) {
+        <app-card-peek
+          [cardId]="peekId()"
+          [model]="peekModel()"
+          [config]="cfg"
+          (closePeek)="closePeek()"
+          (expand)="expandPeek($event)"
+          (peekCard)="swapPeek($event)"
+          (openDoc)="openDoc($event)"
+        />
+      }
     }
   }
 </section>

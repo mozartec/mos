@@ -13,6 +13,10 @@
 @import '@fontsource/newsreader/500.css';
 @import '@fontsource/newsreader/500-italic.css';
 
+/* Hides the focus-trap's boundary anchors (CDK a11y) used by the side peek's
+   dialog — the `.cdk-visually-hidden` class they carry needs this rule. */
+@import '@angular/cdk/a11y-prebuilt.css';
+
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
@@ -136,6 +140,56 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Side peek (F-021-S-03): the slide-over + scrim motion (design system §Motion —
+   240ms in / 180ms out, cubic-bezier(0.32, 0.72, 0, 1)). Angular's
+   animate.enter/leave tags the scrim element, so its own fade is what the
+   animation waits on; the panel inside slides within the same window. The
+   reduced-motion rule above collapses both to (near-)instant opacity. */
+@keyframes peek-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes peek-scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes peek-panel-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes peek-panel-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.peek-enter {
+  animation: peek-scrim-in 240ms ease-out;
+}
+.peek-enter .peek-panel {
+  animation: peek-panel-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.peek-leave {
+  animation: peek-scrim-out 180ms ease-in;
+}
+.peek-leave .peek-panel {
+  animation: peek-panel-out 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Rendered markdown reads as a document: Newsreader for the body, while
