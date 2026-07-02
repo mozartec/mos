@@ -12,6 +12,24 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.4.0](https://github.com/mozartec/mos/compare/v0.3.1...v0.4.0) (2026-07-02)
+
+
+### Features
+
+* **board:** Document task T-028 for Windows script compatibility ([#79](https://github.com/mozartec/mos/issues/79)) ([75973cf](https://github.com/mozartec/mos/commit/75973cf74da23c6fb83396d506fc0af1ee552dd4))
+* **core:** add childrenOf, dependentsOf & children-progress lookups (F-021-S-01) ([#82](https://github.com/mozartec/mos/issues/82)) ([afdbd86](https://github.com/mozartec/mos/commit/afdbd86bf69b83a6764416612de3a3905eaa85fc))
+* session 2 — structured diagnostics, shared report renderer, docs consolidation, refine-batch mechanics (T-021, T-022, T-025, T-027) ([#88](https://github.com/mozartec/mos/issues/88)) ([8ee9bd3](https://github.com/mozartec/mos/commit/8ee9bd38d8f276edcfb33f2cd3abf5ef7772a607))
+* **skills:** config-declared card readiness for refine-batch (F-033) ([#85](https://github.com/mozartec/mos/issues/85)) ([fb32242](https://github.com/mozartec/mos/commit/fb32242ba0e03c20ed64b41bb882ff27fdcba53a))
+* **web:** card page, detail component & reader redirect (F-021-S-02) ([#83](https://github.com/mozartec/mos/issues/83)) ([6616bf3](https://github.com/mozartec/mos/commit/6616bf381dfacc340bdd8bba1de2da86a65651ef))
+* **web:** subcards on the board, cards lens & F-021 close-out (F-022, F-020, F-021) ([#87](https://github.com/mozartec/mos/issues/87)) ([e01c513](https://github.com/mozartec/mos/commit/e01c5134eb784a9ff79b74a761832073aed17d24))
+* **web:** URL-driven side peek over the board (F-021-S-03) ([#86](https://github.com/mozartec/mos/issues/86)) ([13a2e42](https://github.com/mozartec/mos/commit/13a2e426928ac5b042d6cb84a9c76bfa216df1ed))
+
+
+### Bug Fixes
+
+* **skills:** make bundled scripts run clean on a Windows cp1252 console ([#81](https://github.com/mozartec/mos/issues/81)) ([95f8e58](https://github.com/mozartec/mos/commit/95f8e58712b1516058c6b3cec955bbd3118633a8))
+
 ## [0.3.1](https://github.com/mozartec/mos/compare/v0.3.0...v0.3.1) (2026-06-21)
 
 
