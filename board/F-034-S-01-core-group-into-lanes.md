@@ -2,14 +2,14 @@
 id: F-034-S-01
 type: story
 title: Core — group placed leaves into parent lanes
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-034
 estimate: S
 touches: [core]
 created: 2026-07-03T11:00:00Z
-updated: 2026-07-03T11:00:00Z
+updated: 2026-07-03T14:30:00Z
 ---
 
 # F-034-S-01 — Core: group placed leaves into parent lanes
@@ -73,16 +73,16 @@ instead of re-deriving grouping view-side.
 
 ## Acceptance
 
-- [ ] `groupIntoLanes` is exported and pure; `laneField` absent yields one flat lane identical
+- [x] `groupIntoLanes` is exported and pure; `laneField` absent yields one flat lane identical
       to today's placement.
-- [ ] `"parent"` mode produces one lane per non-empty container ordered by `sortWithinColumn`,
+- [x] `"parent"` mode produces one lane per non-empty container ordered by `sortWithinColumn`,
       a trailing "No parent" lane, container headers carrying an accurate *n/m done* rollup, and
       no container in any column.
-- [ ] Hidden-state cards stay hidden; a dangling `parent` lands in "No parent" and is not fatal;
+- [x] Hidden-state cards stay hidden; a dangling `parent` lands in "No parent" and is not fatal;
       placement errors are unaffected.
-- [ ] `board.laneField` is validated like `board.scopeField` (accept `"parent"` or a registered
+- [x] `board.laneField` is validated like `board.scopeField` (accept `"parent"` or a registered
       field; diagnose otherwise, never throw).
-- [ ] Tests cover every behavior above and `packages/core` is green.
+- [x] Tests cover every behavior above and `packages/core` is green.
 
 ## Dependencies
 

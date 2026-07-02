@@ -2,14 +2,14 @@
 id: F-034-S-02
 type: story
 title: Board — render lanes × columns with container headers
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-034
 estimate: M
 touches: [web]
 created: 2026-07-03T11:00:00Z
-updated: 2026-07-03T11:00:00Z
+updated: 2026-07-03T14:30:00Z
 ---
 
 # F-034-S-02 — Board: render lanes × columns with container headers
@@ -73,14 +73,14 @@ features visible on the board.
 
 ## Acceptance
 
-- [ ] With `laneField: "parent"`, the board shows a lane per container with a progress header
+- [x] With `laneField: "parent"`, the board shows a lane per container with a progress header
       and its leaves in the columns beneath; with no `laneField` it renders identically to today.
-- [ ] A container never appears inside a status column; clicking a lane header opens its peek.
-- [ ] The board Type facet omits container-only types; selecting a present type never yields a
+- [x] A container never appears inside a status column; clicking a lane header opens its peek.
+- [x] The board Type facet omits container-only types; selecting a present type never yields a
       silently empty board; the Cards lens facet is unchanged.
-- [ ] Orphan leaves appear in a "No parent" lane; blocked/collision/safe overlays and
+- [x] Orphan leaves appear in a "No parent" lane; blocked/collision/safe overlays and
       placement-error reporting are unchanged.
-- [ ] Board specs green; recipe-box renders identically before/after.
+- [x] Board specs green; recipe-box renders identically before/after.
 
 ## Dependencies
 

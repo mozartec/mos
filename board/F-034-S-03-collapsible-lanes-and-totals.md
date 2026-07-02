@@ -2,14 +2,14 @@
 id: F-034-S-03
 type: story
 title: Board — collapsible lanes, global totals, accessibility
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-034
 estimate: M
 touches: [web]
 created: 2026-07-03T11:00:00Z
-updated: 2026-07-03T11:00:00Z
+updated: 2026-07-03T14:30:00Z
 ---
 
 # F-034-S-03 — Board: collapsible lanes, global totals, accessibility
@@ -63,13 +63,13 @@ and the 2-D grid meets the app's accessibility bar.
 
 ## Acceptance
 
-- [ ] Lanes are collapsible and **collapsed by default**; state round-trips through the URL and
+- [x] Lanes are collapsible and **collapsed by default**; state round-trips through the URL and
       survives reload; the collapse key is reserved.
-- [ ] The sticky global column-totals strip shows correct totals under the active scope+filters;
+- [x] The sticky global column-totals strip shows correct totals under the active scope+filters;
       a flat board shows today's plain counts.
-- [ ] AXE passes (WCAG AA) with lanes collapsed and expanded; keyboard traversal works; only the
+- [x] AXE passes (WCAG AA) with lanes collapsed and expanded; keyboard traversal works; only the
       grid scrolls horizontally, never the page.
-- [ ] Board + a11y specs green; flat vault unchanged.
+- [x] Board + a11y specs green; flat vault unchanged.
 
 ## Dependencies
 

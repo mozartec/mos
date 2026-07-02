@@ -173,4 +173,46 @@ describe('AXE accessibility audit', () => {
       });
     }
   }
+
+  // Swimlanes (F-034): the lane grid must be AXE-clean both collapsed (the
+  // default portfolio view) and expanded, under both themes — the lane-header
+  // controls (collapse toggle, peek button, progress) are new ARIA surface.
+  const baseConfig = JSON.parse(TEST_CONFIG);
+  const LANE_FILES: Record<string, string> = {
+    ...TEST_FILES,
+    '.mos/config.json': JSON.stringify({
+      ...baseConfig,
+      board: { ...baseConfig.board, laneField: 'parent' },
+    }),
+  };
+  const laneStates: [string, string][] = [
+    ['collapsed', '/board'],
+    ['expanded', '/board?expand=T-001'],
+  ];
+  for (const theme of ['mos-paper', 'mos-carbon']) {
+    for (const [state, url] of laneStates) {
+      it(`board swimlanes (${state}) have no AXE violations under ${theme}`, async () => {
+        await TestBed.configureTestingModule({
+          providers: [
+            provideRouter([{ path: 'board', component: BoardView }]),
+            { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(LANE_FILES) },
+          ],
+        }).compileComponents();
+
+        document.documentElement.dataset['theme'] = theme;
+        const harness = await RouterTestingHarness.create(url);
+        await settle(harness.fixture);
+
+        const el = harness.routeNativeElement as HTMLElement;
+        // The container renders as a lane header in both states.
+        expect(el.textContent ?? '').toContain('First task');
+
+        const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
+        const violations = results.violations.map(
+          (v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`,
+        );
+        expect(violations).toEqual([]);
+      });
+    }
+  }
 });

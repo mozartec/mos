@@ -618,3 +618,47 @@ freeform-by-default is preserved as a first-class choice. The cost is one more o
 key and the matcher's tolerance (it reports against headings, so a vault that writes readiness
 prose without headings opts out by simply not declaring `readiness`). This repo dogfoods the
 key for its own feature/story/task types; F-033 carries the spec, script, and skill changes.
+
+## ADR-025 — Swimlanes: containers surface as lane headers on the board
+
+**Status:** Accepted · **Date:** 2026-07-03
+
+**Context.** The board's columns carry one axis — workflow **state** (each type's
+`states` map collapses its own vocabulary into shared columns). A backlog also has a second
+axis, **altitude**: feature vs story vs task.
+[ADR-019](#adr-019--subcards-children-are-the-boards-units) rightly kept containers out of
+the columns (a feature isn't *in* "In Progress"; its children are) by sending them to the
+list views. On the board that left a whole altitude invisible — a container with children
+appeared nowhere — and a Type filter still offered a container type that then matched only
+hidden cards, silently emptying the board. A flat column list is one-dimensional; showing
+state × altitude needs a second axis.
+
+**Decision.** Give altitude its own axis with an opt-in `board.laneField` (F-034). The
+reserved value `"parent"` groups the board into horizontal **swimlanes** by container: each
+container becomes a full-width **lane header** carrying its computed children-progress
+(*n/m done*), and its leaves flow through the columns beneath it. A container is **still
+never a card in a status column** — ADR-019's invariant holds to the letter; this ADR
+**extends** it: a container now surfaces as a lane header *on the board*, not only in the
+list views. Any other `laneField` value names a registered field and groups leaves by its
+value (headerless). Lanes are a pure projection of the model
+([ADR-001](#adr-001--the-markdown-folder-is-the-source-of-truth-no-database)) — `groupIntoLanes`
+reuses the same `placeCard`/`containerIds`/`childrenProgress` the board already runs — and
+purely presentational: collapse state lives in the URL, nothing is written
+([ADR-002](#adr-002--the-app-is-read-only-writes-happen-in-the-agent-layer)). Grouping is
+config-driven with no type name hardcoded ("container" stays data-derived, ADR-003); absent
+`laneField` reproduces the flat board byte-for-byte, the additive-opt-in shape
+[ADR-020](#adr-020--board-scope-is-a-config-named-grouping-not-a-built-in-sprint) and F-028
+established. Lanes are the *vertical* axis, orthogonal to scope's *which-slice* axis — the
+two compose, neither nests in the other. Lanes default to **collapsed** (a portfolio of
+progress headers) and a sticky column-totals strip preserves the "column count = shippable
+leaves" reading once per-lane counts split the totals. The board's Type facet drops
+container-only types (T-030), so a leaf-only surface never offers a type it can't show.
+
+**Consequences.** Every altitude is legible: containers are visible and click-reachable
+(the header opens the side peek), leaves keep their per-type lifecycles in shared columns,
+and the silent-empty-board affordance is gone. The ceiling is honest — because the type
+registry declares a single containment level (`story.parent = feature`; `task.parent =
+null`), lanes express **two** altitudes (a container lane and its leaf cells); a genuine
+3-deep feature → story → task tree needs a deeper parent chain and is future work. Vaults
+that set no `laneField` are unaffected. This repo dogfoods `laneField: "parent"`; F-034
+carries the core, web, and doc changes, and T-030 the decoupled Type-facet fix.

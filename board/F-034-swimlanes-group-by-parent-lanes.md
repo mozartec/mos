@@ -2,14 +2,14 @@
 id: F-034
 type: feature
 title: Swimlanes — group-by-parent lanes on the board
-status: Draft
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 dependsOn: [F-022]
 touches: [core, web, docs]
 created: 2026-07-03T11:00:00Z
-updated: 2026-07-03T11:00:00Z
+updated: 2026-07-03T14:30:00Z
 ---
 
 # F-034 — Swimlanes — group-by-parent lanes on the board
@@ -127,22 +127,22 @@ tree needs a deeper parent chain and is explicitly out of scope (§Out of scope)
 
 ## Acceptance
 
-- [ ] With no `board.laneField`, the board renders byte-for-byte as today (single unnamed
+- [x] With no `board.laneField`, the board renders byte-for-byte as today (single unnamed
       lane, no chrome); recipe-box is unchanged.
-- [ ] With `board.laneField: "parent"`, each container renders as a lane header with an
+- [x] With `board.laneField: "parent"`, each container renders as a lane header with an
       accurate *n/m done* chip and never occupies a status column; its leaves flow through the
       columns beneath it via their own `states` maps.
-- [ ] Leaves with no/dangling `parent` collect in a trailing "No parent" lane; a dangling id is
+- [x] Leaves with no/dangling `parent` collect in a trailing "No parent" lane; a dangling id is
       reported by the validator, not crashed on; placement errors still surface.
-- [ ] Clicking a lane header opens the container's side peek (F-021).
-- [ ] The board's Type facet no longer offers container-only types; selecting a type on the
+- [x] Clicking a lane header opens the container's side peek (F-021).
+- [x] The board's Type facet no longer offers container-only types; selecting a type on the
       board never yields a silently empty board for a type that exists; the Cards lens still
       offers every type.
-- [ ] Lanes are collapsible and **collapsed by default**; collapse state round-trips through the
+- [x] Lanes are collapsible and **collapsed by default**; collapse state round-trips through the
       URL; the sticky global column-totals strip shows correct totals.
-- [ ] `groupIntoLanes` and the `laneField` validation are pure and unit-tested; `board` view is
+- [x] `groupIntoLanes` and the `laneField` validation are pure and unit-tested; `board` view is
       unchanged for vaults that don't set `laneField`; `bun run validate` is green.
-- [ ] AXE/WCAG AA pass on the lane × column grid.
+- [x] AXE/WCAG AA pass on the lane × column grid.
 
 ## Dependencies
 

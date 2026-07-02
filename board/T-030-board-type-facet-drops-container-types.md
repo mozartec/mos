@@ -2,13 +2,13 @@
 id: T-030
 type: task
 title: Board Type facet drops container-only types
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [web]
 created: 2026-07-03T11:00:00Z
-updated: 2026-07-03T11:00:00Z
+updated: 2026-07-03T14:30:00Z
 ---
 
 # T-030 — Board Type facet drops container-only types
@@ -63,12 +63,12 @@ swimlanes feature ([F-034](F-034-swimlanes-group-by-parent-lanes.md)) and shippa
 
 ## Acceptance
 
-- [ ] On a vault with a container type, that type is absent from the **board's** Type facet and
+- [x] On a vault with a container type, that type is absent from the **board's** Type facet and
       present in the **Cards lens** facet.
-- [ ] Selecting any offered type on the board never yields a silently empty board for a type
+- [x] Selecting any offered type on the board never yields a silently empty board for a type
       that exists.
-- [ ] A flat vault (no containers) offers every type on the board exactly as today.
-- [ ] The gate derives from `containerIds` (no hardcoded type name); board specs green.
+- [x] A flat vault (no containers) offers every type on the board exactly as today.
+- [x] The gate derives from `containerIds` (no hardcoded type name); board specs green.
 
 ## Dependencies
 

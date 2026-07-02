@@ -2,14 +2,14 @@
 id: F-034-S-04
 type: story
 title: Docs — laneField spec & ADR amending ADR-019
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-034
 estimate: XS
 touches: [docs]
 created: 2026-07-03T11:00:00Z
-updated: 2026-07-03T11:00:00Z
+updated: 2026-07-03T14:30:00Z
 ---
 
 # F-034-S-04 — Docs: laneField spec & ADR amending ADR-019
@@ -64,11 +64,11 @@ lane headers on the board (not only in the list views), while still never occupy
 
 ## Acceptance
 
-- [ ] `board.laneField` is documented in VAULT_SPEC (default flat; `"parent"` + field modes;
+- [x] `board.laneField` is documented in VAULT_SPEC (default flat; `"parent"` + field modes;
       read-only/presentational), consistent with the shipped code.
-- [ ] A new ADR amends ADR-019 (containers as lane headers on the board, still never in a
+- [x] A new ADR amends ADR-019 (containers as lane headers on the board, still never in a
       column), cites the ADR-020/F-028 opt-in precedent, and records the two-altitude ceiling.
-- [ ] CONCEPTS (and CONVENTIONS if relevant) link to the lane concept; `bun run validate` green.
+- [x] CONCEPTS (and CONVENTIONS if relevant) link to the lane concept; `bun run validate` green.
 
 ## Dependencies
 

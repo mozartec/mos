@@ -306,6 +306,38 @@ describe('loadConfig', () => {
       });
       expect(errors.length).toBeGreaterThanOrEqual(2);
     });
+
+    it('accepts board.laneField "parent" (the reserved container-grouping value)', () => {
+      const { config, errors } = loadConfig({
+        board: { columns: ['Done'], laneField: 'parent' },
+        types: { feature: { parent: null, states: { Done: 'Done' } } },
+      });
+      expect(errors).toEqual([]);
+      expect(config.board.laneField).toBe('parent');
+    });
+
+    it('accepts board.laneField naming a registered field', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'], laneField: 'owner' },
+        fields: { owner: { type: 'string' } },
+      });
+      expect(errors).toEqual([]);
+    });
+
+    it('rejects a board.laneField that is neither "parent" nor a registered field', () => {
+      const { errors } = loadConfig({
+        board: { columns: ['Done'], laneField: 'ghostfield' },
+        fields: { owner: { type: 'string' } },
+      });
+      expect(
+        errors.some((e) => /board\.laneField: 'ghostfield' is not a registered field/.test(e)),
+      ).toBe(true);
+    });
+
+    it('leaves board.laneField unset by default (a flat board)', () => {
+      const { config } = loadConfig({ board: { columns: ['Done'] } });
+      expect(config.board.laneField).toBeUndefined();
+    });
   });
 });
 

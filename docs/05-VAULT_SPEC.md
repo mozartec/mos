@@ -343,6 +343,16 @@ no scope UI, exactly as before.
 - **Filters** — a config-driven filter bar (the card type, the registry's enum and
   card-face fields, and free text) sits above both the board and the backlog; selections
   persist in the URL so a filtered view is bookmarkable.
+- **`board.laneField`** groups the board into horizontal **swimlanes** — the *vertical*
+  axis, orthogonal to scope (F-034,
+  [ADR-025](08-DECISIONS.md#adr-025--swimlanes-containers-surface-as-lane-headers-on-the-board)).
+  The reserved value `"parent"` groups by container: each container (a card other cards name
+  as `parent`) becomes a **lane header** carrying computed child progress (*n/m done*) —
+  never a card in a status column ([ADR-019](08-DECISIONS.md#adr-019--subcards-children-are-the-boards-units)) —
+  while its leaves flow through the columns beneath it. Any other value names a registered
+  field and groups leaves by that value. Lanes are collapsed by default and purely
+  presentational (collapse state lives in the URL, read-only); a vault that sets no
+  `laneField` gets the flat board, unchanged.
 
 ```jsonc
 "board": {
@@ -420,7 +430,10 @@ warns on overlapping windows.
     "columns": ["Backlog", "Planned", "In Progress", "Done"],
     "sortWithinColumn": ["priority", "id"],
     // optional: scope the board by an enum field (§5d). Omit for an unscoped board.
-    "scopeField": "sprint"
+    "scopeField": "sprint",
+    // optional: group the board into swimlanes (§5d, F-034). "parent" = container
+    // lanes with progress headers, or a registered field name. Omit for a flat board.
+    "laneField": "parent"
   },
   "references": {
     "idPattern": "[A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*"
