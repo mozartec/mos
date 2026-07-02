@@ -409,9 +409,11 @@ def area_fan_in(ready):
 def field_order_per_type(cfg, types):
     """Canonical frontmatter order per type: the vault's `fieldOrder` (else the spec's
     documented default) narrowed to the type's declared card fields plus the identity
-    fields; declared fields the order doesn't list follow it, keeping their declared
-    order (matching the app's orderFrontmatter). A type declaring no `card.fields`
-    gets the full canonical order."""
+    fields; wanted fields the order doesn't list follow it (matching the app's
+    orderFrontmatter, where unlisted properties go after the listed ones). A type
+    declaring no `card.fields` gets the full canonical order — still with the identity
+    fields appended when the vault's `fieldOrder` omits one, so the emitted order can
+    always express a complete card."""
     order = cfg.get("fieldOrder")
     if not isinstance(order, list) or not order:
         order = DEFAULT_FIELD_ORDER
@@ -420,8 +422,7 @@ def field_order_per_type(cfg, types):
     for tn, td in types.items():
         declared = (td.get("card") or {}).get("fields")
         if not isinstance(declared, list):
-            out[tn] = list(order)
-            continue
+            declared = order  # no card-face declaration: every ordered field applies
         wanted = []
         for f in REQUIRED_FIELDS + [x for x in declared if isinstance(x, str)]:
             if f not in wanted:
