@@ -12,6 +12,13 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.5.0](https://github.com/mozartec/mos/compare/v0.4.0...v0.5.0) (2026-07-02)
+
+
+### Features
+
+* **board:** group-by-parent swimlanes, full-width layout, and the T-030 Type-facet fix (F-034) ([#89](https://github.com/mozartec/mos/issues/89)) ([59387bd](https://github.com/mozartec/mos/commit/59387bdc9c89a79389398485e0068f10a2c1ea8f))
+
 ## [0.4.0](https://github.com/mozartec/mos/compare/v0.3.1...v0.4.0) (2026-07-02)
 
 
