@@ -1,6 +1,6 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-07-02T09:45:38Z
+updated: 2026-07-02T11:35:08Z
 ---
 
 # Using mos in your project
@@ -74,7 +74,8 @@ vault's write rules.
 
 ## 4. Installing & upgrading
 
-- **CLI** — `npx @mozartec/mos-cli` always runs the latest published version; pin one with
+- **CLI** — `npx @mozartec/mos-cli@latest` runs the newest published version (bare `npx`
+  reuses an already-installed copy when one resolves); pin one with
   `npx @mozartec/mos-cli@<version>`. A global install upgrades with
   `npm i -g @mozartec/mos-cli@latest`; check what you have with `mos --version` (the
   current release — 0.3.1 at the time of writing — is on

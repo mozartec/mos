@@ -29,7 +29,7 @@
       "source": "mozartec/mos",
       "sourceType": "github",
       "skillPath": "skills/mos-refine-batch/SKILL.md",
-      "computedHash": "98d538c480efa41f03186cca713dd0a675fb93ef5ed65d0b2a727bda40741b5a"
+      "computedHash": "ac5584378e14492edce87f9e2ee25701b13673ee4f85be210d13624261117957"
     },
     "mos-ship-card": {
       "source": "mozartec/mos",
