@@ -122,45 +122,171 @@
       } @else if (columns().length === 0) {
         <p class="text-base-content/60">No columns configured.</p>
       } @else {
-        <!-- Kanban columns: horizontally scrollable row -->
-        <div role="list" aria-label="Board columns" class="flex flex-1 gap-4 overflow-x-auto pb-2">
-          @for (col of columns(); track colTrack($index, col)) {
-            <div
-              role="listitem"
-              class="flex w-72 shrink-0 flex-col gap-2 rounded-box bg-base-200 p-3"
-            >
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/70">
+        <!-- Full-width board (F-034): columns are equal, min-width tracks that
+             fill the viewport, so there's no dead space on wide screens. One
+             scroll context keeps the sticky column-header strip, the flat lane,
+             and every swimlane aligned. -->
+        <div class="flex-1 overflow-auto pb-2">
+          <div
+            role="group"
+            aria-label="Board columns"
+            class="grid gap-x-3 gap-y-2"
+            [style.grid-template-columns]="gridTemplate()"
+          >
+            <!-- Column-header strip: name + global (all-lane) total, sticky on scroll. -->
+            @for (col of columns(); track colTrack($index, col)) {
+              <div
+                class="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-box bg-base-200 px-3 py-2"
+              >
+                <h3 class="text-sm font-semibold tracking-wide uppercase text-base-content/70">
                   {{ col.name }}
                 </h3>
-                <span class="badge badge-ghost badge-sm font-mono">{{ col.cards.length }}</span>
+                <span class="badge badge-ghost badge-sm font-mono">{{ columnTotals()[col.name] }}</span>
               </div>
+            }
 
-              @if (col.cards.length === 0) {
-                <p class="py-4 text-center text-xs text-base-content/40">No cards</p>
-              } @else {
-                <ul role="list" aria-label="{{ col.name }} cards" class="flex flex-col gap-2">
-                  @for (card of col.cards; track cardTrack($index, card)) {
-                    @if (config(); as cfg) {
-                      <li class="list-none">
-                        <app-card
-                          [card]="card"
-                          [typeDef]="cfg.types[card.type]"
-                          [fieldsRegistry]="cfg.fields"
-                          [blocked]="isCardBlocked(card, cfg)"
-                          [collisions]="collisionsFor(card)"
-                          [safeToStart]="isSafeToStart(card)"
-                          [parentCrumb]="parentOf(card)"
-                          (cardSelect)="onCardSelect($event)"
-                          (parentSelect)="onCardSelect($event)"
-                        />
-                      </li>
-                    }
+            @if (!laneMode()) {
+              <!-- Flat board: a single lane — one card-list per column. -->
+              @for (col of columns(); track colTrack($index, col)) {
+                <div class="flex flex-col gap-2 rounded-box bg-base-200/40 p-2">
+                  @if (col.cards.length === 0) {
+                    <p class="py-4 text-center text-xs text-base-content/30">No cards</p>
+                  } @else {
+                    <ul
+                      role="list"
+                      aria-label="{{ col.name }} cards"
+                      class="flex flex-col gap-2"
+                    >
+                      @for (card of col.cards; track cardTrack($index, card)) {
+                        @if (config(); as cfg) {
+                          <li class="list-none">
+                            <app-card
+                              [card]="card"
+                              [typeDef]="cfg.types[card.type]"
+                              [fieldsRegistry]="cfg.fields"
+                              [blocked]="isCardBlocked(card, cfg)"
+                              [collisions]="collisionsFor(card)"
+                              [safeToStart]="isSafeToStart(card)"
+                              [parentCrumb]="parentOf(card)"
+                              (cardSelect)="onCardSelect($event)"
+                              (parentSelect)="onCardSelect($event)"
+                            />
+                          </li>
+                        }
+                      }
+                    </ul>
                   }
-                </ul>
+                </div>
               }
-            </div>
-          }
+            } @else {
+              <!-- Swimlanes: each container spans a full-width header band; its
+                   leaves flow through the columns beneath it. Collapsed by
+                   default — a portfolio of progress headers (F-034). -->
+              @for (lane of lanes(); track laneTrack($index, lane)) {
+                <div
+                  class="col-span-full mt-1 flex items-center gap-2 rounded-box border border-base-content/10 bg-base-100 px-2 py-1.5"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-square btn-ghost btn-xs"
+                    (click)="toggleLane(lane.key)"
+                    [attr.aria-expanded]="isLaneExpanded(lane.key)"
+                    [attr.aria-label]="
+                      (isLaneExpanded(lane.key) ? 'Collapse lane ' : 'Expand lane ') +
+                      (lane.header ? lane.header.id : unassignedLabel())
+                    "
+                  >
+                    <app-icon
+                      [icon]="isLaneExpanded(lane.key) ? iconChevronDown : iconChevronRight"
+                      [size]="16"
+                    />
+                  </button>
+
+                  @if (lane.header; as header) {
+                    <button
+                      type="button"
+                      class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+                      (click)="onCardSelect(header)"
+                      [attr.title]="'Open ' + header.id + ' — ' + header.title"
+                    >
+                      <span
+                        class="font-mono text-[11px] font-semibold tracking-wider text-base-content/50"
+                      >
+                        {{ header.id }}
+                      </span>
+                      <span class="truncate text-sm font-semibold">{{ header.title }}</span>
+                      <span
+                        class="badge shrink-0 rounded py-1 badge-sm text-[9px] font-bold tracking-wider uppercase"
+                        [class]="laneBadgeClass(header)"
+                      >
+                        {{ header.type }}
+                      </span>
+                    </button>
+
+                    @if (lane.progress; as prog) {
+                      <span class="flex shrink-0 items-center gap-2">
+                        <span
+                          class="hidden h-1.5 w-24 overflow-hidden rounded-full bg-base-content/10 sm:block"
+                          aria-hidden="true"
+                        >
+                          <span
+                            class="block h-full rounded-full bg-success"
+                            [style.width.%]="prog.total ? (prog.done / prog.total) * 100 : 0"
+                          ></span>
+                        </span>
+                        <span class="badge badge-soft badge-sm font-mono">
+                          {{ prog.done }}/{{ prog.total }}
+                        </span>
+                      </span>
+                    }
+                  } @else {
+                    <span class="flex-1 text-sm font-medium text-base-content/60">
+                      {{ unassignedLabel() }}
+                    </span>
+                    <span class="badge badge-ghost badge-sm font-mono">{{ laneCount(lane) }}</span>
+                  }
+                </div>
+
+                @if (isLaneExpanded(lane.key)) {
+                  @for (col of lane.columns; track colTrack($index, col)) {
+                    <div class="flex flex-col gap-2 rounded-box bg-base-200/40 p-2">
+                      @if (col.cards.length === 0) {
+                        <p class="py-2 text-center text-xs text-base-content/20" aria-hidden="true">
+                          —
+                        </p>
+                      } @else {
+                        <ul
+                          role="list"
+                          aria-label="{{ lane.header ? lane.header.title : unassignedLabel() }} — {{ col.name }}"
+                          class="flex flex-col gap-2"
+                        >
+                          @for (card of col.cards; track cardTrack($index, card)) {
+                            @if (config(); as cfg) {
+                              <li class="list-none">
+                                <!-- No parentCrumb in a lane: the lane header already
+                                     names the parent, so a per-card chip would be
+                                     redundant. (parentSelect) is therefore omitted too,
+                                     since the chip that emits it never renders here. -->
+                                <app-card
+                                  [card]="card"
+                                  [typeDef]="cfg.types[card.type]"
+                                  [fieldsRegistry]="cfg.fields"
+                                  [blocked]="isCardBlocked(card, cfg)"
+                                  [collisions]="collisionsFor(card)"
+                                  [safeToStart]="isSafeToStart(card)"
+                                  (cardSelect)="onCardSelect($event)"
+                                />
+                              </li>
+                            }
+                          }
+                        </ul>
+                      }
+                    </div>
+                  }
+                }
+              }
+            }
+          </div>
         </div>
       }
 

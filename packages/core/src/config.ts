@@ -131,6 +131,15 @@ export interface BoardConfig {
    * `sprint` scope for compatibility; see {@link normalizeScope}.
    */
   scopeField?: string;
+  /**
+   * Name of the field that groups the board into swimlanes (VAULT_SPEC §6,
+   * F-034). The literal `"parent"` groups by container — each container becomes
+   * a lane header carrying computed progress, never a card in a column (ADR-019,
+   * ADR-025). Any other value must name a registered field and groups by its
+   * value. Optional — absent means a single flat lane (today's board). See
+   * {@link laneField} / {@link groupIntoLanes}.
+   */
+  laneField?: string;
 }
 
 /** Reference parsing options (VAULT_SPEC §7). */
@@ -282,6 +291,7 @@ function normalize(obj: Record<string, unknown>, errors: string[]): VaultConfig 
           ? ['priority', 'id']
           : asStringArray(board['sortWithinColumn']),
       ...(typeof board['scopeField'] === 'string' ? { scopeField: board['scopeField'] } : {}),
+      ...(typeof board['laneField'] === 'string' ? { laneField: board['laneField'] } : {}),
     },
     references: {
       idPattern: asString(references['idPattern'], DEFAULT_ID_PATTERN),
@@ -427,6 +437,19 @@ function validate(config: VaultConfig, errors: string[]): void {
       errors.push(`board.scopeField: '${scopeField}' is not a registered field`);
     } else if (def['type'] !== 'enum') {
       errors.push(`board.scopeField: field '${scopeField}' must be an enum`);
+    }
+  }
+
+  // The board lane field (§6, F-034), when set, is either the reserved literal
+  // `"parent"` (group by container, data-derived — needs no field) or the name
+  // of a registered field whose value groups the leaves. Diagnosed, not thrown.
+  const laneField = config.board.laneField;
+  if (laneField !== undefined && laneField !== 'parent') {
+    if (
+      !Object.hasOwn(fields, laneField) ||
+      !isObject((fields as Record<string, unknown>)[laneField])
+    ) {
+      errors.push(`board.laneField: '${laneField}' is not a registered field (or "parent")`);
     }
   }
 }

@@ -71,6 +71,8 @@ export {
   containerIds,
   isContainer,
 } from './relations.js';
+export type { Lane, LaneColumn, LaneGrouping } from './lanes.js';
+export { groupIntoLanes, laneField, PARENT_LANE, UNASSIGNED_LANE_KEY } from './lanes.js';
 export type { GraphNode, GraphEdge, DependencyGraph } from './graph.js';
 export { buildDependencyGraph, criticalPath, readySet } from './graph.js';
 export type {

@@ -60,6 +60,37 @@ const WITH_AREAS = JSON.stringify({
   types: TYPES,
 });
 
+/** Groups the board into parent lanes (F-034). */
+const BY_PARENT = JSON.stringify({
+  specVersion: '0.4',
+  wiki: { include: ['**/*.md'], exclude: [] },
+  board: { ...BOARD, laneField: 'parent' },
+  fields: FIELDS,
+  types: TYPES,
+});
+
+/** A vault with a dedicated container type (feature) over stories, for T-030. */
+const WITH_FEATURE = JSON.stringify({
+  specVersion: '0.4',
+  wiki: { include: ['**/*.md'], exclude: [] },
+  board: BOARD,
+  fields: FIELDS,
+  types: {
+    feature: {
+      label: 'Feature',
+      parent: null,
+      states: { Todo: 'Backlog', 'In Progress': 'In Progress', Done: 'Done' },
+      card: { fields: ['priority'] },
+    },
+    story: {
+      label: 'Story',
+      parent: 'feature',
+      states: { Todo: 'Backlog', 'In Progress': 'In Progress', Done: 'Done' },
+      card: { fields: ['priority'] },
+    },
+  },
+});
+
 /** A scopeField with dated inline values. */
 const SCOPED_DATED = JSON.stringify({
   specVersion: '0.4',
@@ -124,8 +155,12 @@ const PEEK_FILES: Record<string, string> = {
  * stub `/card/:id` + `/reader` for expand/doc, and location mocks so a
  * simulated browser-back is observable.
  */
-async function createPeekBoard(url = '/board', files: Record<string, string> = PEEK_FILES) {
-  const source = new InMemoryVaultSource({ '.mos/config.json': UNSCOPED, ...files });
+async function createPeekBoard(
+  url = '/board',
+  files: Record<string, string> = PEEK_FILES,
+  config: string = UNSCOPED,
+) {
+  const source = new InMemoryVaultSource({ '.mos/config.json': config, ...files });
   TestBed.configureTestingModule({
     providers: [
       provideRouter([
@@ -758,5 +793,84 @@ describe('BoardView', () => {
       // ...and no breadcrumb chip renders for the unresolvable parent.
       expect([...host.querySelectorAll('[title^="Open "]')]).toHaveLength(0);
     });
+  });
+
+  // ── F-034: swimlanes (group-by-parent lanes) ────────────────────────────────
+
+  describe('swimlanes', () => {
+    const LANE_FILES = {
+      'board/F-1.md': makeCard('F-1', 'story', 'In Progress', { title: 'The feature' }),
+      'board/S-1.md': makeCard('S-1', 'story', 'Done', { parent: 'F-1' }),
+      'board/S-2.md': makeCard('S-2', 'story', 'Todo', { parent: 'F-1' }),
+    };
+
+    it('groups the board into parent lanes with a progress header, collapsed by default', async () => {
+      const { component, host } = await createBoard({ config: BY_PARENT, files: LANE_FILES });
+      expect(component['laneMode']()).toBe(true);
+      const lanes = component['lanes']();
+      expect(lanes.map((l) => l.key)).toEqual(['F-1']);
+      expect(lanes[0].progress).toEqual({ done: 1, total: 2 });
+      // Collapsed by default: the container header shows, but no leaf card does.
+      expect(host.textContent).toContain('The feature');
+      expect(host.querySelectorAll('app-card')).toHaveLength(0);
+      const toggle = host.querySelector('button[aria-label^="Expand lane F-1"]');
+      expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('expands a lane via ?expand=, revealing its leaves in the columns', async () => {
+      const { component, host, harness } = await createBoard({
+        config: BY_PARENT,
+        files: LANE_FILES,
+      });
+      component['toggleLane']('F-1');
+      await settle(harness.fixture);
+      expect(TestBed.inject(Router).url).toContain('expand=F-1');
+      // Both leaves render; the container (F-1) is a header, never a card.
+      const texts = [...host.querySelectorAll('app-card')].map((el) => el.textContent);
+      expect(texts).toHaveLength(2);
+      expect(texts.some((t) => t?.includes('S-1'))).toBe(true);
+      expect(texts.every((t) => !t?.includes('The feature'))).toBe(true);
+    });
+
+    it('opens the container peek when the lane header is clicked', async () => {
+      const { host, harness } = await createPeekBoard(
+        '/board',
+        {
+          'board/F-1.md': makeCard('F-1', 'story', 'In Progress', { title: 'The feature' }),
+          'board/S-1.md': makeCard('S-1', 'story', 'Todo', { parent: 'F-1', title: 'Story one' }),
+        },
+        BY_PARENT,
+      );
+      const header = host.querySelector('button[title^="Open F-1"]') as HTMLButtonElement;
+      expect(header).not.toBeNull();
+      header.click();
+      await settle(harness.fixture);
+      expect(TestBed.inject(Router).url).toContain('peek=F-1');
+      expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('The feature');
+    });
+
+    it('renders a flat board (no laneField) with no lane chrome', async () => {
+      const { component, host } = await createBoard({
+        config: UNSCOPED,
+        files: { 'board/S-1.md': makeCard('S-1', 'story', 'Todo') },
+      });
+      expect(component['laneMode']()).toBe(false);
+      expect(host.querySelectorAll('button[aria-label^="Expand lane"]')).toHaveLength(0);
+    });
+  });
+
+  // ── T-030: board Type facet drops container-only types ──────────────────────
+
+  it('drops a container-only type from the board Type facet, keeping leaf types', async () => {
+    const { component } = await createBoard({
+      config: WITH_FEATURE,
+      files: {
+        'board/F-1.md': makeCard('F-1', 'feature', 'In Progress'), // container
+        'board/S-1.md': makeCard('S-1', 'story', 'Todo', { parent: 'F-1' }), // leaf
+      },
+    });
+    const typeFacet = component['facets']().find((f) => f.field === 'type');
+    // 'feature' (all its cards are containers) is gone; 'story' (has a leaf) stays.
+    expect(typeFacet?.options.map((o) => o.value)).toEqual(['story']);
   });
 });

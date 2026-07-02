@@ -46,7 +46,8 @@
   "board": {
     "include": ["board/**/*.md"],
     "columns": ["Backlog", "Planned", "In Progress", "Done"],
-    "sortWithinColumn": ["priority", "id"]
+    "sortWithinColumn": ["priority", "id"],
+    "laneField": "parent"
   },
 
   "references": {

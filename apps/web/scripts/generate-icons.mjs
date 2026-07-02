@@ -49,6 +49,8 @@ const ICONS = [
   'bolt',
   'x',
   'arrows-diagonal',
+  'chevron-right',
+  'chevron-down',
 ];
 
 /** Resolve the installed @tabler/icons package root via its `exports` map. */

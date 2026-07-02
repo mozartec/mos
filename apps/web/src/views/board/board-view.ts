@@ -12,7 +12,9 @@ import {
   containerIds,
   createEmptyVaultModel,
   globToRegExp,
+  groupIntoLanes,
   inFlightCollisions,
+  laneField,
   loadConfig,
   normalizeScope,
   parseFile,
@@ -29,6 +31,7 @@ import type {
   ChildrenProgress,
   Facet,
   FilterState,
+  Lane,
   ParsedFile,
   ScopeDef,
   ScopeValue,
@@ -39,6 +42,9 @@ import { VAULT_SOURCE } from '../../sources/vault-source.token';
 import { CardComponent } from '../../components/card/card';
 import { CardPeek } from '../../components/card-peek/card-peek';
 import { FilterBar } from '../../components/filter-bar/filter-bar';
+import { IconComponent } from '../../components/icon/icon';
+import { IconChevronDown, IconChevronRight } from '../../icons/tabler-icons.generated';
+import { badgeClassFor } from '../../components/card/card-style';
 
 /** Discriminated load state to drive the template honestly. */
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -56,7 +62,7 @@ export interface BoardColumn {
  * concern, so the guard lives here rather than in the (URL-agnostic) core
  * `buildFacets`.
  */
-const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from', 'peek']);
+const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from', 'peek', 'expand']);
 
 /**
  * Board view. Loads the vault config and all board-scope files, builds the
@@ -73,7 +79,7 @@ const RESERVED_URL_KEYS = new Set(['scope', 'q', 'path', 'from', 'peek']);
 @Component({
   selector: 'app-board-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent, CardPeek, FilterBar],
+  imports: [CardComponent, CardPeek, FilterBar, IconComponent],
   templateUrl: './board-view.html',
 })
 export class BoardView {
@@ -222,13 +228,43 @@ export class BoardView {
   protected readonly atFirst = computed(() => this.currentIndex() <= 0);
   protected readonly atLast = computed(() => this.currentIndex() >= this.scopeOrder().length - 1);
 
-  /** Filter facets, built from config + cards (nothing hardcoded; ADR-003). */
+  /**
+   * Type names whose every card is a container — the board never shows them (it
+   * holds leaves only, ADR-019), so offering them in the Type facet would let a
+   * selection silently empty the board (T-030). Data-derived, no type name
+   * hardcoded; a type with no cards, or any leaf card, is kept.
+   */
+  private readonly containerOnlyTypes = computed<Set<string>>(() => {
+    const containers = this.containers();
+    const byType = new Map<string, Card[]>();
+    for (const card of this.allCards()) {
+      (byType.get(card.type) ?? byType.set(card.type, []).get(card.type)!).push(card);
+    }
+    const result = new Set<string>();
+    for (const [type, cards] of byType) {
+      if (cards.length > 0 && cards.every((c) => containers.has(c.id))) result.add(type);
+    }
+    return result;
+  });
+
+  /**
+   * Filter facets, built from config + cards (nothing hardcoded; ADR-003). The
+   * board drops reserved-key facets and, from the Type facet, any container-only
+   * type — the surface that can't show a type doesn't offer it (T-030). The
+   * Cards lens keeps the full facet (it lists containers).
+   */
   protected readonly facets = computed<Facet[]>(() => {
     const config = this.config();
     if (config === null) return [];
-    return buildFacets(config, this.allCards()).filter(
-      (facet) => !RESERVED_URL_KEYS.has(facet.field),
-    );
+    const containerOnly = this.containerOnlyTypes();
+    return buildFacets(config, this.allCards())
+      .filter((facet) => !RESERVED_URL_KEYS.has(facet.field))
+      .map((facet) =>
+        facet.field === 'type'
+          ? { ...facet, options: facet.options.filter((o) => !containerOnly.has(o.value)) }
+          : facet,
+      )
+      .filter((facet) => facet.field !== 'type' || facet.options.length > 0);
   });
 
   /**
@@ -297,6 +333,50 @@ export class BoardView {
 
   /** Placement diagnostics for cards that couldn't be placed (unknown type/status). */
   protected readonly placementErrors = computed(() => this.placement().errors);
+
+  // ── Swimlanes (F-034, ADR-025) ───────────────────────────────────────────────
+
+  protected readonly iconChevronDown = IconChevronDown;
+  protected readonly iconChevronRight = IconChevronRight;
+
+  /** True when the vault groups the board into lanes (`board.laneField` is set). */
+  protected readonly laneMode = computed<boolean>(() => {
+    const config = this.config();
+    return config !== null && laneField(config) !== null;
+  });
+
+  /**
+   * The visible cards grouped into swimlanes (F-034). One unnamed lane when no
+   * `laneField` is set; otherwise a lane per container (`"parent"`) or field
+   * value, with containers surfaced as headers — never as column cells (ADR-019).
+   */
+  protected readonly lanes = computed<Lane[]>(() => {
+    const config = this.config();
+    if (config === null) return [];
+    return groupIntoLanes(this.model(), config, this.visibleCards()).lanes;
+  });
+
+  /** Per-column global totals across all lanes, for the sticky header strip. */
+  protected readonly columnTotals = computed<Record<string, number>>(() => {
+    const totals: Record<string, number> = {};
+    for (const col of this.columns()) totals[col.name] = col.cards.length;
+    return totals;
+  });
+
+  /** CSS grid template: one equal, min-width column per board column. */
+  protected readonly gridTemplate = computed(
+    () => `repeat(${this.columns().length}, minmax(15rem, 1fr))`,
+  );
+
+  /**
+   * Keys of the lanes the user has expanded, from `?expand=`. Lanes are
+   * collapsed by default (F-034-S-03) — the board opens as a portfolio of
+   * progress headers; an empty set means every lane is collapsed.
+   */
+  private readonly expandedLanes = computed<Set<string>>(() => {
+    const raw = this.queryParams().get('expand');
+    return new Set(raw ? raw.split(',').filter((k) => k !== '') : []);
+  });
 
   /** The Backlog list: unscheduled, non-done cards narrowed by the filters. */
   protected readonly backlogResults = computed<Card[]>(() => {
@@ -394,6 +474,40 @@ export class BoardView {
   /** Track function for cards @for loop. */
   protected cardTrack(_index: number, card: Card): string {
     return card.id;
+  }
+
+  /** Track function for the lanes @for loop. */
+  protected laneTrack(_index: number, lane: Lane): string {
+    return lane.key;
+  }
+
+  /** Total cards in a lane across its columns — the lane's count badge. */
+  protected laneCount(lane: Lane): number {
+    return lane.columns.reduce((sum, col) => sum + col.cards.length, 0);
+  }
+
+  /** Whether a lane is expanded; collapsed is the default (F-034-S-03). */
+  protected isLaneExpanded(key: string): boolean {
+    return this.expandedLanes().has(key);
+  }
+
+  /** Toggle a lane open/closed, persisting the expanded set to `?expand=`. */
+  protected toggleLane(key: string): void {
+    const next = new Set(this.expandedLanes());
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    this.mergeParams({ expand: next.size > 0 ? [...next].join(',') : null });
+  }
+
+  /** The catch-all lane's label: "No parent" in parent mode, else "Unassigned". */
+  protected unassignedLabel(): string {
+    const config = this.config();
+    return config !== null && laneField(config) === 'parent' ? 'No parent' : 'Unassigned';
+  }
+
+  /** Type badge classes for a lane header's container card (its type color). */
+  protected laneBadgeClass(card: Card): string {
+    return `border ${badgeClassFor(this.config()?.types[card.type]?.color)}`;
   }
 
   protected isCardBlocked(card: Card, config: VaultConfig): boolean {
