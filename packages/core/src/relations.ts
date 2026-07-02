@@ -34,6 +34,36 @@ export function childrenOf(model: VaultModel, id: string): Card[] {
 }
 
 /**
+ * The ids that the model's cards name as `parent` — the vault's **containers**
+ * (ADR-019): the board's columns leave them to the list views, which show them
+ * with a children-progress chip instead. One O(n) pass over the model, so the
+ * board classifies every visible card with a set lookup rather than a per-card
+ * scan. Derived from data, never from a type name (ADR-003). A non-string or
+ * empty `parent` is skipped; a dangling parent id is included — membership is
+ * only ever tested against real card ids, so it can't misclassify — never
+ * thrown (ADR-001).
+ */
+export function containerIds(model: VaultModel): Set<string> {
+  const ids = new Set<string>();
+  for (const card of Object.values(model.cards)) {
+    const parent = card.fields[PARENT_FIELD];
+    if (typeof parent === 'string' && parent !== '') ids.add(parent);
+  }
+  return ids;
+}
+
+/**
+ * True when at least one card names `id` as its `parent` — the card is a
+ * **container**, presented as computed progress in list views rather than as a
+ * column unit (ADR-019). The single-id counterpart of {@link containerIds};
+ * like `childrenOf`, it answers structurally, so an id that isn't itself a
+ * card can still be "a container" of its dangling children.
+ */
+export function isContainer(model: VaultModel, id: string): boolean {
+  return childrenOf(model, id).length > 0;
+}
+
+/**
  * The cards that depend on `id` — the reverse of `dependsOn` — in card-id order.
  *
  * Reuses the already-resolved dependency edge set (`buildEdges` / `deriveBlocks`),

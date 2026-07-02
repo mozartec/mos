@@ -109,7 +109,10 @@
                     [blocked]="isCardBlocked(card, cfg)"
                     [collisions]="collisionsFor(card)"
                     [safeToStart]="isSafeToStart(card)"
+                    [parentCrumb]="parentOf(card)"
+                    [progress]="progressFor(card)"
                     (cardSelect)="onCardSelect($event)"
+                    (parentSelect)="onCardSelect($event)"
                   />
                 </li>
               }
@@ -147,7 +150,9 @@
                           [blocked]="isCardBlocked(card, cfg)"
                           [collisions]="collisionsFor(card)"
                           [safeToStart]="isSafeToStart(card)"
+                          [parentCrumb]="parentOf(card)"
                           (cardSelect)="onCardSelect($event)"
+                          (parentSelect)="onCardSelect($event)"
                         />
                       </li>
                     }

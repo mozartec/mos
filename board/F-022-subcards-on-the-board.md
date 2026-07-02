@@ -2,14 +2,14 @@
 id: F-022
 type: feature
 title: Subcards on the board — leaves in columns, containers as progress
-status: Draft
+status: Done
 priority: P2
 phase: Phase 3
 owner: mozart
 dependsOn: [F-023, F-021]
 touches: [core, web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-16T10:33:34Z
+updated: 2026-07-02T00:04:10Z
 ---
 
 # F-022 — Subcards on the board — leaves in columns, containers as progress
@@ -72,16 +72,16 @@ of occupying columns (ADR-019).
 
 ## Acceptance
 
-- [ ] No container card occupies a board column; column counts equal leaf cards; this
+- [x] No container card occupies a board column; column counts equal leaf cards; this
       vault's features with stories (e.g. F-001…F-004, F-012) disappear from columns and
       appear in lists with correct *n/m done*.
-- [ ] Child cards show a parent breadcrumb chip that opens the container's peek; the chip
+- [x] Child cards show a parent breadcrumb chip that opens the container's peek; the chip
       truncates gracefully at board density.
-- [ ] Progress chips compute from children's column mapping (done = last column),
+- [x] Progress chips compute from children's column mapping (done = last column),
       including multi-level hierarchies.
-- [ ] recipe-box (no hierarchy) renders identically before/after; a stray `parent` to a
+- [x] recipe-box (no hierarchy) renders identically before/after; a stray `parent` to a
       missing id is reported, not crashed on.
-- [ ] Core classification/rollup functions are pure and unit-tested.
+- [x] Core classification/rollup functions are pure and unit-tested.
 
 ## Dependencies
 

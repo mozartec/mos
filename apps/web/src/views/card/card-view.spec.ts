@@ -205,6 +205,19 @@ describe('CardView', () => {
     expect(href).toContain('priority=P0');
   });
 
+  it('back control restores the cards lens filters and sort it was opened from (F-020)', async () => {
+    const harness = await openCard('/card/S-001?from=cards&type=story&sort=-priority');
+    const back = (harness.routeNativeElement as HTMLElement).querySelector(
+      'a.btn',
+    ) as HTMLAnchorElement;
+    expect(back.textContent).toContain('Back to Cards');
+    const href = back.getAttribute('href') ?? '';
+    expect(href.startsWith('/cards?')).toBe(true);
+    expect(href).toContain('type=story');
+    expect(href).toContain('sort=-priority');
+    expect(href).not.toContain('from=');
+  });
+
   it('shows a clear miss for an id that names no card', async () => {
     const harness = await openCard('/card/NOPE');
     const alert = (harness.routeNativeElement as HTMLElement).querySelector('[role="alert"]');

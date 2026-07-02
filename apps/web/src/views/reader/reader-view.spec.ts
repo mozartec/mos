@@ -75,6 +75,21 @@ describe('ReaderView', () => {
     expect(el.textContent).toContain('Guide');
   });
 
+  it('back control restores the cards lens filters and sort it was opened from (F-020)', async () => {
+    const harness = await openReader(
+      '/reader?path=docs/guide.md&from=cards&type=story&sort=-priority',
+    );
+    const back = (harness.routeNativeElement as HTMLElement).querySelector(
+      'a.btn',
+    ) as HTMLAnchorElement;
+    expect(back.textContent).toContain('Back to Cards');
+    const href = back.getAttribute('href') ?? '';
+    expect(href.startsWith('/cards?')).toBe(true);
+    expect(href).toContain('type=story');
+    expect(href).toContain('sort=-priority');
+    expect(href).not.toContain('path=');
+  });
+
   it('back control defaults to the wiki when not opened from the board', async () => {
     const harness = await openReader('/reader?path=docs/guide.md');
     const el = harness.routeNativeElement as HTMLElement;

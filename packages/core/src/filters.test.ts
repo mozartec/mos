@@ -101,6 +101,62 @@ describe('buildFacets', () => {
     };
     expect(buildFacets(alias, cards).map((f) => f.field)).not.toContain('sprint');
   });
+
+  // ── F-020 opt-in facets: the defaults above stay byte-identical ────────────
+
+  it('offers a status facet on request: every declared state, in order, deduped', () => {
+    const withStates: VaultConfig = {
+      ...config,
+      types: {
+        feature: {
+          ...config.types['feature'],
+          states: { Draft: 'Backlog', 'In Progress': 'In Progress', Done: 'Done' },
+        },
+        story: {
+          ...config.types['story'],
+          states: { Todo: 'Backlog', 'In Progress': 'In Progress', Done: 'Done' },
+        },
+      },
+    };
+    const status = buildFacets(withStates, cards, { status: true }).find(
+      (f) => f.field === 'status',
+    );
+    // Feature's states first (declaration order), then story's unseen ones —
+    // 'In Progress'/'Done' appear once despite both types declaring them.
+    expect(status?.options.map((o) => o.value)).toEqual(['Draft', 'In Progress', 'Done', 'Todo']);
+    // The facet sits right after type, ahead of the registry fields.
+    expect(
+      buildFacets(withStates, cards, { status: true })
+        .map((f) => f.field)
+        .slice(0, 2),
+    ).toEqual(['type', 'status']);
+  });
+
+  it('offers the scope field as a facet on request, with its configured options', () => {
+    const sprint = buildFacets(config, cards, { scope: true }).find((f) => f.field === 'sprint');
+    expect(sprint?.label).toBe('Sprint');
+    expect(sprint?.options.map((o) => o.value)).toEqual(['S1', 'S2']);
+  });
+
+  it('synthesizes the scope facet for a 0.3 alias vault with no registry entry', () => {
+    // Top-level `sprints` only: the scope field exists purely via normalizeScope.
+    const fieldsWithoutSprint = { ...config.fields };
+    delete fieldsWithoutSprint['sprint'];
+    const alias: VaultConfig = {
+      ...config,
+      fields: fieldsWithoutSprint,
+      board: { ...config.board, scopeField: undefined },
+      sprints: ['S1', 'S2'],
+    };
+    const sprint = buildFacets(alias, cards, { scope: true }).find((f) => f.field === 'sprint');
+    expect(sprint?.options.map((o) => o.value)).toEqual(['S1', 'S2']);
+    // And the default (board) call still excludes it.
+    expect(buildFacets(alias, cards).map((f) => f.field)).not.toContain('sprint');
+  });
+
+  it('keeps the default facet set unchanged when no options are passed', () => {
+    expect(buildFacets(config, cards).map((f) => f.field)).toEqual(['type', 'priority', 'owner']);
+  });
 });
 
 describe('matchesFilters / applyFilters', () => {
@@ -117,6 +173,14 @@ describe('matchesFilters / applyFilters', () => {
   it('filters by an enum field (priority)', () => {
     const out = applyFilters(cards, { q: '', values: { priority: 'P0' } }, config);
     expect(out.map((c) => c.id)).toEqual(['F-1', 'S-1']);
+  });
+
+  it('filters by status via the promoted card property, not a frontmatter read', () => {
+    // `status` never reaches fields here — the card() helper hardcodes the
+    // promoted property to 'Todo' — so matching proves the intrinsic path.
+    const out = applyFilters(cards, { q: '', values: { status: 'Todo' } }, config);
+    expect(out).toHaveLength(3);
+    expect(applyFilters(cards, { q: '', values: { status: 'Done' } }, config)).toEqual([]);
   });
 
   it('filters by a data-derived field (owner)', () => {

@@ -8,6 +8,8 @@ import {
   buildFacets,
   buildModel,
   cardScopeValue,
+  childrenProgress,
+  containerIds,
   createEmptyVaultModel,
   globToRegExp,
   inFlightCollisions,
@@ -24,6 +26,7 @@ import {
 import type {
   AreaCollision,
   Card,
+  ChildrenProgress,
   Facet,
   FilterState,
   ParsedFile,
@@ -120,6 +123,29 @@ export class BoardView {
 
   /** Every card in the model. */
   private readonly allCards = computed(() => Object.values(this.model().cards));
+
+  /**
+   * Ids other cards name as `parent` — the containers. The board's columns hold
+   * leaves only; containers surface in the list views with a progress chip
+   * instead of occupying a column (F-022, ADR-019).
+   */
+  private readonly containers = computed<Set<string>>(() => containerIds(this.model()));
+
+  /**
+   * Children-progress per container, memoized per model/config change: the
+   * rollup scans the whole model, and a fresh object per template call would
+   * re-render every OnPush container row on every change-detection pass.
+   */
+  private readonly progressById = computed<Map<string, ChildrenProgress>>(() => {
+    const config = this.config();
+    const model = this.model();
+    const map = new Map<string, ChildrenProgress>();
+    if (config === null) return map;
+    for (const id of this.containers()) {
+      if (model.cards[id] !== undefined) map.set(id, childrenProgress(model, config, id));
+    }
+    return map;
+  });
 
   /**
    * Parallel-batch overlays (F-026, ADR-021), derived purely from the whole
@@ -242,6 +268,7 @@ export class BoardView {
 
     const columnMap = new Map<string, Card[]>(config.board.columns.map((col) => [col, []]));
     const errors: string[] = [];
+    const containers = this.containers();
 
     for (const card of this.visibleCards()) {
       const placed = placeCard(card, config);
@@ -250,6 +277,11 @@ export class BoardView {
         continue;
       }
       if (placed.column === null) continue; // hidden-state card (Deferred/Dropped)
+      // Containers are skipped *after* error collection, so a container with a
+      // bad type/status still gets diagnosed. They stay reachable in the list
+      // views (Backlog/Cards) with their progress chip — nothing disappears
+      // (F-022, ADR-019) — and column counts mean shippable leaves.
+      if (containers.has(card.id)) continue;
       columnMap.get(placed.column)?.push(card);
     }
 
@@ -376,6 +408,22 @@ export class BoardView {
   /** True when the card is ready and safe to start (disjoint from in-flight work). */
   protected isSafeToStart(card: Card): boolean {
     return this.safeIds().has(card.id);
+  }
+
+  /**
+   * The card's resolved parent, for the breadcrumb chip (F-022). `null` when it
+   * has none — or when the `parent` id is dangling: the validator reports the
+   * stray id; the board just renders the card chipless rather than crash.
+   */
+  protected parentOf(card: Card): Card | null {
+    const parentId = card.fields['parent'];
+    if (typeof parentId !== 'string' || parentId === '') return null;
+    return this.model().cards[parentId] ?? null;
+  }
+
+  /** Children-progress for a container row in the Backlog list, else `null`. */
+  protected progressFor(card: Card): ChildrenProgress | null {
+    return this.progressById().get(card.id) ?? null;
   }
 
   // ── Scope switching ────────────────────────────────────────────────────────

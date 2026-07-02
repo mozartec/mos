@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { CardComponent } from './card';
-import type { AreaCollision, Card, FieldDef, TypeDef } from '@mos/core';
+import type { AreaCollision, Card, ChildrenProgress, FieldDef, TypeDef } from '@mos/core';
 
 describe('CardComponent', () => {
   const testFieldsRegistry: Record<string, FieldDef> = {
@@ -54,6 +54,8 @@ describe('CardComponent', () => {
     blocked?: boolean;
     collisions?: AreaCollision[];
     safeToStart?: boolean;
+    parentCrumb?: Card | null;
+    progress?: ChildrenProgress | null;
   }) {
     await TestBed.configureTestingModule({
       imports: [CardComponent],
@@ -72,6 +74,12 @@ describe('CardComponent', () => {
     }
     if (inputs.safeToStart !== undefined) {
       fixture.componentRef.setInput('safeToStart', inputs.safeToStart);
+    }
+    if (inputs.parentCrumb !== undefined) {
+      fixture.componentRef.setInput('parentCrumb', inputs.parentCrumb);
+    }
+    if (inputs.progress !== undefined) {
+      fixture.componentRef.setInput('progress', inputs.progress);
     }
 
     fixture.detectChanges();
@@ -148,7 +156,7 @@ describe('CardComponent', () => {
     expect(fixtureBlocked.nativeElement.textContent).toContain('Blocked');
   });
 
-  it('emits select event on click/Enter/Space', async () => {
+  it('emits select event on click/Enter/Space on the card-face widget', async () => {
     const fixture = await createComponent({
       card: testCard,
       typeDef: testTypeDef,
@@ -162,15 +170,20 @@ describe('CardComponent', () => {
     });
 
     const host = fixture.nativeElement as HTMLElement;
-    host.click();
+    // The interactive widget is the inner card face (focusable role=button),
+    // not the host shell — so the breadcrumb chip can be a sibling control.
+    const face = host.querySelector('[role="button"]') as HTMLElement;
+    expect(face.getAttribute('tabindex')).toBe('0');
+
+    face.click();
     expect(emittedCard).toEqual(testCard);
 
     emittedCard = undefined;
-    host.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    face.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     expect(emittedCard).toEqual(testCard);
 
     emittedCard = undefined;
-    host.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    face.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
     expect(emittedCard).toEqual(testCard);
   });
 
@@ -311,6 +324,109 @@ describe('CardComponent', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(host.textContent).toContain('Safe to start');
     expect(host.className).toContain('ring-accent/50');
+  });
+
+  // ── F-022: parent breadcrumb chip + children-progress chip ─────────────────
+
+  const parentCard: Card = {
+    id: 'F-004',
+    type: 'feature',
+    title: 'Board lens',
+    status: 'In Progress',
+    path: 'board/F-004.md',
+    fields: {},
+  };
+
+  it('shows no breadcrumb or progress chip by default', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('[title^="Open "]')).toBeNull();
+    expect(host.textContent).not.toContain('done');
+  });
+
+  it('renders the parent breadcrumb chip: mono id + truncating container title', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      parentCrumb: parentCard,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).toContain('F-004');
+    expect(host.textContent).toContain('Board lens');
+    // The title truncates gracefully at board density rather than wrapping.
+    const title = [...host.querySelectorAll('span')].find(
+      (el) => el.textContent?.trim() === 'Board lens',
+    );
+    expect(title?.className).toContain('truncate');
+  });
+
+  it('renders the chip as a focusable button outside the card-face widget (no nesting)', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      parentCrumb: parentCard,
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const crumb = host.querySelector('button[title^="Open F-004"]');
+    expect(crumb).not.toBeNull();
+    // Keyboard-reachable, and never a focusable control nested inside the
+    // role="button" card face (AXE nested-interactive).
+    expect(crumb?.closest('[role="button"]')).toBeNull();
+  });
+
+  it('emits parentSelect (not cardSelect) when the breadcrumb chip is clicked', async () => {
+    const fixture = await createComponent({
+      card: testCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      parentCrumb: parentCard,
+    });
+    const component = fixture.componentInstance;
+
+    let parentEmitted: Card | undefined;
+    let cardEmitted: Card | undefined;
+    component.parentSelect.subscribe((c) => (parentEmitted = c));
+    component.cardSelect.subscribe((c) => (cardEmitted = c));
+
+    const host = fixture.nativeElement as HTMLElement;
+    const crumb = host.querySelector('button[title^="Open F-004"]') as HTMLButtonElement;
+    crumb.click();
+
+    // The chip acts alone: the container opens, this card's own select must not fire.
+    expect(parentEmitted).toEqual(parentCard);
+    expect(cardEmitted).toBeUndefined();
+  });
+
+  it('renders the children-progress chip with an n/m label and a proportional bar', async () => {
+    const fixture = await createComponent({
+      card: parentCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      progress: { done: 1, total: 4 },
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).toContain('1/4 done');
+    const bar = host.querySelector('.bg-success') as HTMLElement | null;
+    expect(bar).not.toBeNull();
+    expect(bar?.style.width).toBe('25%');
+  });
+
+  it('renders an empty bar (never NaN) for a 0-total progress input', async () => {
+    const fixture = await createComponent({
+      card: parentCard,
+      typeDef: testTypeDef,
+      fieldsRegistry: testFieldsRegistry,
+      progress: { done: 0, total: 0 },
+    });
+    const host = fixture.nativeElement as HTMLElement;
+    const bar = host.querySelector('.bg-success') as HTMLElement | null;
+    expect(bar?.style.width).toBe('0%');
   });
 
   it('renders no field icons when no field declares one', async () => {

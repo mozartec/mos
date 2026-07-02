@@ -2,13 +2,13 @@
 id: F-021
 type: feature
 title: Card page & side peek — two ways to open a card
-status: Draft
+status: Done
 priority: P1
 phase: Phase 3
 owner: mozart
 dependsOn: [F-023]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-21T09:31:58Z
+updated: 2026-07-02T00:04:10Z
 ---
 
 # F-021 — Card page & side peek — two ways to open a card
@@ -85,15 +85,15 @@ The Acceptance below is the feature roll-up; each story carries its own scoped a
 
 ## Acceptance
 
-- [ ] Clicking a board/backlog/cards card opens the peek over an unchanged underlying
+- [x] Clicking a board/backlog/cards card opens the peek over an unchanged underlying
       view; `Esc`, scrim, and back all close it; focus returns to the card.
-- [ ] The expand control and direct navigation both land on the card page; page and
+- [x] The expand control and direct navigation both land on the card page; page and
       peeked-board URLs are shareable and render on load.
-- [ ] The header shows the type's configured fields; relations list parent, dependencies
+- [x] The header shows the type's configured fields; relations list parent, dependencies
       (with status), dependents, and children with a progress summary — all clickable.
-- [ ] Old reader links to board cards redirect to the card page; wiki docs still open in
+- [x] Old reader links to board cards redirect to the card page; wiki docs still open in
       the reader exactly as before.
-- [ ] AXE passes with the peek open; focus trap/restore and reduced-motion are covered by
+- [x] AXE passes with the peek open; focus trap/restore and reduced-motion are covered by
       specs.
 
 ## Dependencies

@@ -1,0 +1,177 @@
+<section aria-labelledby="cards-heading" class="flex h-full flex-col gap-4 overflow-hidden p-4">
+  <h2 id="cards-heading" class="text-xl font-semibold">Cards</h2>
+
+  @switch (loadState()) {
+    @case ('loading') {
+      <p class="text-base-content/60">Loading cards…</p>
+    }
+    @case ('error') {
+      <p class="text-error">Failed to load the cards: {{ loadError() }}</p>
+    }
+    @default {
+      <app-filter-bar
+        [facets]="facets()"
+        [value]="filterState()"
+        (valueChange)="onFilterChange($event)"
+      />
+
+      <p class="text-sm text-base-content/60">
+        {{ rows().length }} {{ rows().length === 1 ? 'card' : 'cards' }}
+      </p>
+
+      @if (rows().length === 0) {
+        <p class="py-8 text-center text-sm text-base-content/40">No cards match.</p>
+      } @else {
+        <!-- Dense issues-index table (design system: sm, zebra-free, hairline) -->
+        <div class="flex-1 overflow-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                @for (col of columns(); track col.field) {
+                  <th scope="col" [attr.aria-sort]="ariaSort(col.field)">
+                    <button
+                      type="button"
+                      class="flex cursor-pointer items-center gap-1 text-[10px] font-semibold tracking-wider text-base-content/70 uppercase transition-colors duration-150 hover:text-base-content"
+                      (click)="onSort(col.field)"
+                    >
+                      {{ col.label }}
+                      @if (ariaSort(col.field); as dir) {
+                        <span aria-hidden="true">{{ dir === 'ascending' ? '▲' : '▼' }}</span>
+                      }
+                    </button>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track rowTrack($index, row)) {
+                <!-- The row is mouse-clickable; its keyboard control is the id
+                     button in the first cell (Enter bubbles to the same handler). -->
+                <tr class="cursor-pointer hover:bg-base-200/60" (click)="onRowSelect(row.card)">
+                  @for (col of columns(); track col.field) {
+                    <td class="align-top">
+                      @switch (col.field) {
+                        @case ('id') {
+                          <button
+                            type="button"
+                            class="cursor-pointer font-mono text-[11px] font-semibold tracking-wider whitespace-nowrap text-base-content/70 hover:text-base-content"
+                            [attr.aria-label]="'Open ' + row.card.id"
+                          >
+                            {{ row.card.id }}
+                          </button>
+                        }
+                        @case ('type') {
+                          <span
+                            class="badge rounded py-1 badge-sm text-[9px] font-bold tracking-wider uppercase"
+                            [class]="typeBadgeClass(row.card)"
+                          >
+                            {{ typeLabel(row.card) }}
+                          </span>
+                        }
+                        @case ('title') {
+                          <span class="flex min-w-48 items-center gap-2">
+                            <span class="font-medium text-base-content">{{ row.card.title }}</span>
+                            <!-- Container rows: children-progress chip (F-022, ADR-019) -->
+                            @if (row.progress; as prog) {
+                              <span class="badge shrink-0 badge-soft py-0.5 badge-xs font-semibold">
+                                {{ prog.done }}/{{ prog.total }} done
+                              </span>
+                            }
+                          </span>
+                        }
+                        @case ('status') {
+                          <span
+                            class="badge py-1 badge-sm font-semibold whitespace-nowrap"
+                            [class]="statusBadgeClass(row.card)"
+                          >
+                            {{ row.card.status }}
+                          </span>
+                        }
+                        @default {
+                          @if (row.cells[col.field]; as cell) {
+                            @switch (cell.type) {
+                              @case ('datetime') {
+                                <span
+                                  class="cursor-help font-mono text-[10px] whitespace-nowrap text-base-content/70"
+                                  [attr.title]="cell.absoluteTime"
+                                >
+                                  {{ cell.relativeTime }}
+                                </span>
+                              }
+                              @case ('date') {
+                                <span
+                                  class="cursor-help font-mono text-[10px] whitespace-nowrap text-base-content/70"
+                                  [attr.title]="cell.absoluteTime"
+                                >
+                                  {{ cell.relativeTime }}
+                                </span>
+                              }
+                              @case ('enum') {
+                                @if (cell.isList) {
+                                  <span class="flex flex-wrap gap-1">
+                                    @for (chip of cell.listChips; track chip.value) {
+                                      <span
+                                        class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[9px] font-semibold tracking-tight"
+                                        [class]="chip.chipClass"
+                                      >
+                                        {{ chip.value }}
+                                      </span>
+                                    }
+                                  </span>
+                                } @else {
+                                  <span
+                                    class="badge rounded-sm badge-soft px-1.5 py-0.5 badge-xs text-[9px] font-semibold tracking-tight"
+                                    [class]="cell.chipClass"
+                                  >
+                                    {{ cell.formattedValue }}
+                                  </span>
+                                }
+                              }
+                              @case ('id') {
+                                <span class="flex flex-wrap gap-1">
+                                  @for (val of cell.listValues; track val) {
+                                    <span
+                                      class="rounded bg-base-200 px-1 py-0.5 font-mono text-[10px] whitespace-nowrap text-base-content/85"
+                                    >
+                                      {{ val }}
+                                    </span>
+                                  }
+                                </span>
+                              }
+                              @default {
+                                <span
+                                  class="block max-w-[16rem] truncate text-xs text-base-content/85"
+                                  [attr.title]="cell.formattedValue"
+                                >
+                                  {{ cell.formattedValue }}
+                                </span>
+                              }
+                            }
+                          }
+                        }
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- Side peek: rows open cards over the table, exactly like board cards
+           (F-021-S-03); the underlying filters/sort/scroll stay put. -->
+      @if (config(); as cfg) {
+        <app-card-peek
+          [cardId]="peekId()"
+          [model]="peekModel()"
+          [config]="cfg"
+          (closePeek)="closePeek()"
+          (expand)="expandPeek($event)"
+          (peekCard)="swapPeek($event)"
+          (openDoc)="openDoc($event)"
+        />
+      }
+    }
+  }
+</section>

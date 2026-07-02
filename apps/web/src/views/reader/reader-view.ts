@@ -72,23 +72,26 @@ export class ReaderView {
   protected readonly backLink = computed(() => {
     const from = this.from();
     if (from === 'board') return '/board';
+    if (from === 'cards') return '/cards';
     if (from === 'graph') return '/graph';
     return '/wiki';
   });
   protected readonly backLabel = computed(() => {
     const from = this.from();
     if (from === 'board') return 'Board';
+    if (from === 'cards') return 'Cards';
     if (from === 'graph') return 'Graph';
     return 'Wiki';
   });
 
   /**
-   * Round-trip the board's state (scope + filters) so "back" lands on the same
-   * view it was opened from. The board forwards its query params when opening a
-   * card; here we hand them all back, minus the reader's own `path`/`from`.
+   * Round-trip the originating list view's state (scope, filters, sort) so
+   * "back" lands on the same view it was opened from. The board/cards lens
+   * forwards its query params when opening a card; here we hand them all back,
+   * minus the reader's own `path`/`from`.
    */
   protected readonly backQueryParams = computed(() => {
-    if (this.from() !== 'board') return {};
+    if (this.from() !== 'board' && this.from() !== 'cards') return {};
     const params = this.queryParams();
     const restored: Record<string, string> = {};
     for (const key of params.keys) {

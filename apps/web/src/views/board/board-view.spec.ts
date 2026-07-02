@@ -657,4 +657,106 @@ describe('BoardView', () => {
       [...host.querySelectorAll('app-card')].filter((el) => el.className.includes('ring-accent')),
     ).toHaveLength(0);
   });
+
+  // ── F-022: subcards — leaves in columns, containers as progress (ADR-019) ────
+
+  describe('subcards', () => {
+    /** A feature with two stories: F-1 is a container, S-1/S-2 are leaves. */
+    const HIERARCHY_FILES = {
+      'board/F-1.md': makeCard('F-1', 'story', 'In Progress', { title: 'The feature' }),
+      'board/S-1.md': makeCard('S-1', 'story', 'Done', { parent: 'F-1' }),
+      'board/S-2.md': makeCard('S-2', 'story', 'Todo', { parent: 'F-1' }),
+    };
+
+    it('keeps containers out of columns; column counts mean leaves', async () => {
+      const { component, host } = await createBoard({
+        config: UNSCOPED,
+        files: HIERARCHY_FILES,
+      });
+      const columns = component['columns']();
+      expect(columns.flatMap((c) => c.cards.map((card) => card.id))).toEqual(['S-2', 'S-1']);
+      // 'In Progress' holds nothing: its only candidate (F-1) is a container.
+      expect(columns.find((c) => c.name === 'In Progress')?.cards).toEqual([]);
+      // The visible count and the per-column count badges agree: 2 leaves.
+      expect(component['visibleCount']()).toBe(2);
+      expect(host.textContent).toContain('2 cards');
+    });
+
+    it('still surfaces a placement error for a container with an unknown status', async () => {
+      const { host } = await createBoard({
+        config: UNSCOPED,
+        files: {
+          'board/F-1.md': makeCard('F-1', 'story', 'UNKNOWN'),
+          'board/S-1.md': makeCard('S-1', 'story', 'Todo', { parent: 'F-1' }),
+        },
+      });
+      // Skipped from columns as a container, but its bad status is not swallowed.
+      const alert = host.querySelector('[role="alert"]');
+      expect(alert?.textContent).toContain('F-1');
+    });
+
+    it('shows a child card with a parent breadcrumb chip that opens the container peek', async () => {
+      const { host, harness } = await createPeekBoard('/board', {
+        'board/F-1.md': makeCard('F-1', 'story', 'In Progress', { title: 'The feature' }),
+        'board/S-1.md': makeCard('S-1', 'story', 'Todo', { parent: 'F-1', title: 'A story' }),
+      });
+      const crumb = host.querySelector('app-card button[title^="Open F-1"]') as HTMLButtonElement;
+      expect(crumb).not.toBeNull();
+      expect(crumb.textContent).toContain('The feature');
+
+      crumb.click();
+      await settle(harness.fixture);
+
+      // The container's peek, not the child's.
+      expect(TestBed.inject(Router).url).toContain('peek=F-1');
+      expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('The feature');
+    });
+
+    it('lists a container in the Backlog with its n/m-done progress chip', async () => {
+      const scopedFiles = {
+        // Unscoped (no sprint) + non-done, so all three land in the Backlog view.
+        'board/F-1.md': makeCard('F-1', 'story', 'Todo', { title: 'The feature' }),
+        'board/S-1.md': makeCard('S-1', 'story', 'Done', { parent: 'F-1' }),
+        'board/S-2.md': makeCard('S-2', 'story', 'Todo', { parent: 'F-1' }),
+      };
+      const { host } = await createBoard({
+        config: SCOPED_DATED,
+        files: scopedFiles,
+        url: '/board?scope=',
+      });
+      const rows = [...host.querySelectorAll('app-card')];
+      const containerRow = rows.find((el) => el.textContent?.includes('F-1'));
+      expect(containerRow?.textContent).toContain('1/2 done');
+      // Leaves carry no progress chip.
+      const leafRow = rows.find((el) => el.textContent?.includes('S-2'));
+      expect(leafRow?.textContent).not.toContain('done');
+    });
+
+    it('renders a flat vault (no parent fields) exactly as before', async () => {
+      const { component, host } = await createBoard({
+        config: UNSCOPED,
+        files: {
+          'board/R-1.md': makeCard('R-1', 'story', 'Todo'),
+          'board/R-2.md': makeCard('R-2', 'story', 'In Progress'),
+        },
+      });
+      const columns = component['columns']();
+      expect(columns.find((c) => c.name === 'Backlog')?.cards.map((c) => c.id)).toEqual(['R-1']);
+      expect(columns.find((c) => c.name === 'In Progress')?.cards.map((c) => c.id)).toEqual(['R-2']);
+      // No breadcrumb or progress chrome appears anywhere.
+      expect(host.textContent).not.toContain('done');
+      expect([...host.querySelectorAll('[title^="Open "]')]).toHaveLength(0);
+    });
+
+    it('does not crash on a stray parent pointing at a missing id; the card renders chipless', async () => {
+      const { component, host } = await createBoard({
+        config: UNSCOPED,
+        files: { 'board/S-1.md': makeCard('S-1', 'story', 'Todo', { parent: 'GHOST' }) },
+      });
+      // The card still places normally (GHOST isn't a card, so S-1 is a leaf)...
+      expect(component['columns']().find((c) => c.name === 'Backlog')?.cards.map((c) => c.id)).toEqual(['S-1']);
+      // ...and no breadcrumb chip renders for the unresolvable parent.
+      expect([...host.querySelectorAll('[title^="Open "]')]).toHaveLength(0);
+    });
+  });
 });

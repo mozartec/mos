@@ -1,4 +1,26 @@
-<div class="flex flex-col gap-2.5">
+<!-- Parent breadcrumb: the container this leaf belongs to (F-022, ADR-019).
+     A real button, *sibling* to the card-face widget below — never nested in it. -->
+@if (parentCrumb(); as parent) {
+  <button
+    type="button"
+    class="mb-2 flex max-w-full cursor-pointer items-center gap-1 text-[10px] text-base-content/70 transition-colors duration-150 hover:text-base-content"
+    (click)="onParentSelect()"
+    [attr.title]="'Open ' + parent.id + ' — ' + parent.title"
+  >
+    <span class="font-mono font-semibold tracking-wider">{{ parent.id }}</span>
+    <span class="truncate font-medium">{{ parent.title }}</span>
+  </button>
+}
+
+<!-- The card face: the one interactive control that opens this card. -->
+<div
+  role="button"
+  tabindex="0"
+  class="flex cursor-pointer flex-col gap-2.5"
+  (click)="onSelect()"
+  (keydown.enter)="onSelect()"
+  (keydown.space)="onSelect(); $event.preventDefault()"
+>
   <!-- Card Header: ID, Type Badge, and Blocked Badge -->
   <div class="flex items-center justify-between gap-2">
     <div class="flex items-center gap-1.5">
@@ -44,6 +66,21 @@
   <h4 class="text-sm leading-snug font-semibold text-base-content">
     {{ card().title }}
   </h4>
+
+  <!-- Children progress: container rows in list views only (F-022, ADR-019).
+       The n/m text carries the value; the bar is decoration. Success = the
+       done tone, as on the graph's done nodes. -->
+  @if (progress(); as prog) {
+    <div class="flex items-center gap-2">
+      <span class="badge badge-soft py-0.5 badge-xs font-semibold">
+        {{ prog.done }}/{{ prog.total }} done
+      </span>
+      <span class="h-1 w-16 overflow-hidden rounded-full bg-base-content/10" aria-hidden="true">
+        <span class="block h-full rounded-full bg-success" [style.width.%]="progressPercent()">
+        </span>
+      </span>
+    </div>
+  }
 
   <!-- Fields List/Grid -->
   @if (renderedFields().length > 0) {
