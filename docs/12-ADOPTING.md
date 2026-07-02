@@ -1,6 +1,6 @@
 ---
 created: 2026-06-10T11:20:00Z
-updated: 2026-06-13T15:27:00Z
+updated: 2026-07-02T09:45:38Z
 ---
 
 # Using mos in your project
@@ -45,34 +45,47 @@ like it conflicts; [`05-VAULT_SPEC.md`](05-VAULT_SPEC.md) §5c covers how.
 
 ## 2. Serve the board and wiki
 
-The CLI (`@mozartec/mos-cli`, ADR-012) bundles the built web app and the read-only vault endpoints
-in one Node ≥ 20 process:
+The CLI (`@mozartec/mos-cli`, ADR-012) bundles the built web app and the read-only vault
+endpoints in one Node ≥ 20 process:
 
 ```bash
 npx @mozartec/mos-cli serve            # nearest vault at or above the current directory
-npx @mozartec/mos-cli serve ./docs --port 5000
-# or: npm i -g @mozartec/mos-cli  →  mos serve
 ```
 
 It renders the same board, wiki, and graph lenses as this repo's dev setup, live-reloads
 on file changes, and refuses to start where no `.mos/config.json` resolves. It is strictly
 read-only (ADR-002): every write to the vault happens through your editor or your agent,
-never the app.
+never the app. The full command reference — `serve`, `init`, `validate`, ports and flags —
+is the [`@mozartec/mos-cli` readme](https://www.npmjs.com/package/@mozartec/mos-cli).
 
 ## 3. Install the agent skills
 
 The installable skills live in [`skills/`](../skills/README.md) at this repo's root
-(F-014): `mos-next-card` recommends what to work on; `mos-ship-card` takes a named card to an open
-PR. Install them with the skills CLI:
+(F-014) — what each one does is documented there. Install them with the skills CLI:
 
 ```bash
 npx skills add mozartec/mos
 ```
 
-Both are vault-agnostic: they read your types, states, columns, and scope from
+All are vault-agnostic: they read your types, states, columns, and scope from
 `.mos/config.json` at run time and refuse to start without it. Pair them with a short
 `AGENTS.md` in your repo (again, see the recipe-box example) so cold agents know your
 vault's write rules.
+
+## 4. Installing & upgrading
+
+- **CLI** — `npx @mozartec/mos-cli` always runs the latest published version; pin one with
+  `npx @mozartec/mos-cli@<version>`. A global install upgrades with
+  `npm i -g @mozartec/mos-cli@latest`; check what you have with `mos --version` (the
+  current release — 0.3.1 at the time of writing — is on
+  [npm](https://www.npmjs.com/package/@mozartec/mos-cli)).
+- **Skills** — re-run `npx skills add mozartec/mos` to refresh installed skills. The
+  target's `skills-lock.json` pins each skill's source and content hash; a re-add updates
+  both the files under `.agents/skills/` and the lock entries.
+- **Spec** — your vault's `.mos/config.json` declares the format version it targets
+  (`specVersion`, [spec §0](05-VAULT_SPEC.md)). The format evolves additively, and
+  `mos validate` is spec-version-aware: after upgrading (or when a vault targets a newer
+  spec than the installed build understands), re-run it — it warns instead of guessing.
 
 ## What you don't need
 

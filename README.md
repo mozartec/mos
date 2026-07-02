@@ -1,6 +1,7 @@
 # Markdown on Steroids (mos)
 
 [![CI](https://github.com/mozartec/mos/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mozartec/mos/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@mozartec/mos-cli)](https://www.npmjs.com/package/@mozartec/mos-cli)
 
 > Your AI writes the tasks as markdown. You see them as a board.
 
@@ -16,9 +17,9 @@ in 2026 — by asking an AI assistant, which edits the markdown for you (guided 
 truth; there is no database.
 
 > **Status: early, but runnable.** The MVP is built — board, wiki, and dependency-graph
-> lenses over any vault, served by the `mos` CLI — and not yet published to npm; the
-> first tagged release will be `v0.1.0`. Building in public — follow along in
-> [`board/`](board/).
+> lenses over any vault, served by the `mos` CLI, published to npm as
+> [`@mozartec/mos-cli`](https://www.npmjs.com/package/@mozartec/mos-cli) (the badge above
+> shows the current version). Building in public — follow along in [`board/`](board/).
 
 ## Why
 
@@ -44,22 +45,17 @@ hardcoded, so mos fits any solo dev's conventions, not one fixed schema. See
 
 ## Run it on your project
 
-The CLI bundles the built web app and a read-only file server in one Node ≥ 20 process
-(see [`docs/12-ADOPTING.md`](docs/12-ADOPTING.md)):
-
 ```bash
-mos init           # turn the current folder into a vault: starter config,
-                   # example card, AGENTS.md write rules (refuses on an existing vault)
-mos serve          # board + wiki at http://127.0.0.1:4400, live-reloading on file changes
+npx @mozartec/mos-cli init    # turn the current folder into a vault (Node ≥ 20)
+npx @mozartec/mos-cli serve   # board + wiki at http://127.0.0.1:4400
 ```
 
-The `mos` command comes from
-[`@mozartec/mos-cli`](https://www.npmjs.com/package/@mozartec/mos-cli) (Node ≥ 20):
-`npx @mozartec/mos-cli init` / `npx @mozartec/mos-cli serve`, or `npm i -g @mozartec/mos-cli`
-for a global `mos`.
-
 mos never writes your files — `init` is a one-time scaffold, and serving is strictly
-read-only. Your editor and your AI assistant do the writing.
+read-only. Your editor and your AI assistant do the writing. The full command reference
+(`serve`, `init`, `validate`, flags) is the
+[`@mozartec/mos-cli` readme](https://www.npmjs.com/package/@mozartec/mos-cli); the
+step-by-step adoption walkthrough — config, scope, areas, skills, installing & upgrading —
+is [`docs/12-ADOPTING.md`](docs/12-ADOPTING.md).
 
 ## This repo eats its own dog food
 
@@ -78,20 +74,10 @@ app, a future VS Code extension, and a future MCP server. See
 
 ## Documentation
 
-| Doc | What it covers |
-|---|---|
-| [01-VISION](docs/01-VISION.md) | What we're building and for whom |
-| [02-CONCEPTS](docs/02-CONCEPTS.md) | The mental model: vault, card, type, lens |
-| [03-ARCHITECTURE](docs/03-ARCHITECTURE.md) | Core library, I/O adapter, app shape |
-| [04-TECH_STACK](docs/04-TECH_STACK.md) | Stack and the reasoning behind it |
-| [05-VAULT_SPEC](docs/05-VAULT_SPEC.md) | The vault format (the data contract) |
-| [06-MVP](docs/06-MVP.md) | What the first version is — and isn't |
-| [07-ROADMAP](docs/07-ROADMAP.md) | Phases and future ideas |
-| [08-DECISIONS](docs/08-DECISIONS.md) | Architecture decision records |
-| [09-CONVENTIONS](docs/09-CONVENTIONS.md) | How we write docs, cards, and ADRs |
-| [10-GLOSSARY](docs/10-GLOSSARY.md) | Terminology |
-| [11-RELEASING](docs/11-RELEASING.md) | Branching, versioning, publishing |
-| [12-ADOPTING](docs/12-ADOPTING.md) | Using mos in your own project (CLI + skills) |
+[`docs/00-README.md`](docs/00-README.md) is the documentation index, with the full
+reading order. Good entry points: [`01-VISION`](docs/01-VISION.md) (what we're building
+and for whom), [`05-VAULT_SPEC`](docs/05-VAULT_SPEC.md) (the vault format — the data
+contract), and [`12-ADOPTING`](docs/12-ADOPTING.md) (using mos in your own project).
 
 ## Try the format
 
@@ -100,30 +86,18 @@ a non-mos project, to show the format isn't tied to this codebase.
 
 ## Agent skills
 
-This repo ships first-party agent skills for working a mos board, authored in
-[`skills/`](skills/README.md) in the standard installable layout:
-
-- **`mos-next-card`** — ask your agent what to work on next; it ranks the board (priority,
-  sprint, dependencies, in-progress first) and recommends one card with reasoning.
-- **`mos-ship-card`** — point it at a card id (any type your config defines — feature, story,
-  task, …) and it takes that card to an open PR: plan, raise doubts, branch, build, commit,
-  push.
-- **`mos-refine-batch`** — reshape the backlog so parallel-safe work exists: raise
-  not-yet-started cards to readiness, fill their `touches`, and split overlap clusters into a
-  shared enabler plus disjoint leaves, so a real parallel batch can be picked.
-
-All three are vault-agnostic: they read your types, states, columns, and sprints from
-`.mos/config.json` at run time and refuse to start without it — nothing about this repo's
-vocabulary is hardcoded. Install them into any project with the
-[`skills`](https://github.com/vercel-labs/skills) CLI:
+This repo ships first-party, vault-agnostic agent skills for working a mos board —
+`mos-next-card` (recommend what to work on next), `mos-ship-card` (take one card to an
+open PR), and `mos-refine-batch` (reshape the backlog so parallel-safe work exists).
+Install them into any project with the [`skills`](https://github.com/vercel-labs/skills)
+CLI:
 
 ```bash
 npx skills add mozartec/mos
 ```
 
-That drops the skills into the target project's `.agents/skills/` and links them into the
-agent-native locations (e.g. `.claude/skills/` for Claude Code), so the agent can trigger
-them by description or you can invoke them explicitly.
+What each skill does, the authoring rules, and how installed copies relate to
+`.agents/skills/` are documented in [`skills/README.md`](skills/README.md).
 
 ## Contributing
 

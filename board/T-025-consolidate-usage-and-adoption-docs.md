@@ -2,14 +2,14 @@
 id: T-025
 type: task
 title: Consolidate the usage/adoption docs — one source per fact, add install/upgrade, keep it brief
-status: Todo
+status: Done
 priority: P1
 phase: Phase 4
 owner: mozart
 dependsOn: [F-029, F-030]
 touches: [docs]
 created: 2026-06-20T21:15:27Z
-updated: 2026-06-21T09:04:20Z
+updated: 2026-07-02T09:45:38Z
 ---
 
 # T-025 — Consolidate the usage/adoption docs — one source per fact, add install/upgrade, keep it brief
@@ -119,18 +119,18 @@ CLI readme is `cli` (T-023's area) — **don't edit it here**; treat it as canon
 
 ## Acceptance
 
-- [ ] The command reference and the adoption walkthrough each live in exactly one canonical place
+- [x] The command reference and the adoption walkthrough each live in exactly one canonical place
       (CLI readme; `12-ADOPTING.md`); other docs link rather than restate. The pitch +
       install/quickstart may appear once per README surface (root + npm) and nowhere else.
-- [ ] `README.md` is a brief front door that still stands alone as the GitHub landing — no
+- [x] `README.md` is a brief front door that still stands alone as the GitHub landing — no
       duplicated command table or adoption walkthrough, but not gutted to a bare link.
-- [ ] `README.md` shows an npm version badge for `@mozartec/mos-cli` linking to the package page.
-- [ ] `docs/12-ADOPTING.md` has a concise Installing & upgrading section (CLI `@latest`,
+- [x] `README.md` shows an npm version badge for `@mozartec/mos-cli` linking to the package page.
+- [x] `docs/12-ADOPTING.md` has a concise Installing & upgrading section (CLI `@latest`,
       re-running `npx skills add` + `skills-lock.json`, `specVersion` bump), verified against the
       shipped commands/version.
-- [ ] Net lines removed ≥ added where feasible; no new doc files; only `docs/` + root `*.md`
+- [x] Net lines removed ≥ added where feasible; no new doc files; only `docs/` + root `*.md`
       changed; out-of-area fixes recorded as findings for T-023 / T-024.
-- [ ] Edited docs have `updated` bumped; cross-links resolve; `bun run validate` is clean.
+- [x] Edited docs have `updated` bumped; cross-links resolve; `bun run validate` is clean.
 
 ## Dependencies
 
