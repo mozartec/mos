@@ -46,8 +46,6 @@ export interface ValidateVaultResult {
 const UTC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 /** A bare `YYYY-MM-DD` calendar date, used by scope `starts`/`ends` (§5d). */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-/** Exact tail of buildModel's "not a card" diagnostic (models.ts) — matched, never substringed. */
-const NOT_A_CARD_SUFFIX = ': not a card (unrecognized or missing type)';
 
 /**
  * Validate one vault against its config. Pure: parsed input + config in, plain
@@ -69,13 +67,12 @@ export function validateVault(
   const warnings: string[] = [];
 
   // buildModel surfaces three diagnostic kinds; forward its errors (duplicate id,
-  // idless card) but not "not a card" — a board-scope file that simply isn't one
-  // (the old script skipped those silently). Match buildModel's exact suffix, not
-  // a loose substring: the message embeds the file path, so a path containing
-  // "not a card" must not swallow a real error. (Structured {kind, message}
-  // diagnostics would drop this wording-coupling — deferred follow-up card.)
+  // idless card) but not `not-a-card` — a board-scope file that simply isn't one
+  // (the old script skipped those silently). Branch on `kind` (T-021), never on
+  // the message wording: the message embeds the file path, so a path containing
+  // "not a card" must not swallow a real error.
   for (const diagnostic of build.diagnostics) {
-    if (!diagnostic.endsWith(NOT_A_CARD_SUFFIX)) errors.push(diagnostic);
+    if (diagnostic.kind !== 'not-a-card') errors.push(diagnostic.message);
   }
 
   checkSpecVersion(config.specVersion, warnings);

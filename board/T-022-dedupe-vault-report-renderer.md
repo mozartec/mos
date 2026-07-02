@@ -2,14 +2,14 @@
 id: T-022
 type: task
 title: Dedupe the vault-report renderer shared by `mos validate` and `bun run validate`
-status: Todo
+status: Done
 priority: P3
 phase: Phase 4
 owner: mozart
 dependsOn: [F-029]
 touches: [core, cli, scripts]
 created: 2026-06-16T12:01:40Z
-updated: 2026-06-16T12:01:40Z
+updated: 2026-07-02T09:45:38Z
 ---
 
 # T-022 — Dedupe the vault-report renderer shared by `mos validate` and `bun run validate`
@@ -94,14 +94,14 @@ raise it if "core renders a report" feels wrong.
 
 ## Acceptance
 
-- [ ] The vault-report assembly + string renderer exist in exactly one place;
+- [x] The vault-report assembly + string renderer exist in exactly one place;
       `apps/cli/src/validate.ts` and `scripts/validate-vault.mjs` both consume it and hold no
       private copy.
-- [ ] `mos validate <dir>` output is byte-identical to `bun run validate` for the same vault
+- [x] `mos validate <dir>` output is byte-identical to `bun run validate` for the same vault
       (the F-029 parity check) and unchanged from today.
-- [ ] Core stays pure — the shared piece does no I/O; `bun run lint && test && build &&
+- [x] Core stays pure — the shared piece does no I/O; `bun run lint && test && build &&
       validate` green, plus `bun run test:scripts`.
-- [ ] Exit codes preserved (CLI 0/1/2; script unchanged); existing `validate.test.ts` and
+- [x] Exit codes preserved (CLI 0/1/2; script unchanged); existing `validate.test.ts` and
       `validate-vault.test.mjs` pass.
 
 ## Dependencies

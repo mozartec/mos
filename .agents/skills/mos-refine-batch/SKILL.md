@@ -10,7 +10,7 @@ description: >
   decided cards stay frontmatter-only. It proposes a reshape and applies it on your
   confirmation — picking and shipping are mos-next-card's and mos-ship-card's jobs, not this one.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # mos-refine-batch
@@ -52,8 +52,22 @@ On Windows run it with `py -3` in place of `python3` (the `py` launcher — `pyt
 there are usually Microsoft Store stubs).
 
 It discovers the nearest vault, finds each type's initial state, and for every refinable
-card in the horizon reports its readiness gaps, its `touches` state, and the **overlap
-clusters** — areas declared by two or more refinable cards. Those clusters are the work.
+card in the horizon reports its readiness gaps and its `touches` state — plus the
+mechanical shape work, so you confirm rather than derive:
+
+- the **ready set** — horizon cards with every dependency done, not blocked/hidden, not
+  containers (the same "ready" mos-next-card computes — the two skills agree);
+- **overlap clusters filtered to ready cards** — the collisions worth reshaping (the raw
+  clusters still list blocked/parked noise; prefer the ready-filtered view);
+- a **candidate conflict-free batch** — maximal, pairwise-disjoint `touches` over the
+  ready set, greedy in pick order (the same semantics `mos-next-card --parallel`
+  computes). It is advisory — confirm it, adjust it with your reshape, never re-derive it;
+- per-area **fan-in** over the ready set — a high-fan-in area is a de-facto hub,
+  surfaced empirically;
+- the **canonical frontmatter field order per type** (the config's `fieldOrder`, else the
+  spec default, narrowed to each type's fields) — emit cards in this order, don't
+  re-derive it.
+
 If Python isn't available, apply the model below by reading the config and cards yourself.
 
 Then read the nearest `AGENTS.md` — it carries the vault's non-negotiable constraints and
@@ -89,10 +103,25 @@ nothing to reason over.
 
 ### Pass 3 — shape
 
-This is the point of the skill. For each overlap cluster the script found, decide how to
-make the work parallel-safe, and **prefer extracting a shared enabler over serializing
+This is the point of the skill. Work from the script's **ready-filtered clusters,
+candidate batch, and fan-in** — not the raw clusters: collisions among cards that could
+actually run now are the ones worth reshaping. For each such cluster, decide how to make
+the work parallel-safe, and **prefer extracting a shared enabler over serializing
 features**. Serializing ("do A, then B, then C") throws away parallelism; extracting the
 shared surface into one card the others depend on preserves it.
+
+**Calibrate to the shape of the vault's areas first.** The hub-vs-module machinery below
+pays off only where areas are fine-grained:
+
+- **Fine-grained, semantic areas** — hub files (a composition/DI root, a migrations
+  snapshot, a route manifest, a permission catalog) plus per-module surfaces → apply the
+  full hub-vs-module reasoning; hubs isolate into one leaf, modules batch freely.
+- **Coarse areas** (roughly one per top-level package/directory) → any two cards sharing
+  an area collide *by construction*, and no reshape changes that. Don't manufacture
+  enablers or splits to chase parallelism the area map can't express — note the
+  serialization and move on.
+
+Key on the shape of the areas, never on any particular project.
 
 **Hub vs module — read the repo, never decide by layer.** Two kinds of area collide
 differently:
@@ -122,9 +151,10 @@ judgment, not a formula.
 **Stop at acceptance-meeting scope.** Once the cluster is a sequenced enabler plus
 disjoint leaves and each card meets readiness, stop — no gold-plating.
 
-End the pass with the **proposed conflict-free batch**: the leaves that can now run at
-once, each with the areas it claims. That batch should match the semantics mos-next-card's
-`--parallel` mode would compute (pairwise-disjoint `touches`).
+End the pass with the **proposed conflict-free batch**: start from the script's candidate
+batch (it already matches mos-next-card's `--parallel` semantics — pairwise-disjoint
+`touches` over the ready set) and adjust it for the reshape you just proposed; each card
+listed with the areas it claims. Confirm a batch — don't re-derive one.
 
 ## 3. Degrade honestly
 
@@ -163,8 +193,9 @@ Refinement is a large, judgment-heavy write across many cards. Don't apply it bl
   that meets readiness. Children carry `parent:`; enablers carry `dependsOn:` where they
   sequence work.
 - **Bump `updated`** (UTC, `…Z`) on every card you edit; leave `created` untouched.
-- Emit frontmatter in the vault's canonical order (`fieldOrder` in config, or the vault's
-  documented default order). Validate after — it's the cheap check.
+- Emit frontmatter in the vault's canonical order — the script reports it per type
+  (`fieldOrder` in config, else the spec default, narrowed to the type's fields); use
+  that, don't re-derive it. Validate after — it's the cheap check.
 
 ## Hand back
 

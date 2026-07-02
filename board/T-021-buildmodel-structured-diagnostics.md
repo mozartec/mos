@@ -2,14 +2,14 @@
 id: T-021
 type: task
 title: Structured diagnostics for buildModel — kind, not path-bearing strings
-status: Todo
+status: Done
 priority: P3
 phase: Phase 4
 owner: mozart
 dependsOn: [T-017]
 touches: [core]
 created: 2026-06-16T09:21:38Z
-updated: 2026-06-16T09:21:38Z
+updated: 2026-07-02T09:45:38Z
 ---
 
 # T-021 — Structured diagnostics for buildModel — kind, not path-bearing strings
@@ -76,13 +76,13 @@ That coupling to human-readable wording is the root; this task removes it.
 
 ## Acceptance
 
-- [ ] `BuildModelResult.diagnostics` entries carry a `kind`; no consumer matches diagnostic
+- [x] `BuildModelResult.diagnostics` entries carry a `kind`; no consumer matches diagnostic
       wording by substring.
-- [ ] `validateVault` surfaces `no-id`/`duplicate-id` and excludes `not-a-card` by `kind`;
+- [x] `validateVault` surfaces `no-id`/`duplicate-id` and excludes `not-a-card` by `kind`;
       `NOT_A_CARD_SUFFIX` is removed.
-- [ ] A board file whose path contains "not a card" still has its real error surfaced
+- [x] A board file whose path contains "not a card" still has its real error surfaced
       (the T-017 regression test stays green).
-- [ ] All `buildModel` consumers compile and behave unchanged; full gate green.
+- [x] All `buildModel` consumers compile and behave unchanged; full gate green.
 
 ## Dependencies
 

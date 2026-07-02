@@ -42,10 +42,26 @@ export function createEmptyVaultModel(): VaultModel {
   return { cards: {}, files: [] };
 }
 
+/** Why a board-scope file did not become a card (T-021). */
+export type ModelDiagnosticKind = 'not-a-card' | 'no-id' | 'duplicate-id';
+
+/**
+ * One structured {@link buildModel} diagnostic. Consumers branch on `kind` —
+ * never on the wording of `message`, which is only the ready-to-print
+ * human-readable line (it embeds `path`, kept separately for programmatic use).
+ */
+export interface ModelDiagnostic {
+  kind: ModelDiagnosticKind;
+  /** Human-readable line, e.g. `board/x.md: card has no id`. */
+  message: string;
+  /** Vault-relative path of the offending file, as given (not POSIX-normalized). */
+  path: string;
+}
+
 /** Result of {@link buildModel}: assembled model plus non-fatal diagnostics. */
 export interface BuildModelResult {
   model: VaultModel;
-  diagnostics: string[];
+  diagnostics: ModelDiagnostic[];
 }
 
 /**
@@ -57,7 +73,7 @@ export interface BuildModelResult {
  */
 export function buildModel(files: ParsedFile[], config: VaultConfig): BuildModelResult {
   const model = createEmptyVaultModel();
-  const diagnostics: string[] = [];
+  const diagnostics: ModelDiagnostic[] = [];
   const wikiIncludeMatchers = config.wiki.include.map(globToRegExp);
   const wikiExcludeMatchers = config.wiki.exclude.map(globToRegExp);
   const boardMatchers = config.board.include.map(globToRegExp);
@@ -82,7 +98,7 @@ export function buildModel(files: ParsedFile[], config: VaultConfig): BuildModel
  */
 function indexCard(
   model: VaultModel,
-  diagnostics: string[],
+  diagnostics: ModelDiagnostic[],
   file: ParsedFile,
   relPath: string,
   boardMatchers: RegExp[],
@@ -93,18 +109,30 @@ function indexCard(
 
   const type = asScalarString(file.data['type']);
   if (type === '' || config.types[type] === undefined) {
-    diagnostics.push(`${file.path}: not a card (unrecognized or missing type)`);
+    diagnostics.push({
+      kind: 'not-a-card',
+      message: `${file.path}: not a card (unrecognized or missing type)`,
+      path: file.path,
+    });
     return;
   }
 
   const id = asScalarString(file.data['id']);
   if (id === '') {
-    diagnostics.push(`${file.path}: card has no id`);
+    diagnostics.push({
+      kind: 'no-id',
+      message: `${file.path}: card has no id`,
+      path: file.path,
+    });
     return;
   }
 
   if (model.cards[id] !== undefined) {
-    diagnostics.push(`duplicate id '${id}' (${file.path})`);
+    diagnostics.push({
+      kind: 'duplicate-id',
+      message: `duplicate id '${id}' (${file.path})`,
+      path: file.path,
+    });
     return;
   }
 
@@ -137,7 +165,7 @@ export function applyFileChange(
   path: string,
   file: ParsedFile | null,
 ): BuildModelResult {
-  const diagnostics: string[] = [];
+  const diagnostics: ModelDiagnostic[] = [];
   const relPath = toPosixPath(path);
 
   // Clone without any entry owned by `path`, remembering the wiki-list slot

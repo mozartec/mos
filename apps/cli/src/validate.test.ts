@@ -97,7 +97,18 @@ describe('runValidate', () => {
 
   it('does not follow symlinked directories (no cycle, no duplicate vaults)', async () => {
     const root = await makeVault({ '.mos/config.json': CONFIG, 'board/T-1.md': card('T-1') });
-    await symlink(root, join(root, 'self'), 'dir'); // a link back to the vault root
+    try {
+      await symlink(root, join(root, 'self'), 'dir'); // a link back to the vault root
+    } catch (err) {
+      // On Windows, creating a directory symlink needs a privilege most setups lack
+      // (Developer Mode off ⇒ EPERM). A junction needs none and pins the same
+      // guarantee: readdir reports it as a link, not a directory, so the walk must
+      // skip it. Anything else is a real failure.
+      if ((err as NodeJS.ErrnoException).code !== 'EPERM' || process.platform !== 'win32') {
+        throw err;
+      }
+      await symlink(root, join(root, 'self'), 'junction');
+    }
     expect(discoverVaults(root)).toEqual([root]);
     expect(runValidate({ dir: root, cwd: root }).exitCode).toBe(0);
   });

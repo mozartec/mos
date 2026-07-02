@@ -1,4 +1,10 @@
-export type { Card, VaultModel, BuildModelResult } from './models.js';
+export type {
+  Card,
+  VaultModel,
+  BuildModelResult,
+  ModelDiagnostic,
+  ModelDiagnosticKind,
+} from './models.js';
 export { createEmptyVaultModel, buildModel, applyFileChange } from './models.js';
 export type { VaultSource } from './vault-source.js';
 export type { ParsedFile } from './parse-file.js';
@@ -83,3 +89,5 @@ export {
 } from './parallel.js';
 export type { ValidateVaultResult } from './validate.js';
 export { validateVault, SUPPORTED_SPEC_VERSION } from './validate.js';
+export type { ValidationReport } from './vault-report.js';
+export { buildValidationReport, formatValidationReport } from './vault-report.js';

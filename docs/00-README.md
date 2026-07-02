@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T18:30:00Z
+updated: 2026-07-02T09:45:38Z
 ---
 
 # Documentation index
@@ -23,7 +23,7 @@ understand the design before changing it.
 10. [`09-CONVENTIONS.md`](09-CONVENTIONS.md) — how to write specs, cards, ADRs
 11. [`10-GLOSSARY.md`](10-GLOSSARY.md) — terminology
 12. [`11-RELEASING.md`](11-RELEASING.md) — branching, commits, versioning, pipelines
-13. [`12-ADOPTING.md`](12-ADOPTING.md) — using mos in your own project (CLI + skills)
+13. [`12-ADOPTING.md`](12-ADOPTING.md) — using mos in your own project (CLI + skills, installing & upgrading)
 14. [`13-DESIGN_SYSTEM.md`](13-DESIGN_SYSTEM.md) — the app's visual language (themes, type, motion)
 
 See also the project [`CHANGELOG.md`](../CHANGELOG.md) at the repo root.

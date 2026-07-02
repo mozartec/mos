@@ -87,6 +87,26 @@
         { "text": "Invents no cards and writes no files" }
       ],
       "files": []
+    },
+    {
+      "id": 4,
+      "name": "script-precompute-candidate-batch",
+      "prompt": "Before reshaping anything: survey this backlog with the skill's script and tell me exactly which cards could run in parallel right now as-is, which area is the bottleneck, and what frontmatter field order new cards must use. Don't edit any files.",
+      "expected_output": "Runs refine_batch.py and reports its mechanical pre-compute without editing anything: the ready set is all five Sketch cards (TR-200, TR-210, TR-201, TR-202, ER-300 — no dependencies, none blocked); the candidate conflict-free batch as-is is TR-200 + ER-300 (greedy in pick order: TR-210, TR-201, and TR-202 each collide with TR-200 on the registry area; ER-300's guide is disjoint); registry is the bottleneck with the highest fan-in (4 ready cards declare it); and new cards must use the fixture's configured fieldOrder — id, type, title, status, priority, parent, dependsOn, touches, created, updated — not the mos default (no phase/owner/sprint/estimate here). No files are edited.",
+      "assertions": [
+        {
+          "text": "Runs the refine_batch.py script (or reproduces its analysis) rather than eyeballing the board"
+        },
+        {
+          "text": "Reports TR-200 and ER-300 as the batch that can run in parallel right now (pairwise-disjoint touches), and does not claim any of the registry-colliding tracks can join it"
+        },
+        { "text": "Names registry as the bottleneck / highest-fan-in area over the ready cards" },
+        {
+          "text": "States the frontmatter order for new cards as the fixture's configured fieldOrder (id, type, title, status, priority, parent, dependsOn, touches, created, updated) — the vault's own order, not mos's default with phase/owner"
+        },
+        { "text": "Edits no files" }
+      ],
+      "files": []
     }
   ]
 }

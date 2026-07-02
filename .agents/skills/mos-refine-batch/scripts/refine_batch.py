@@ -28,9 +28,23 @@ not parsing:
         reshape into a sequenced enabler plus disjoint leaves, instead of a serialized
         pick order. An area declared by many cards is flagged as a possible hub for the
         agent to confirm with the forced-file test + git co-occurrence.
+  - carries the mechanical shape work so the agent confirms instead of deriving:
+      * the READY SET — horizon cards whose dependencies are all done, not blocked,
+        not hidden, not containers (the same "ready" mos-next-card computes);
+      * the overlap clusters FILTERED TO READY cards — collisions among cards that
+        could actually run now, not blocked/parked/future-phase noise;
+      * a CANDIDATE conflict-free batch — a maximal set of ready cards with
+        pairwise-disjoint `touches`, greedy in pick order (the same semantics
+        mos-next-card --parallel computes). Advisory: the agent confirms it;
+      * per-area FAN-IN over the ready set — how many ready cards touch each area,
+        surfacing serialization bottlenecks (de-facto hubs) empirically;
+      * the canonical frontmatter FIELD ORDER per type — the vault's `fieldOrder`
+        (else the spec's documented default) narrowed to each type's declared card
+        fields plus the identity fields — so a writer never re-derives it.
 
   With no `areas` configured the vault plans no surfaces: passes 1-2 still run and pass 3
-  reports that overlap is UNKNOWN rather than guessing (the honest degrade).
+  reports that overlap is UNKNOWN rather than guessing (the honest degrade); the ready
+  set and field order are still reported (they need no surface map).
 
 Cards beyond their initial state are listed separately as frontmatter-only, so the agent
 never rewrites a decided card's prose — even one that shares a surface with the cluster.
@@ -39,6 +53,15 @@ import json, os, re, sys
 from pathlib import Path
 
 IGNORE = {"node_modules", ".git", ".angular", ".turbo", "dist", ".cache"}
+
+# The spec's documented default frontmatter order (VAULT_SPEC §6), used only when the
+# target config declares no `fieldOrder`. Field names of the documented default — not
+# any vault's vocabulary.
+DEFAULT_FIELD_ORDER = ["id", "type", "title", "status", "priority", "phase", "owner",
+                       "sprint", "parent", "estimate", "dependsOn", "touches",
+                       "created", "updated"]
+# The identity fields every card carries regardless of its type's card-face fields.
+REQUIRED_FIELDS = ["id", "type", "title", "status"]
 
 
 def _force_utf8_stdio():
@@ -323,6 +346,92 @@ def overlap_clusters(refinable):
     return clusters, undeclared
 
 
+def compute_ready(cards, columns):
+    """Mark each card ready or not, mirroring mos-next-card's semantics (the two skills
+    must agree on "ready" — don't fork it): not done (last column), not hidden (status
+    maps to no column), not blocked by status, no unmet dependency (a dep that resolves
+    to a card and isn't done), and not a container (no card names it as parent). A dep
+    id that resolves to no card doesn't block — same as mos-next-card."""
+    last = columns[-1] if columns else None
+    has_children = {c["parent"] for c in cards.values() if c["parent"]}
+    known_prefixes = {cid.split("-")[0] for cid in cards}
+    for c in cards.values():
+        deps = [d for d in c["deps"] if d.split("-")[0] in known_prefixes and d != c["id"]]
+        unmet = [d for d in deps if d in cards and cards[d]["column"] != last]
+        c["is_ready"] = (c["column"] is not None and c["column"] != last
+                         and not re.search(r"blocked", c["status"], re.I)
+                         and not unmet and c["id"] not in has_children)
+
+
+def candidate_batch(ready, areas):
+    """A maximal conflict-free batch over the ready cards: greedy and deterministic in
+    pick order, a card joins when its `touches` areas are disjoint from every member —
+    the same semantics mos-next-card --parallel computes, with no size cap. `touches`
+    None => undeclared (surface unknown, set aside); an explicit [] batches. With no
+    `areas` configured the vault plans no surfaces, so no batch can be verified —
+    noAreas is the honest degrade. Advisory: the agent confirms, refinement still
+    proposes-then-applies."""
+    if not areas:
+        return {"noAreas": True, "batch": [c["id"] for c in ready],
+                "conflicts": [], "undeclared": []}
+    batch, claimed = [], {}
+    conflicts, undeclared = [], []
+    for c in ready:
+        cid, names = c["id"], c["touches"]
+        if names is None:
+            undeclared.append(cid)
+            continue
+        clashed = False
+        for member, member_names in claimed.items():
+            shared = [a for a in names if a in member_names]
+            if shared:
+                conflicts.append({"excluded": cid, "with": member, "areas": shared})
+                clashed = True
+        if clashed:
+            continue
+        batch.append(cid)
+        claimed[cid] = names
+    return {"noAreas": False, "batch": batch, "conflicts": conflicts,
+            "undeclared": undeclared}
+
+
+def area_fan_in(ready):
+    """How many ready cards declare each area. High fan-in = a serialization bottleneck
+    (a de-facto hub), surfaced empirically from the cards — no config addition, no code
+    reading."""
+    fan = {}
+    for c in ready:
+        for a in (c["touches"] or []):
+            fan[a] = fan.get(a, 0) + 1
+    return fan
+
+
+def field_order_per_type(cfg, types):
+    """Canonical frontmatter order per type: the vault's `fieldOrder` (else the spec's
+    documented default) narrowed to the type's declared card fields plus the identity
+    fields; wanted fields the order doesn't list follow it (matching the app's
+    orderFrontmatter, where unlisted properties go after the listed ones). A type
+    declaring no `card.fields` gets the full canonical order — still with the identity
+    fields appended when the vault's `fieldOrder` omits one, so the emitted order can
+    always express a complete card."""
+    order = cfg.get("fieldOrder")
+    if not isinstance(order, list) or not order:
+        order = DEFAULT_FIELD_ORDER
+    order = [f for f in order if isinstance(f, str)]
+    out = {}
+    for tn, td in types.items():
+        declared = (td.get("card") or {}).get("fields")
+        if not isinstance(declared, list):
+            declared = order  # no card-face declaration: every ordered field applies
+        wanted = []
+        for f in REQUIRED_FIELDS + [x for x in declared if isinstance(x, str)]:
+            if f not in wanted:
+                wanted.append(f)
+        ordered = [f for f in order if f in wanted]
+        out[tn] = ordered + [f for f in wanted if f not in ordered]
+    return out
+
+
 def main():
     _force_utf8_stdio()
     args = list(sys.argv[1:])
@@ -367,6 +476,17 @@ def main():
 
     clusters, undeclared = overlap_clusters(refinable) if areas else ({}, [])
 
+    # The mechanical shape pre-compute: ready set, ready-filtered clusters, candidate
+    # batch, fan-in (all over the horizon), and the per-type canonical field order.
+    compute_ready(cards, columns)
+    ready = [c for c in refinable if c["is_ready"]]
+    ready_clusters = overlap_clusters(ready)[0] if areas else {}
+    batch = candidate_batch(ready, areas)
+    # Fan-in reasons only over the config's declared areas (the honest degrade): with
+    # none, `touches` values are not a checkable surface map, so report nothing.
+    fan_in = area_fan_in(ready) if areas else {}
+    field_orders = field_order_per_type(cfg, types)
+
     if as_json:
         print(json.dumps({
             "vault": name, "areasDeclared": bool(areas),
@@ -382,6 +502,13 @@ def main():
             "overlapClusters": clusters,
             "undeclaredSurface": undeclared,
             "decidedOnSharedSurface": decided_on_surface,
+            # Ready = mos-next-card's semantics, within this horizon; the batch mirrors
+            # its --parallel (greedy pairwise-disjoint touches), with no size cap.
+            "readySet": [c["id"] for c in ready],
+            "readyOverlapClusters": ready_clusters,
+            "candidateBatch": batch,
+            "areaFanIn": fan_in,
+            "fieldOrder": field_orders,
         }, indent=2))
         return
 
@@ -405,10 +532,20 @@ def main():
         print(f"      touches: {ts}")
         print(f"      file: {c['rel']}")
 
+    def print_field_order():
+        print("\n  Canonical frontmatter order per type (emit new/edited cards in this")
+        print("  order — from the config's fieldOrder, or the spec default):")
+        for tn in sorted(field_orders):
+            print(f"    {tn}: {', '.join(field_orders[tn])}")
+
     print("\n  --- Pass 3: shape (surface overlap) ---")
     if not areas:
         print("  ⚠ This vault declares no `areas`, so overlap is UNKNOWN. Passes 1-2")
-        print("    above still apply; do not claim any cards are parallel-safe.\n")
+        print("    above still apply; do not claim any cards are parallel-safe.")
+        print("\n  Ready within this horizon (deps done, not blocked/hidden; overlap")
+        print("  unknown): " + (", ".join(c["id"] for c in ready) if ready else "(none)"))
+        print_field_order()
+        print()
         return
     if clusters:
         print("  Overlap clusters — reshape these into an enabler + disjoint leaves,")
@@ -426,6 +563,34 @@ def main():
         print("\n  Decided cards on these surfaces (frontmatter-only — sequence around,")
         print("  never reshape their prose):")
         print("    " + ", ".join(decided_on_surface))
+
+    print("\n  --- Ready now (mos-next-card semantics, within this horizon) ---")
+    print("  " + (", ".join(c["id"] for c in ready) if ready else "(none)"))
+    if ready_clusters:
+        print("\n  Collisions among READY cards (the reshape-worthy ones):")
+        for a, ids in sorted(ready_clusters.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            print(f"    {a:<10} shared by {', '.join(ids)}")
+    touches_by_id = {c["id"]: c["touches"] for c in ready}
+    print("\n  Candidate conflict-free batch (pairwise-disjoint touches, greedy in pick")
+    print("  order — confirm it, don't re-derive it):")
+    if batch["batch"]:
+        for cid in batch["batch"]:
+            ts = touches_by_id.get(cid) or []
+            print(f"    {cid:<12} [{', '.join(ts)}]" if ts else f"    {cid:<12} ∅")
+    else:
+        print("    (nothing ready batches)")
+    if batch["conflicts"]:
+        pairs = ", ".join(f"{c['excluded']} (with {c['with']}: {', '.join(c['areas'])})"
+                          for c in batch["conflicts"])
+        print(f"  Excluded by collision: {pairs}")
+    if batch["undeclared"]:
+        print("  Set aside — no `touches` declared: " + ", ".join(batch["undeclared"]))
+    if fan_in:
+        print("\n  Area fan-in over ready cards (high = serialization bottleneck, a")
+        print("  de-facto hub — confirm before concentrating it):")
+        for a, n in sorted(fan_in.items(), key=lambda kv: (-kv[1], kv[0])):
+            print(f"    {a:<10} {n}")
+    print_field_order()
     print()
 
 
