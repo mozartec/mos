@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import type { AreaCollision, Card, FieldDef, TypeDef } from '@mos/core';
+import type { AreaCollision, Card, ChildrenProgress, FieldDef, TypeDef } from '@mos/core';
 import { IconComponent } from '../icon/icon';
 import { IconBolt, IconGitMerge, IconLock } from '../../icons/tabler-icons.generated';
 import { accentClassFor, badgeClassFor } from './card-style';
@@ -10,14 +10,14 @@ import { buildRenderFields, type RenderField } from './card-fields';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],
   templateUrl: './card.html',
-  host: {
-    '[class]': 'hostClass()',
-    tabindex: '0',
-    role: 'button',
-    '(click)': 'onSelect()',
-    '(keydown.enter)': 'onSelect()',
-    '(keydown.space)': 'onSelect(); $event.preventDefault()',
-  },
+  // The host is the card's visual shell and the *mouse* target — its click
+  // forwards to onSelect so the whole card area (padding included) opens the
+  // card. The keyboard/AT widget is the inner role="button" card face, so the
+  // parent breadcrumb chip (F-022) can be a real sibling <button> — two
+  // separate controls, never a focusable control nested inside a
+  // `role="button"` (an AXE violation). The chip stops propagation so its
+  // click doesn't also bubble into this host handler.
+  host: { '[class]': 'hostClass()', '(click)': 'onSelect()' },
 })
 export class CardComponent {
   readonly card = input.required<Card>();
@@ -35,8 +35,22 @@ export class CardComponent {
    * work (F-026, core `safeToStart`) — gets the safe-to-start highlight.
    */
   readonly safeToStart = input<boolean>(false);
+  /**
+   * The card's resolved container, for the parent breadcrumb chip (F-022,
+   * ADR-019). `null` (no chip) when the card has no parent or it doesn't
+   * resolve to a card.
+   */
+  readonly parentCrumb = input<Card | null>(null);
+  /**
+   * Children-progress rollup for a **container** row in a list view (F-022).
+   * `null` (no chip) for leaves and on board columns, where containers never
+   * appear.
+   */
+  readonly progress = input<ChildrenProgress | null>(null);
 
   readonly cardSelect = output<Card>();
+  /** The parent breadcrumb chip was clicked: the container card, to open. */
+  readonly parentSelect = output<Card>();
 
   protected readonly iconLock = IconLock;
   protected readonly iconGitMerge = IconGitMerge;
@@ -83,7 +97,24 @@ export class CardComponent {
     buildRenderFields(this.card(), this.typeDef(), this.fieldsRegistry()),
   );
 
+  /** Done fraction of the progress bar, 0–100 (0 for an empty container). */
+  protected readonly progressPercent = computed<number>(() => {
+    const progress = this.progress();
+    if (progress === null || progress.total === 0) return 0;
+    return (progress.done / progress.total) * 100;
+  });
+
   protected onSelect(): void {
     this.cardSelect.emit(this.card());
+  }
+
+  /**
+   * The breadcrumb chip acts alone: stop the click before it bubbles into the
+   * host's forwarding handler and opens *this* card instead of the container.
+   */
+  protected onParentSelect(event: Event): void {
+    event.stopPropagation();
+    const parent = this.parentCrumb();
+    if (parent !== null) this.parentSelect.emit(parent);
   }
 }

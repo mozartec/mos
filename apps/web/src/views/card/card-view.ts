@@ -83,23 +83,25 @@ export class CardView {
   protected readonly backLink = computed(() => {
     const from = this.from();
     if (from === 'board') return '/board';
+    if (from === 'cards') return '/cards';
     if (from === 'graph') return '/graph';
     return '/wiki';
   });
   protected readonly backLabel = computed(() => {
     const from = this.from();
     if (from === 'board') return 'Board';
+    if (from === 'cards') return 'Cards';
     if (from === 'graph') return 'Graph';
     return 'Wiki';
   });
 
   /**
-   * Round-trip the board's state (scope + filters) so "back" lands on the same
-   * view it was opened from — the same contract the reader honors. Everything
-   * but the page's own `from` rides along.
+   * Round-trip the originating list view's state (scope, filters, sort) so
+   * "back" lands on the same view it was opened from — the same contract the
+   * reader honors. Everything but the page's own `from` rides along.
    */
   protected readonly backQueryParams = computed(() => {
-    if (this.from() !== 'board') return {};
+    if (this.from() !== 'board' && this.from() !== 'cards') return {};
     const params = this.queryParams();
     const restored: Record<string, string> = {};
     for (const key of params.keys) {

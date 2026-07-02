@@ -2,14 +2,14 @@
 id: F-020
 type: feature
 title: Cards lens — a flat, filterable index of every card
-status: Draft
+status: Done
 priority: P2
 phase: Phase 3
 owner: mozart
 dependsOn: [F-023]
-touches: [web]
+touches: [core, web]
 created: 2026-06-11T23:00:00Z
-updated: 2026-06-16T10:33:34Z
+updated: 2026-07-02T00:04:10Z
 ---
 
 # F-020 — Cards lens — a flat, filterable index of every card
@@ -66,12 +66,12 @@ bar.
 
 ## Acceptance
 
-- [ ] `/cards` lists every card in the vault with config-derived columns; recipe-box
+- [x] `/cards` lists every card in the vault with config-derived columns; recipe-box
       renders correctly with no code changes.
-- [ ] Filters and sort compose, persist in the URL, and show a result count; the same
+- [x] Filters and sort compose, persist in the URL, and show a result count; the same
       filter bar component serves board, backlog, and cards.
-- [ ] Rows open the card exactly like board cards do, and are fully keyboard-operable.
-- [ ] AXE passes; the view follows the design-system list idioms in both themes.
+- [x] Rows open the card exactly like board cards do, and are fully keyboard-operable.
+- [x] AXE passes; the view follows the design-system list idioms in both themes.
 
 ## Dependencies
 

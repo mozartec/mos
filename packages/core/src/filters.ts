@@ -39,6 +39,25 @@ export interface FilterState {
   values: Record<string, string>;
 }
 
+/**
+ * Opt-in facets beyond the board's default set (F-020). The defaults stay off
+ * so the board's bar is byte-identical to F-023; the Cards lens turns both on.
+ */
+export interface FacetOptions {
+  /**
+   * Offer a `status` facet: every state name any type declares, in declaration
+   * order. The board never wants it — its columns already fan cards out by
+   * status — but a flat index has no columns to do that.
+   */
+  status?: boolean;
+  /**
+   * Offer the scope field like any other enum facet. The board excludes it
+   * because its switcher owns that dimension (ADR-020); the Cards lens has no
+   * switcher, so scope is a plain filter there.
+   */
+  scope?: boolean;
+}
+
 /** The no-op filter: matches every card. */
 export function emptyFilterState(): FilterState {
   return { q: '', values: {} };
@@ -51,10 +70,15 @@ export function isFilterEmpty(state: FilterState): boolean {
 
 /**
  * Build the facets a vault offers, from its config and the cards present.
- * Order: type, then registry fields in declaration order. The scope field is
- * excluded (the board scopes by it via the switcher, not a filter).
+ * Order: type (then status, when opted in), then registry fields in
+ * declaration order. The scope field is excluded (the board scopes by it via
+ * the switcher, not a filter) unless `options.scope` asks for it.
  */
-export function buildFacets(config: VaultConfig, cards: Card[]): Facet[] {
+export function buildFacets(
+  config: VaultConfig,
+  cards: Card[],
+  options: FacetOptions = {},
+): Facet[] {
   const facets: Facet[] = [];
 
   const typeOptions = Object.entries(config.types).map(([key, def]) => ({
@@ -65,9 +89,21 @@ export function buildFacets(config: VaultConfig, cards: Card[]): Facet[] {
     facets.push({ field: 'type', label: 'Type', options: typeOptions });
   }
 
+  if (options.status === true) {
+    const states = statusValues(config);
+    if (states.length > 0) {
+      facets.push({
+        field: 'status',
+        label: 'Status',
+        options: states.map((v) => ({ value: v, label: v })),
+      });
+    }
+  }
+
   // Exclude the *resolved* scope field (the switcher owns it), which for a 0.3
   // alias vault is derived by normalizeScope rather than set in board.scopeField.
-  const scopeField = normalizeScope(config)?.field;
+  const scope = normalizeScope(config);
+  const scopeField = scope?.field;
   const face = cardFaceFields(config);
   const reserved = new Set<string>([
     'id',
@@ -79,7 +115,8 @@ export function buildFacets(config: VaultConfig, cards: Card[]): Facet[] {
   ]);
 
   for (const [name, def] of Object.entries(config.fields)) {
-    if (name === scopeField || reserved.has(name)) continue;
+    if (reserved.has(name)) continue;
+    if (name === scopeField && options.scope !== true) continue;
 
     if (def.type === 'enum' && def.list !== true) {
       const values = enumValueEntries(config, def.values, def.source).map((v) =>
@@ -111,14 +148,46 @@ export function buildFacets(config: VaultConfig, cards: Card[]): Facet[] {
     }
   }
 
+  // A 0.3 alias vault's scope field (top-level `sprints`, no registry entry)
+  // never passes through the registry loop above — synthesize its facet from
+  // the resolved ScopeDef so `{scope: true}` works for every scope shape.
+  if (options.scope === true && scope !== null && !facets.some((f) => f.field === scope.field)) {
+    const values = scope.values.map((v) => v.name);
+    if (values.length > 0 && !reserved.has(scope.field)) {
+      facets.push({
+        field: scope.field,
+        label: config.fields[scope.field]?.label ?? scope.field,
+        options: values.map((v) => ({ value: v, label: v })),
+      });
+    }
+  }
+
   return facets;
+}
+
+/**
+ * The vault's whole status vocabulary: every state any type declares, in
+ * declaration order, deduped — states shared across types appear once. The
+ * single source behind the status facet's options and any status ordering
+ * (e.g. the Cards lens's column sort), so the two can't drift (ADR-003).
+ */
+export function statusValues(config: VaultConfig): string[] {
+  const states = new Set<string>();
+  for (const type of Object.values(config.types)) {
+    for (const state of Object.keys(type.states ?? {})) states.add(state);
+  }
+  return [...states];
 }
 
 /** True when a card satisfies every active dimension of `state`. */
 export function matchesFilters(card: Card, state: FilterState, config: VaultConfig): boolean {
   for (const [field, value] of Object.entries(state.values)) {
     if (value === '') continue;
-    const actual = field === 'type' ? card.type : card.fields[field];
+    // `type` and `status` are intrinsic card properties, not frontmatter reads
+    // — matching the promoted values keeps the status facet honest even for a
+    // card whose raw frontmatter omitted or malformed them.
+    const actual =
+      field === 'type' ? card.type : field === 'status' ? card.status : card.fields[field];
     if (String(actual ?? '') !== value) return false;
   }
   const q = state.q.trim().toLowerCase();

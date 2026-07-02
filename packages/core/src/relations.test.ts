@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { VaultConfig } from './config.js';
 import type { Card, VaultModel } from './models.js';
 import { buildEdges } from './edges.js';
-import { childrenOf, childrenProgress, dependentsOf } from './relations.js';
+import {
+  childrenOf,
+  childrenProgress,
+  containerIds,
+  dependentsOf,
+  isContainer,
+} from './relations.js';
 
 const config: VaultConfig = {
   specVersion: '0.3',
@@ -136,6 +142,58 @@ describe('dependentsOf', () => {
   });
 });
 
+describe('containerIds / isContainer', () => {
+  it('classifies a card as a container when other cards name it as parent', () => {
+    const m = model([
+      { id: 'F-1', type: 'feature' },
+      { id: 'F-1-S-1', parent: 'F-1' },
+      { id: 'F-2', type: 'feature' },
+    ]);
+    expect(containerIds(m)).toEqual(new Set(['F-1']));
+    expect(isContainer(m, 'F-1')).toBe(true);
+    expect(isContainer(m, 'F-2')).toBe(false);
+    expect(isContainer(m, 'F-1-S-1')).toBe(false);
+  });
+
+  it('classifies every level of a multi-level chain: a container whose parent is also a container', () => {
+    // F-1 → S (both child and container) → T (leaf): only T stays a leaf.
+    const m = model([
+      { id: 'F-1', type: 'feature' },
+      { id: 'S', parent: 'F-1' },
+      { id: 'T', parent: 'S' },
+    ]);
+    expect(containerIds(m)).toEqual(new Set(['F-1', 'S']));
+    expect(isContainer(m, 'S')).toBe(true);
+    expect(isContainer(m, 'T')).toBe(false);
+  });
+
+  it('classifies from data, never from the type name', () => {
+    // A story parenting another story is a container; a childless feature is not.
+    const m = model([{ id: 'F-1', type: 'feature' }, { id: 'S-1' }, { id: 'S-2', parent: 'S-1' }]);
+    expect(isContainer(m, 'S-1')).toBe(true);
+    expect(isContainer(m, 'F-1')).toBe(false);
+  });
+
+  it('skips non-string parents and keeps a dangling parent id, without crashing', () => {
+    const m = model([
+      { id: 'F-1', type: 'feature' },
+      { id: 'ok', parent: 'F-1' },
+      { id: 'orphan', parent: 'GHOST' }, // stray parent: reported by the validator, harmless here
+      { id: 'malformed', parent: 42 },
+      { id: 'empty', parent: '' },
+    ]);
+    // GHOST is in the set (structural, like childrenOf) — but it never matches a
+    // real card's id, so no card is misclassified by it.
+    expect(containerIds(m)).toEqual(new Set(['F-1', 'GHOST']));
+    expect(isContainer(m, '42')).toBe(false);
+  });
+
+  it('returns an empty set for a flat vault (no parent fields at all)', () => {
+    const m = model([{ id: 'R-1', type: 'feature' }, { id: 'R-2' }]);
+    expect(containerIds(m)).toEqual(new Set());
+  });
+});
+
 describe('childrenProgress', () => {
   it('rolls up n done / m total via the last column, not a hardcoded state', () => {
     const m = model([
@@ -168,5 +226,18 @@ describe('childrenProgress', () => {
   it('reports 0/0 for a card with no children', () => {
     const m = model([{ id: 'F-1', type: 'feature' }]);
     expect(childrenProgress(m, config, 'F-1')).toEqual({ done: 0, total: 0 });
+  });
+
+  it('rolls up direct children only in a multi-level tree — grandchildren never double-count', () => {
+    // F → S (a done container child) → T-1/T-2 (one done, one not).
+    const m = model([
+      { id: 'F', type: 'feature' },
+      { id: 'S', parent: 'F', status: 'Done' },
+      { id: 'T-1', parent: 'S', status: 'Done' },
+      { id: 'T-2', parent: 'S', status: 'Todo' },
+    ]);
+    // F counts S by S's own status; T-1/T-2 belong to S's rollup, not F's.
+    expect(childrenProgress(m, config, 'F')).toEqual({ done: 1, total: 1 });
+    expect(childrenProgress(m, config, 'S')).toEqual({ done: 1, total: 2 });
   });
 });

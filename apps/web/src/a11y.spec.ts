@@ -6,6 +6,7 @@ import axe from 'axe-core';
 import { App } from './app/app';
 import { BoardView } from './views/board/board-view';
 import { CardView } from './views/card/card-view';
+import { CardsView } from './views/cards/cards-view';
 import { GraphView } from './views/graph/graph-view';
 import { ReaderView } from './views/reader/reader-view';
 import { WikiView } from './views/wiki/wiki-view';
@@ -53,8 +54,10 @@ const TEST_FILES: Record<string, string> = {
   'docs/other.md': '# Other\n',
   'board/T-001.md':
     '---\nid: T-001\ntype: task\ntitle: First task\nstatus: Done\npriority: P0\n---\n\n# T-001\n',
+  // `parent: T-001` makes T-001 a container and gives T-002 a breadcrumb chip,
+  // so the audits cover the F-022 chrome (chip button, progress chip) too.
   'board/T-002.md':
-    '---\nid: T-002\ntype: task\ntitle: Second task\nstatus: In Progress\npriority: P1\ndependsOn: [T-001]\n---\n\n# T-002\n',
+    '---\nid: T-002\ntype: task\ntitle: Second task\nstatus: In Progress\npriority: P1\nparent: T-001\ndependsOn: [T-001]\n---\n\n# T-002\n',
 };
 
 async function renderAndAudit(
@@ -98,6 +101,7 @@ describe('AXE accessibility audit', () => {
     ['app shell', App, 'A11y Test Vault'],
     ['wiki', WikiView, 'welcome.md'],
     ['board', BoardView, 'T-001'],
+    ['cards', CardsView, 'T-001'],
     ['graph', GraphView, 'T-002'],
     ['reader', ReaderView, 'No file selected'],
   ];
@@ -136,30 +140,37 @@ describe('AXE accessibility audit', () => {
     });
   }
 
-  // The side peek is a dialog overlaid on the board; audit it open (F-021-S-03)
-  // since the peek-open state is where its ARIA (role/modal/name) must hold.
+  // The side peek is a dialog overlaid on the board/cards views; audit it open
+  // (F-021-S-03) since the peek-open state is where its ARIA (role/modal/name)
+  // must hold.
+  const peekHosts: [string, string, Type<unknown>][] = [
+    ['board', '/board?peek=T-001', BoardView],
+    ['cards', '/cards?peek=T-001', CardsView],
+  ];
   for (const theme of ['mos-paper', 'mos-carbon']) {
-    it(`board with the side peek open has no AXE violations under ${theme}`, async () => {
-      await TestBed.configureTestingModule({
-        providers: [
-          provideRouter([{ path: 'board', component: BoardView }]),
-          { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(TEST_FILES) },
-        ],
-      }).compileComponents();
+    for (const [name, url, component] of peekHosts) {
+      it(`${name} with the side peek open has no AXE violations under ${theme}`, async () => {
+        await TestBed.configureTestingModule({
+          providers: [
+            provideRouter([{ path: name, component }]),
+            { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(TEST_FILES) },
+          ],
+        }).compileComponents();
 
-      document.documentElement.dataset['theme'] = theme;
-      const harness = await RouterTestingHarness.create('/board?peek=T-001');
-      await settle(harness.fixture);
+        document.documentElement.dataset['theme'] = theme;
+        const harness = await RouterTestingHarness.create(url);
+        await settle(harness.fixture);
 
-      const el = harness.routeNativeElement as HTMLElement;
-      expect(el.querySelector('[role="dialog"]')).not.toBeNull();
-      expect(el.textContent ?? '').toContain('First task');
+        const el = harness.routeNativeElement as HTMLElement;
+        expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+        expect(el.textContent ?? '').toContain('First task');
 
-      const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
-      const violations = results.violations.map(
-        (v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`,
-      );
-      expect(violations).toEqual([]);
-    });
+        const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
+        const violations = results.violations.map(
+          (v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`,
+        );
+        expect(violations).toEqual([]);
+      });
+    }
   }
 });
