@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 // validate-vault.mjs — check a mos vault against its .mos/config.json.
 //
-// The validation rules live in @mos/core (validateVault); this script is the
-// thin I/O shell around them — it discovers vaults, reads files, parses cards
-// with core's parser, builds the model, and prints the report. Because it
-// imports core's TypeScript source (no dist/, ADR-008), run it with Bun:
+// The validation rules live in @mos/core (validateVault), and so do the report
+// assembly + rendering (buildValidationReport / formatValidationReport, T-022)
+// shared with the `mos validate` CLI; this script is the thin I/O shell around
+// them — it discovers vaults, reads files, parses cards with core's parser,
+// builds the model, and prints the report. Because it imports core's
+// TypeScript source (no dist/, ADR-008), run it with Bun:
 //   bun run validate            # this repo's vault
 //   bun scripts/validate-vault.mjs <vaultDir> [<vaultDir> ...]
 //
@@ -19,9 +21,8 @@ import {
   loadConfig,
   parseFile,
   buildModel,
-  validateVault as validateVaultCore,
-  placeCard,
-  sortWithinColumn,
+  buildValidationReport,
+  formatValidationReport,
   globToRegExp,
   toPosixPath,
 } from '../packages/core/src/index.js';
@@ -43,9 +44,9 @@ function walk(dir, acc = []) {
 /**
  * Validate one vault rooted at `root`. The I/O half of the validator: read the
  * config, walk the tree, parse the board-scope cards with core's parser, then
- * hand the parsed model + config + file list to core's pure validateVault. The
- * returned object carries the diagnostics (errors/warnings) plus the board view
- * printReport renders — both built here, nothing validated here.
+ * hand the model + config + file list to core's buildValidationReport (which
+ * runs the pure validateVault and lays out the board — including the narrow
+ * `config:`-error filtering, documented there). Nothing validated here.
  */
 export function validateVault(root) {
   const { config, errors: configErrors } = loadConfig(
@@ -67,73 +68,7 @@ export function validateVault(root) {
   }
   const build = buildModel(parsed, config);
 
-  const { errors, warnings } = validateVaultCore(build, config, relPaths);
-
-  // Surface only loadConfig's two fundamental, config-unusable errors — invalid
-  // JSON / not an object — which it alone prefixes with `config:`. Its semantic
-  // diagnostics (field types, colors, idPattern, enum sources) are deliberately
-  // NOT forwarded: those checks are core validateVault's contract, and surfacing
-  // loadConfig's would both add rules the validator doesn't promise and change
-  // `validate` output. Keep this filter narrow — widening it past the `config:`
-  // fundamentals re-introduces both. (If core ever gives a config:-prefixed
-  // semantic error, switch this to an explicit "config unusable" signal.)
-  const allErrors = [...configErrors.filter((e) => e.startsWith('config:')), ...errors];
-
-  // Lay the cards out by column for the human-readable report — presentation
-  // only, reusing core's placement and within-column sort.
-  const cards = Object.values(build.model.cards);
-  const board = Object.fromEntries(config.board.columns.map((c) => [c, []]));
-  const hidden = [];
-  for (const card of cards) {
-    const column = placeCard(card, config).column;
-    // A status mapping to a column outside board.columns is a config error core
-    // already reports; route it off-board (Object.hasOwn, not `in`, dodges
-    // prototype keys like `constructor`) so the report renders that error
-    // instead of crashing on a missing column bucket.
-    (column == null || !Object.hasOwn(board, column) ? hidden : board[column]).push(card);
-  }
-  for (const column of config.board.columns) {
-    board[column] = sortWithinColumn(board[column], config);
-  }
-
-  return {
-    errors: allErrors,
-    warnings,
-    name: config.vault.name || root,
-    specVersion: config.specVersion || undefined,
-    cardCount: cards.length,
-    columns: config.board.columns,
-    board,
-    hidden,
-  };
-}
-
-// Print one vault's report. The output is the validator's human-facing surface;
-// it reads the card shape core returns (status, priority, title, and parent in
-// fields). The importable validateVault is side-effect free; only the CLI prints.
-function printReport({ name, specVersion, cardCount, columns, board, hidden, warnings, errors }) {
-  console.log(
-    `\n${'='.repeat(60)}\nVAULT: ${name}  (specVersion ${specVersion ?? '?'}, ${cardCount} cards)\n${'='.repeat(60)}`,
-  );
-  for (const col of columns) {
-    console.log(`\n  [${col}] (${board[col].length})`);
-    for (const c of board[col]) {
-      const badge = c.status === 'Blocked' ? ' *BLOCKED*' : '';
-      const par = c.fields?.parent ? `  ^${c.fields.parent}` : '';
-      console.log(`    ${c.id.padEnd(12)} ${c.priority ?? '--'} ${c.title ?? ''}${par}${badge}`);
-    }
-  }
-  if (hidden.length) {
-    console.log(`\n  [hidden/off-board] (${hidden.length})`);
-    for (const c of hidden)
-      console.log(`    ${c.id.padEnd(12)} ${(c.status ?? '').padEnd(9)} ${c.title ?? ''}`);
-  }
-  if (warnings.length) {
-    console.log(`\n  WARNINGS (${warnings.length}, non-fatal):`);
-    for (const w of warnings) console.log(`    ! ${w}`);
-  }
-  console.log(errors.length ? `\n  ERRORS (${errors.length}):` : `\n  OK — valid`);
-  for (const e of errors) console.log(`    x ${e}`);
+  return buildValidationReport(build, config, relPaths, { configErrors, fallbackName: root });
 }
 
 function discover(start) {
@@ -168,7 +103,7 @@ if (import.meta.main) {
   let total = 0;
   for (const r of roots) {
     const result = validateVault(r);
-    printReport(result);
+    console.log(formatValidationReport(result));
     total += result.errors.length;
   }
   console.log(`\n${total === 0 ? 'ALL VAULTS VALID' : total + ' ERROR(S)'}\n`);

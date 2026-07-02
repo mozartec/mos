@@ -4,26 +4,25 @@
  * repo that has the CLI. Read-only over the vault (ADR-002).
  *
  * The validation *rules* live in `@mos/core` (`validateVault`, graduated in
- * T-017); this file is only the I/O shell — discover vaults, read files, parse
- * cards with core's parser, build the model, render the report. It mirrors the
- * report that `scripts/validate-vault.mjs` prints for `bun run validate`, so the
- * two entry points read the same; both call the one core validator, never a copy
- * of the rules.
+ * T-017), and so do the report assembly + rendering (`buildValidationReport` /
+ * `formatValidationReport`, T-022) that `scripts/validate-vault.mjs` shares for
+ * `bun run validate` — the two entry points print the same report because they
+ * call the same code, never a copy. This file is only the I/O shell: discover
+ * vaults, read files, parse cards with core's parser, build the model.
  */
 import { existsSync, readdirSync, readFileSync, type Dirent } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import {
   buildModel,
+  buildValidationReport,
+  formatValidationReport,
   globToRegExp,
   loadConfig,
-  type Card,
   type ParsedFile,
   parseFile,
-  placeCard,
-  sortWithinColumn,
   SUPPORTED_SPEC_VERSION,
   toPosixPath,
-  validateVault as validateVaultCore,
+  type ValidationReport,
 } from '@mos/core';
 
 /**
@@ -39,18 +38,8 @@ function ignoredDir(name: string): boolean {
   return IGNORE.has(name) || (name.startsWith('.') && name !== '.mos');
 }
 
-/** One vault's validation outcome plus the board view the report renders. */
-export interface VaultReport {
-  root: string;
-  name: string;
-  specVersion?: string;
-  cardCount: number;
-  columns: string[];
-  board: Record<string, Card[]>;
-  hidden: Card[];
-  warnings: string[];
-  errors: string[];
-}
+/** One vault's report (core's {@link ValidationReport}) plus its root path. */
+export type VaultReport = ValidationReport & { root: string };
 
 /** Is `dir` a vault root? (A folder holding `.mos/config.json`.) */
 export function isVault(dir: string): boolean {
@@ -95,9 +84,8 @@ function walk(dir: string, acc: string[] = []): string[] {
 /**
  * Validate the vault rooted at `root`: load its config, parse the board-scope
  * cards with core's parser, then hand the model + config + file list to core's
- * pure `validateVault`. Only `config:`-prefixed loadConfig errors (invalid JSON
- * / not an object — the config is unusable) are surfaced alongside; core owns
- * every semantic rule.
+ * `buildValidationReport` (which runs the pure `validateVault` and lays out the
+ * board — including the narrow `config:`-error filtering, documented there).
  */
 export function validateVaultAt(root: string): VaultReport {
   const { config, errors: configErrors } = loadConfig(
@@ -117,66 +105,10 @@ export function validateVaultAt(root: string): VaultReport {
   }
   const build = buildModel(parsed, config);
 
-  const { errors, warnings } = validateVaultCore(build, config, relPaths);
-  const allErrors = [...configErrors.filter((e) => e.startsWith('config:')), ...errors];
-
-  // Lay the cards out by column for the human-readable report — presentation
-  // only, reusing core's placement and within-column sort.
-  const cards = Object.values(build.model.cards);
-  const board: Record<string, Card[]> = Object.fromEntries(
-    config.board.columns.map((c) => [c, []]),
-  );
-  const hidden: Card[] = [];
-  for (const card of cards) {
-    const column = placeCard(card, config).column;
-    // A status mapping to a column outside board.columns is a config error core
-    // already reports; route it off-board (Object.hasOwn, not `in`, dodges
-    // prototype keys like `constructor`) so the report renders that error
-    // instead of crashing on a missing column bucket.
-    (column == null || !Object.hasOwn(board, column) ? hidden : board[column]).push(card);
-  }
-  for (const column of config.board.columns) {
-    board[column] = sortWithinColumn(board[column], config);
-  }
-
   return {
     root,
-    name: config.vault.name || root,
-    specVersion: config.specVersion || undefined,
-    cardCount: cards.length,
-    columns: config.board.columns,
-    board,
-    hidden,
-    warnings,
-    errors: allErrors,
+    ...buildValidationReport(build, config, relPaths, { configErrors, fallbackName: root }),
   };
-}
-
-/** Render one vault's report as text (mirrors `validate-vault.mjs`'s output). */
-export function formatVaultReport(r: VaultReport): string {
-  const bar = '='.repeat(60);
-  const out: string[] = [
-    `\n${bar}\nVAULT: ${r.name}  (specVersion ${r.specVersion ?? '?'}, ${r.cardCount} cards)\n${bar}`,
-  ];
-  for (const col of r.columns) {
-    out.push(`\n  [${col}] (${r.board[col].length})`);
-    for (const c of r.board[col]) {
-      const badge = c.status === 'Blocked' ? ' *BLOCKED*' : '';
-      const par = c.fields.parent ? `  ^${String(c.fields.parent)}` : '';
-      out.push(`    ${c.id.padEnd(12)} ${c.priority ?? '--'} ${c.title}${par}${badge}`);
-    }
-  }
-  if (r.hidden.length) {
-    out.push(`\n  [hidden/off-board] (${r.hidden.length})`);
-    for (const c of r.hidden) out.push(`    ${c.id.padEnd(12)} ${c.status.padEnd(9)} ${c.title}`);
-  }
-  if (r.warnings.length) {
-    out.push(`\n  WARNINGS (${r.warnings.length}, non-fatal):`);
-    for (const w of r.warnings) out.push(`    ! ${w}`);
-  }
-  out.push(r.errors.length ? `\n  ERRORS (${r.errors.length}):` : `\n  OK — valid`);
-  for (const e of r.errors) out.push(`    x ${e}`);
-  return out.join('\n');
 }
 
 /** Result of a `mos validate` run: the text to print and the exit code. */
@@ -200,7 +132,7 @@ export function runValidate({ dir, cwd }: { dir?: string; cwd: string }): Valida
   const totalErrors = reports.reduce((n, r) => n + r.errors.length, 0);
 
   const head = `mos validate · vault format spec ≤ ${SUPPORTED_SPEC_VERSION} supported`;
-  const body = reports.map(formatVaultReport).join('\n');
+  const body = reports.map(formatValidationReport).join('\n');
   const tail = totalErrors === 0 ? '\nALL VAULTS VALID\n' : `\n${totalErrors} ERROR(S)\n`;
 
   return { output: `${head}\n${body}\n${tail}`, exitCode: totalErrors === 0 ? 0 : 1 };
