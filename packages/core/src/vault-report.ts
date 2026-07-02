@@ -92,7 +92,7 @@ export function formatValidationReport(r: ValidationReport): string {
     out.push(`\n  [${col}] (${r.board[col].length})`);
     for (const c of r.board[col]) {
       const badge = c.status === 'Blocked' ? ' *BLOCKED*' : '';
-      const par = c.fields.parent ? `  ^${String(c.fields.parent)}` : '';
+      const par = c.fields['parent'] ? `  ^${String(c.fields['parent'])}` : '';
       out.push(`    ${c.id.padEnd(12)} ${c.priority ?? '--'} ${c.title}${par}${badge}`);
     }
   }
