@@ -263,6 +263,10 @@
                           @for (card of col.cards; track cardTrack($index, card)) {
                             @if (config(); as cfg) {
                               <li class="list-none">
+                                <!-- No parentCrumb in a lane: the lane header already
+                                     names the parent, so a per-card chip would be
+                                     redundant. (parentSelect) is therefore omitted too,
+                                     since the chip that emits it never renders here. -->
                                 <app-card
                                   [card]="card"
                                   [typeDef]="cfg.types[card.type]"
@@ -271,7 +275,6 @@
                                   [collisions]="collisionsFor(card)"
                                   [safeToStart]="isSafeToStart(card)"
                                   (cardSelect)="onCardSelect($event)"
-                                  (parentSelect)="onCardSelect($event)"
                                 />
                               </li>
                             }
