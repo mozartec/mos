@@ -172,13 +172,11 @@ export function buildFacets(
  * (e.g. the Cards lens's column sort), so the two can't drift (ADR-003).
  */
 export function statusValues(config: VaultConfig): string[] {
-  const states: string[] = [];
+  const states = new Set<string>();
   for (const type of Object.values(config.types)) {
-    for (const state of Object.keys(type.states ?? {})) {
-      if (!states.includes(state)) states.push(state);
-    }
+    for (const state of Object.keys(type.states ?? {})) states.add(state);
   }
-  return states;
+  return [...states];
 }
 
 /** True when a card satisfies every active dimension of `state`. */

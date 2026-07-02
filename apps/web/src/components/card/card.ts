@@ -10,11 +10,14 @@ import { buildRenderFields, type RenderField } from './card-fields';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [IconComponent],
   templateUrl: './card.html',
-  // The host is the card's visual shell only. The interactive widget is an
-  // inner element wrapping the card face, so the parent breadcrumb chip
-  // (F-022) can be a real sibling <button> — two separate controls, never a
-  // focusable control nested inside a `role="button"` (an AXE violation).
-  host: { '[class]': 'hostClass()' },
+  // The host is the card's visual shell and the *mouse* target — its click
+  // forwards to onSelect so the whole card area (padding included) opens the
+  // card. The keyboard/AT widget is the inner role="button" card face, so the
+  // parent breadcrumb chip (F-022) can be a real sibling <button> — two
+  // separate controls, never a focusable control nested inside a
+  // `role="button"` (an AXE violation). The chip stops propagation so its
+  // click doesn't also bubble into this host handler.
+  host: { '[class]': 'hostClass()', '(click)': 'onSelect()' },
 })
 export class CardComponent {
   readonly card = input.required<Card>();
@@ -73,7 +76,7 @@ export class CardComponent {
     // only while raised on hover (design system §Shape, §Motion). Focus comes
     // from the global focus-visible ring in styles.css.
     const base =
-      'card bg-base-100 border-y border-r border-base-content/10 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-150 ease-out block rounded-box p-3';
+      'card bg-base-100 border-y border-r border-base-content/10 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-150 ease-out cursor-pointer block rounded-box p-3';
     const accent = this.accentClass();
     const blockedClass = this.blocked() ? 'border border-error/40 border-l-error bg-error/5' : '';
     // Safe-to-start: a subtle accent ring — the board echo of the graph's
@@ -105,8 +108,12 @@ export class CardComponent {
     this.cardSelect.emit(this.card());
   }
 
-  /** The breadcrumb chip: open the container, not this card. */
-  protected onParentSelect(): void {
+  /**
+   * The breadcrumb chip acts alone: stop the click before it bubbles into the
+   * host's forwarding handler and opens *this* card instead of the container.
+   */
+  protected onParentSelect(event: Event): void {
+    event.stopPropagation();
     const parent = this.parentCrumb();
     if (parent !== null) this.parentSelect.emit(parent);
   }

@@ -156,7 +156,7 @@ describe('CardComponent', () => {
     expect(fixtureBlocked.nativeElement.textContent).toContain('Blocked');
   });
 
-  it('emits select event on click/Enter/Space on the card-face widget', async () => {
+  it('emits select on a click anywhere on the card and on Enter/Space on the face widget', async () => {
     const fixture = await createComponent({
       card: testCard,
       typeDef: testTypeDef,
@@ -170,13 +170,14 @@ describe('CardComponent', () => {
     });
 
     const host = fixture.nativeElement as HTMLElement;
-    // The interactive widget is the inner card face (focusable role=button),
-    // not the host shell — so the breadcrumb chip can be a sibling control.
+    // Mouse: the host forwards clicks, so even the padded shell around the
+    // face opens the card — no dead zone at the card's edges.
+    host.click();
+    expect(emittedCard).toEqual(testCard);
+
+    // Keyboard/AT: the focusable widget is the inner card face.
     const face = host.querySelector('[role="button"]') as HTMLElement;
     expect(face.getAttribute('tabindex')).toBe('0');
-
-    face.click();
-    expect(emittedCard).toEqual(testCard);
 
     emittedCard = undefined;
     face.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));

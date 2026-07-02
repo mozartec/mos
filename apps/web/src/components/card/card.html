@@ -4,7 +4,7 @@
   <button
     type="button"
     class="mb-2 flex max-w-full cursor-pointer items-center gap-1 text-[10px] text-base-content/70 transition-colors duration-150 hover:text-base-content"
-    (click)="onParentSelect()"
+    (click)="onParentSelect($event)"
     [attr.title]="'Open ' + parent.id + ' — ' + parent.title"
   >
     <span class="font-mono font-semibold tracking-wider">{{ parent.id }}</span>
@@ -12,12 +12,13 @@
   </button>
 }
 
-<!-- The card face: the one interactive control that opens this card. -->
+<!-- The card face: the focusable widget that opens this card. Mouse clicks
+     (incl. AT-dispatched clicks) bubble to the host's forwarding handler, so
+     the padded shell around the face opens the card too — no dead zone. -->
 <div
   role="button"
   tabindex="0"
-  class="flex cursor-pointer flex-col gap-2.5"
-  (click)="onSelect()"
+  class="flex flex-col gap-2.5"
   (keydown.enter)="onSelect()"
   (keydown.space)="onSelect(); $event.preventDefault()"
 >
