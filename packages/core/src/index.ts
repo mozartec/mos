@@ -1,4 +1,10 @@
-export type { Card, VaultModel, BuildModelResult } from './models.js';
+export type {
+  Card,
+  VaultModel,
+  BuildModelResult,
+  ModelDiagnostic,
+  ModelDiagnosticKind,
+} from './models.js';
 export { createEmptyVaultModel, buildModel, applyFileChange } from './models.js';
 export type { VaultSource } from './vault-source.js';
 export type { ParsedFile } from './parse-file.js';

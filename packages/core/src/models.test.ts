@@ -83,7 +83,11 @@ describe('buildModel', () => {
     expect(Object.keys(model.cards)).toEqual(['F-001']);
     expect(model.cards['F-001']?.title).toBe('First');
     expect(model.files).toEqual(['docs/guide.md']);
-    expect(diagnostics).toContain("duplicate id 'F-001' (board/F-001-duplicate.md)");
+    expect(diagnostics).toContainEqual({
+      kind: 'duplicate-id',
+      message: "duplicate id 'F-001' (board/F-001-duplicate.md)",
+      path: 'board/F-001-duplicate.md',
+    });
   });
 
   it('reports board-scope files with missing/unrecognized type as not a card', () => {
@@ -107,8 +111,16 @@ describe('buildModel', () => {
 
     expect(model.cards).toEqual({});
     expect(diagnostics).toEqual([
-      'board/notes.md: not a card (unrecognized or missing type)',
-      'board/unknown.md: not a card (unrecognized or missing type)',
+      {
+        kind: 'not-a-card',
+        message: 'board/notes.md: not a card (unrecognized or missing type)',
+        path: 'board/notes.md',
+      },
+      {
+        kind: 'not-a-card',
+        message: 'board/unknown.md: not a card (unrecognized or missing type)',
+        path: 'board/unknown.md',
+      },
     ]);
   });
 
@@ -125,7 +137,9 @@ describe('buildModel', () => {
     const { model, diagnostics } = buildModel(files, config);
 
     expect(model.cards).toEqual({});
-    expect(diagnostics).toEqual(['board/no-id.md: card has no id']);
+    expect(diagnostics).toEqual([
+      { kind: 'no-id', message: 'board/no-id.md: card has no id', path: 'board/no-id.md' },
+    ]);
   });
 
   it('coerces scalar frontmatter values to strings for card fields', () => {
@@ -379,7 +393,11 @@ describe('applyFileChange', () => {
       'board/S-001-copy.md',
       card('board/S-001-copy.md', 'S-001', 'Done'),
     );
-    expect(diagnostics.some((d) => d.includes("duplicate id 'S-001'"))).toBe(true);
+    expect(diagnostics).toContainEqual({
+      kind: 'duplicate-id',
+      message: "duplicate id 'S-001' (board/S-001-copy.md)",
+      path: 'board/S-001-copy.md',
+    });
     expect(model.cards['S-001']?.path).toBe('board/S-001.md');
   });
 
