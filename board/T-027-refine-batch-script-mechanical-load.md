@@ -2,14 +2,14 @@
 id: T-027
 type: task
 title: refine-batch script carries more mechanical load, generically, at scale
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 dependsOn: [F-027]
 touches: [skills]
 created: 2026-06-21T10:08:13Z
-updated: 2026-06-21T10:08:13Z
+updated: 2026-07-02T09:45:38Z
 ---
 
 # T-027 — refine-batch script carries more mechanical load, generically, at scale
@@ -111,16 +111,16 @@ no area names, types, or states) — and calibrates the SKILL's reshape guidance
 
 ## Acceptance
 
-- [ ] `refine_batch.py --json` additionally emits: the ready set, ready-filtered overlap
+- [x] `refine_batch.py --json` additionally emits: the ready set, ready-filtered overlap
       clusters, a candidate conflict-free batch (pairwise-disjoint `touches` over ready cards,
       matching `mos-next-card --parallel` semantics), and per-area fan-in — all derived from
       existing card fields, hardcoding no area/type/state names.
-- [ ] The script emits the canonical field order per type read from the target config
+- [x] The script emits the canonical field order per type read from the target config
       (`fieldOrder` when set, else the default) — correct on a vault whose order is non-default.
-- [ ] `SKILL.md` states the area-shape calibration rule (fine-grained hubs+modules → full
+- [x] `SKILL.md` states the area-shape calibration rule (fine-grained hubs+modules → full
       reshape reasoning; coarse top-level-dir areas → serial-by-construction, don't reshape),
       and Pass 3 consumes the new outputs.
-- [ ] The refine eval exercises the candidate-batch and field-order outputs against the
+- [x] The refine eval exercises the candidate-batch and field-order outputs against the
       existing hub+module fixture, cold; installed copies + `skills-lock.json` regenerated and
       byte-matching; this repo validates clean.
 
