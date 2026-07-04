@@ -11,7 +11,7 @@ import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { findForwardComments, collectFiles } from './check-forward-comments.mjs';
 
 const tmpDirs = [];
@@ -103,7 +103,7 @@ test('collectFiles walks a directory and applies the extension filter', () => {
   const dir = makeTmp();
   writeFileSync(join(dir, 'a.ts'), '// ok\n');
   writeFileSync(join(dir, 'b.txt'), '// the future here\n');
-  const found = collectFiles(dir).map((p) => p.split('/').pop());
+  const found = collectFiles(dir).map((p) => basename(p));
   assert.deepEqual(found, ['a.ts']);
 });
 
@@ -112,7 +112,7 @@ test('collectFiles skips ignored directories', () => {
   writeFileSync(join(dir, 'kept.ts'), '// ok\n');
   mkdirSync(join(dir, 'node_modules'));
   writeFileSync(join(dir, 'node_modules', 'dep.ts'), '// the future here\n');
-  const found = collectFiles(dir).map((p) => p.split('/').pop());
+  const found = collectFiles(dir).map((p) => basename(p));
   assert.deepEqual(found, ['kept.ts']);
 });
 
