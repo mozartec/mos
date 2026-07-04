@@ -2,13 +2,13 @@
 id: F-035
 type: feature
 title: Wiki reader — sticky tree, readable width, Mermaid diagrams
-status: Draft
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [web, docs]
 created: 2026-07-04T09:00:00Z
-updated: 2026-07-04T09:00:00Z
+updated: 2026-07-04T16:30:00Z
 ---
 
 # F-035 — Wiki reader — sticky tree, readable width, Mermaid diagrams
@@ -114,22 +114,22 @@ Three stories (all `web`; S-02 and S-03 lightly share `markdown-reader` /
 
 ## Acceptance
 
-- [ ] The top navigation bar stays visible on every view (wiki, board, cards,
+- [x] The top navigation bar stays visible on every view (wiki, board, cards,
       graph, reader) while content scrolls beneath it.
-- [ ] On `/wiki`, scrolling a long document keeps the file tree in view; a tree
+- [x] On `/wiki`, scrolling a long document keeps the file tree in view; a tree
       taller than the viewport scrolls on its own; the content scrolls
       independently; below `lg` the current stacked layout is preserved.
-- [ ] A wide code block / directory tree / table renders fully in the reader
+- [x] A wide code block / directory tree / table renders fully in the reader
       without an inner horizontal scrollbar for ordinary content, on both
       `/wiki` and `/reader`; the page itself never scrolls sideways.
-- [ ] A ` ```mermaid ` block renders as an SVG diagram matching the active theme;
+- [x] A ` ```mermaid ` block renders as an SVG diagram matching the active theme;
       a malformed diagram falls back to its source plus an error note without
       breaking the rest of the page; ordinary code blocks are unaffected.
-- [ ] `mermaid` is dynamically imported — the board and wiki initial bundles do
+- [x] `mermaid` is dynamically imported — the board and wiki initial bundles do
       not grow (verify it is a lazy chunk).
-- [ ] AXE passes on the wiki and reader in both themes; tree keyboard navigation
+- [x] AXE passes on the wiki and reader in both themes; tree keyboard navigation
       still works.
-- [ ] `bun run lint && bun run test && bun run build` are green;
+- [x] `bun run lint && bun run test && bun run build` are green;
       `docs/04-TECH_STACK.md` records the `mermaid` dependency.
 
 ## Dependencies

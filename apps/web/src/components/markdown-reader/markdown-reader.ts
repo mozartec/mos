@@ -4,11 +4,13 @@ import {
   ElementRef,
   computed,
   effect,
+  inject,
   input,
   output,
   viewChild,
 } from '@angular/core';
 import { renderMarkdown } from './render-markdown';
+import { ThemeService } from '../../services/theme-service';
 import {
   resolveReferences,
   resolveRelativeLink,
@@ -19,6 +21,71 @@ import {
 
 /** Schemes that open in a new tab; anything else with a scheme renders inert (F-017). */
 const EXTERNAL_SCHEMES = /^(?:https?|mailto):/i;
+
+/**
+ * Mermaid mutates module-global config/state on every `initialize`/`render`, so
+ * concurrent renders — a theme flip while a diagram is still rendering, or two
+ * live readers — corrupt each other (a valid diagram can then throw and show the
+ * error note). All renders across every MarkdownReader are therefore serialized
+ * through one chain, and a module-global counter keeps render ids unique across
+ * instances.
+ */
+let mermaidRenderChain: Promise<void> = Promise.resolve();
+let mermaidRenderSeq = 0;
+
+/** First-token diagram type → a human name for a diagram's accessible label. */
+const MERMAID_TYPE_LABELS: Record<string, string> = {
+  flowchart: 'Flowchart',
+  graph: 'Flowchart',
+  sequencediagram: 'Sequence diagram',
+  classdiagram: 'Class diagram',
+  statediagram: 'State diagram',
+  'statediagram-v2': 'State diagram',
+  erdiagram: 'Entity-relationship diagram',
+  gantt: 'Gantt chart',
+  pie: 'Pie chart',
+  journey: 'User journey',
+  gitgraph: 'Git graph',
+  mindmap: 'Mind map',
+  timeline: 'Timeline',
+  quadrantchart: 'Quadrant chart',
+  block: 'Block diagram',
+  'block-beta': 'Block diagram',
+};
+
+/**
+ * A meaningful accessible name for a rendered diagram: the author's title
+ * (`accTitle`, else a frontmatter `title:`) if present, else the diagram type —
+ * so a screen-reader user can tell a flowchart from a sequence diagram instead
+ * of hearing "Diagram" for every one. Leading `--- … ---` frontmatter and
+ * `%%{ … }%%` init directives are peeled first so they aren't misread as the
+ * type — exactly the configured diagrams that would otherwise regress.
+ */
+function mermaidLabel(source: string): string {
+  let rest = source.trim();
+  let frontmatterTitle: string | undefined;
+  for (;;) {
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(rest);
+    if (frontmatter) {
+      frontmatterTitle ??= /^\s*title\s*:\s*(.+)$/im.exec(frontmatter[1])?.[1]?.trim();
+      rest = rest.slice(frontmatter[0].length).trimStart();
+      continue;
+    }
+    const directive = /^%%\{[\s\S]*?\}%%[ \t]*\r?\n?/.exec(rest);
+    if (directive) {
+      rest = rest.slice(directive[0].length).trimStart();
+      continue;
+    }
+    break;
+  }
+
+  const accTitle = /^\s*accTitle\s*:\s*(.+)$/im.exec(source)?.[1]?.trim();
+  if (accTitle) return accTitle;
+  if (frontmatterTitle) return frontmatterTitle;
+
+  const firstToken = rest.split(/[\s\n{(]/)[0]?.toLowerCase() ?? '';
+  return MERMAID_TYPE_LABELS[firstToken] ?? 'Diagram';
+}
 
 @Component({
   selector: 'app-markdown-reader',
@@ -43,6 +110,11 @@ export class MarkdownReader {
 
   protected readonly html = computed(() => renderMarkdown(this.body()));
 
+  private readonly themeService = inject(ThemeService);
+
+  /** Monotonic guard so a superseded async diagram render never mutates the DOM. */
+  private mermaidGen = 0;
+
   constructor() {
     effect(() => {
       const containerEl = this.containerRef()?.nativeElement;
@@ -52,6 +124,10 @@ export class MarkdownReader {
       const bodyVal = this.body();
       const modelVal = this.model();
       const configVal = this.config();
+      // Read as a dependency: a theme flip re-runs the effect, which re-sets
+      // innerHTML (restoring the mermaid source blocks) so diagrams re-render
+      // in the new theme.
+      const isDark = this.themeService.isDark();
 
       // renderMarkdown runs DOMPurify before producing this HTML, so bypassing
       // Angular's [innerHTML] sanitizer here does not regress XSS safety.
@@ -170,7 +246,86 @@ export class MarkdownReader {
       }
 
       this.classifyAnchors(containerEl, modelVal);
+      this.renderMermaid(containerEl, isDark);
     });
+  }
+
+  /**
+   * Schedule rendering of fenced ` ```mermaid ` blocks
+   * (`<pre><code class="language-mermaid">`) as inline SVG. Mermaid is heavy, so
+   * it is **dynamically imported — and only when a page actually contains a
+   * diagram** — keeping it out of the board/wiki initial bundle. Because mermaid
+   * holds module-global state, the actual render is queued on a shared chain and
+   * never run concurrently; the per-instance `mermaidGen` guard drops any run a
+   * newer content/theme change superseded.
+   */
+  private renderMermaid(container: HTMLElement, isDark: boolean): void {
+    // Lazy gate: never touch mermaid for a plain doc (no import, no queue).
+    if (container.querySelector('code.language-mermaid') === null) return;
+    const generation = ++this.mermaidGen;
+    mermaidRenderChain = mermaidRenderChain
+      .then(() => this.renderMermaidDiagrams(container, generation, isDark))
+      .catch(() => {
+        // A single render failure must not break the shared chain.
+      });
+  }
+
+  /**
+   * Render every mermaid block in `container` to SVG, in serialized isolation.
+   * Rendered with `securityLevel: 'strict'` — vault markdown is untrusted, so
+   * mermaid runs its output through its own (version-pinned) DOMPurify and
+   * disables html labels / scripts / click handlers. A diagram that fails to
+   * parse keeps its source visible with an error note and never throws.
+   */
+  private async renderMermaidDiagrams(
+    container: HTMLElement,
+    generation: number,
+    isDark: boolean,
+  ): Promise<void> {
+    if (generation !== this.mermaidGen) return; // superseded before our turn on the queue
+    // Re-query now: a newer effect run may have reset innerHTML while we waited.
+    const blocks = Array.from(container.querySelectorAll<HTMLElement>('code.language-mermaid'));
+    if (blocks.length === 0) return;
+
+    let mermaidModule: typeof import('mermaid');
+    try {
+      mermaidModule = await import('mermaid');
+    } catch {
+      return; // engine failed to load — leave the source code visible
+    }
+    if (generation !== this.mermaidGen) return;
+    const mermaid = mermaidModule.default;
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: isDark ? 'dark' : 'default',
+    });
+
+    for (const code of blocks) {
+      const host = code.closest('pre') ?? code;
+      const source = code.textContent ?? '';
+      try {
+        // Module-global id so two reader instances can't collide on it.
+        const { svg } = await mermaid.render(`mermaid-${mermaidRenderSeq++}`, source);
+        if (generation !== this.mermaidGen) return; // superseded mid-flight
+        const figure = document.createElement('figure');
+        figure.className = 'mermaid';
+        figure.setAttribute('role', 'img');
+        figure.setAttribute('aria-label', mermaidLabel(source));
+        figure.innerHTML = svg;
+        // The <figure> carries the accessible name; hide the raw SVG internals
+        // from assistive tech so it isn't announced as a wall of nodes.
+        figure.querySelector('svg')?.setAttribute('aria-hidden', 'true');
+        host.replaceWith(figure);
+      } catch {
+        if (generation !== this.mermaidGen) return;
+        const note = document.createElement('p');
+        note.className = 'mermaid-error';
+        note.textContent = 'This diagram could not be rendered.';
+        host.insertAdjacentElement('afterend', note);
+      }
+    }
   }
 
   /**

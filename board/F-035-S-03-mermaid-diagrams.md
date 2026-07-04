@@ -2,14 +2,14 @@
 id: F-035-S-03
 type: story
 title: Render Mermaid fenced blocks as diagrams (lazy-loaded, themed)
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-035
 estimate: M
 touches: [web, docs]
 created: 2026-07-04T09:00:00Z
-updated: 2026-07-04T09:00:00Z
+updated: 2026-07-04T16:00:00Z
 ---
 
 # F-035-S-03 — Render Mermaid fenced blocks as diagrams (lazy-loaded, themed)
@@ -82,14 +82,14 @@ those blocks as diagrams.
 
 ## Acceptance
 
-- [ ] A ` ```mermaid ` block renders as an SVG diagram in the reader (both
+- [x] A ` ```mermaid ` block renders as an SVG diagram in the reader (both
       `/wiki` and `/reader`).
-- [ ] The diagram matches the active theme and updates on theme switch.
-- [ ] `mermaid` is a lazy chunk — the board and wiki initial bundles don't grow.
-- [ ] A malformed diagram falls back to source + error note without breaking the
+- [x] The diagram matches the active theme and updates on theme switch.
+- [x] `mermaid` is a lazy chunk — the board and wiki initial bundles don't grow.
+- [x] A malformed diagram falls back to source + error note without breaking the
       page; ordinary code blocks are unaffected.
-- [ ] AXE green in both themes; `docs/04-TECH_STACK.md` lists `mermaid`.
-- [ ] `bun run lint && bun run test && bun run build` green.
+- [x] AXE green in both themes; `docs/04-TECH_STACK.md` lists `mermaid`.
+- [x] `bun run lint && bun run test && bun run build` green.
 
 ## Dependencies
 

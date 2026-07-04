@@ -227,6 +227,23 @@ body {
   overflow-x: auto;
 }
 
+/* Rendered mermaid diagram (F-035-S-03): centered, and scrolls within itself if
+   a diagram is wider than the column rather than pushing the page. */
+.prose figure.mermaid {
+  margin: 1.5rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+.prose figure.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+.prose .mermaid-error {
+  font-size: 0.9em;
+  color: var(--color-base-content);
+  opacity: 0.65;
+}
+
 /* Clickable wiki reference links inside markdown reader */
 a[data-path] {
   color: var(--color-info);
