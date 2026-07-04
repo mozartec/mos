@@ -103,6 +103,19 @@ describe('SearchIndexService', () => {
     expect(source.readPaths.length).toBeGreaterThan(readsAfterFirst);
   });
 
+  it('keeps the last good index when a reload fails (search stays alive)', async () => {
+    const { service, source } = makeService();
+    await service.load();
+    expect(service.query({ q: 'aardvark' }).length).toBe(2);
+
+    // A transient failure on the next load must not blank the index.
+    source.listFiles = () => Promise.reject(new Error('transient'));
+    await expect(service.load()).rejects.toThrow('transient');
+
+    expect(service.index()).not.toBeNull();
+    expect(service.query({ q: 'aardvark' }).length).toBe(2);
+  });
+
   it('degrades gracefully when a file cannot be read', async () => {
     const source = new InMemoryVaultSource({ ...FILES });
     // Make one file unreadable; it should be omitted, not crash the load.

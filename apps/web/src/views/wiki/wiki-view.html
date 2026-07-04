@@ -8,6 +8,8 @@
       Failed to load the wiki: {{ loadError() }}
     </p>
   }
+  <!-- Announces a result opening in the reader (focus stays in the search box). -->
+  <p role="status" class="sr-only">{{ openedAnnouncement() }}</p>
   <div class="mt-3 grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[22rem_1fr]">
     <!-- Sidebar: search box + scope control, then results (while searching) or the file tree -->
     <div class="panel-hairline flex flex-col p-2 lg:min-h-0 lg:overflow-hidden">

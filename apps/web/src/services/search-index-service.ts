@@ -46,10 +46,14 @@ export interface VaultLoad {
 export class SearchIndexService {
   private readonly source = inject(VAULT_SOURCE);
 
-  /** The built index, or `null` before the first load resolves / while rebuilding. */
+  /**
+   * The built index, or `null` until the first load resolves. A rebuild keeps
+   * the previous index in place until it succeeds (see {@link read}), so this is
+   * only `null` before search has ever been ready.
+   */
   private readonly _index = signal<SearchIndex | null>(null);
 
-  /** `null` until the index is built; a caller can show an honest loading state. */
+  /** `null` until the index is first built; a caller can show an honest loading state. */
   readonly index = this._index.asReadonly();
 
   /** Coalesces concurrent {@link load} calls onto one in-flight read. */
@@ -65,11 +69,17 @@ export class SearchIndexService {
     if (this.inFlight !== null) return this.inFlight;
     const read = this.read();
     this.inFlight = read;
-    void read.finally(() => {
-      // Only clear if this read is still the current one, so a rebuild that
-      // started after us isn't stranded by our completion.
-      if (this.inFlight === read) this.inFlight = null;
-    });
+    read
+      .finally(() => {
+        // Only clear if this read is still the current one, so a rebuild that
+        // started after us isn't stranded by our completion.
+        if (this.inFlight === read) this.inFlight = null;
+      })
+      .catch(() => {
+        // The caller owns `read`'s rejection (they await the returned promise);
+        // this cleanup-only chain must swallow it so a failed load isn't
+        // reported as an unhandled rejection.
+      });
     return read;
   }
 
@@ -84,10 +94,11 @@ export class SearchIndexService {
   }
 
   private async read(): Promise<VaultLoad> {
-    // Drop any prior index up front so an active query shows a loading state
-    // rather than stale hits while the rebuild is in flight.
-    this._index.set(null);
-
+    // Build into a local and swap the index only on success (the set below is
+    // the sole writer). The first load has no index yet, so a query shows the
+    // loading state until then; a rebuild keeps the previous index queryable
+    // meanwhile — no flicker on re-entry — and a failed reload leaves the last
+    // good index in place rather than blanking search.
     const [configText, rawPaths] = await Promise.all([
       this.source.readFile('.mos/config.json').catch(() => '{}'),
       this.source.listFiles(),

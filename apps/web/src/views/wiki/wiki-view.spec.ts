@@ -498,4 +498,56 @@ describe('WikiView — search (F-036-S-02)', () => {
     const live = host.querySelector('[aria-live="polite"]');
     expect(live?.textContent).toContain('0 results');
   });
+
+  it('keeps the active option in range when the result set shrinks via the URL (Back/Forward)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'all' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+    const input = combobox(host);
+
+    // Move the active option onto the 2nd result.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await settle(fixture);
+    expect(input.getAttribute('aria-activedescendant')).toBe('wiki-search-option-1');
+
+    // Narrow to a single result straight through the URL — bypasses the input
+    // handlers (as browser Back/Forward would).
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    await settle(fixture);
+
+    expect(options(host).length).toBe(1);
+    // aria-activedescendant points at a rendered option (not the vanished #1)…
+    expect(input.getAttribute('aria-activedescendant')).toBe('wiki-search-option-0');
+    // …and Enter opens it rather than no-opping on an out-of-range index.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await settle(fixture);
+    expect(fixture.componentInstance['selectedPath']()).toBe('board/T-100.md');
+  });
+
+  it('does not auto-open an arbitrary file for a search-only bookmark (?q= without ?path=)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+
+    // No file auto-selected, and the URL stays search-only (no ?path= merged in).
+    expect(fixture.componentInstance['selectedPath']()).toBeNull();
+    expect(TestBed.inject(Location).path()).not.toContain('path=');
+  });
+
+  it('announces the opened file for screen readers (focus stays in the search box)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    options(host)[0]!.click();
+    await settle(fixture);
+
+    const status = host.querySelector('[role="status"]');
+    expect(status?.textContent).toContain('Opened T-100.md');
+  });
 });
