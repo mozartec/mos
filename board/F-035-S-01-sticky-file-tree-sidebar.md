@@ -2,14 +2,14 @@
 id: F-035-S-01
 type: story
 title: Fixed top bar and sticky file-tree sidebar
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-035
 estimate: M
 touches: [web]
 created: 2026-07-04T09:00:00Z
-updated: 2026-07-04T09:30:00Z
+updated: 2026-07-04T14:00:00Z
 ---
 
 # F-035-S-01 — Fixed top bar and sticky file-tree sidebar
@@ -76,13 +76,13 @@ model once: a pinned top bar over a scrollable content region, and within
 
 ## Acceptance
 
-- [ ] The top navigation bar stays visible on every view (wiki, board, cards,
+- [x] The top navigation bar stays visible on every view (wiki, board, cards,
       graph, reader) while content scrolls beneath it.
-- [ ] Scrolling a long doc on `/wiki` keeps the tree in view at `lg`+.
-- [ ] A tall tree scrolls within its own pane; the page doesn't grow a second
+- [x] Scrolling a long doc on `/wiki` keeps the tree in view at `lg`+.
+- [x] A tall tree scrolls within its own pane; the page doesn't grow a second
       scrollbar.
-- [ ] Sub-`lg` layout is unchanged (tree stacked above content).
-- [ ] Tree keyboard navigation and visible focus still work; AXE green in both
+- [x] Sub-`lg` layout is unchanged (tree stacked above content).
+- [x] Tree keyboard navigation and visible focus still work; AXE green in both
       themes.
 
 ## Dependencies
