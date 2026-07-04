@@ -90,8 +90,8 @@ const COMBINING_MARKS = /[\u0300-\u036f]/g;
 /**
  * Fold text to its matchable form: NFD-decompose, drop combining marks
  * (accent-insensitive), then lowercase (case-insensitive). The one shared rule
- * — the index, the snippet extractor, and the future DOM highlighter all fold
- * through here so a query and its target agree on what a hit is.
+ * — the index, the snippet extractor, and the DOM highlighter (F-036-S-03) all
+ * fold through here so a query and its target agree on what a hit is.
  */
 export function foldSearchText(text: string): string {
   return foldWithMap(text).folded;
