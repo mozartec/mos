@@ -115,10 +115,10 @@ function foldCodePoint(unit: string): string {
 
 /**
  * The scope **set** a path belongs to, via the exact `globToRegExp`/
- * `toPosixPath` membership {@link buildModel} uses. `'wiki'` when the path
- * matches `wiki.include` (an empty list falls back to `['**\/*.md']`) minus
- * `wiki.exclude`; `'board'` when it matches `board.include`. A path may match
- * both, one, or neither — the set is a union, not a partition.
+ * `toPosixPath` membership {@link buildModel} uses — no fallback of its own, so
+ * search and the wiki file tree never disagree. `'wiki'` when the path matches
+ * `wiki.include` minus `wiki.exclude`; `'board'` when it matches `board.include`.
+ * A path may match both, one, or neither — a union, not a partition.
  */
 export function fileScopes(path: string, config: VaultConfig): SearchScope[] {
   return matchScopes(toPosixPath(path), scopeMatchers(config));
@@ -203,14 +203,14 @@ interface ScopeMatchers {
 }
 
 /**
- * Compile a config's scope globs once. An empty `wiki.include` falls back to
- * `['**\/*.md']` — the documented default the wiki loader applies — so a config
- * that leaves it blank still scopes markdown into the wiki.
+ * Compile a config's scope globs once — the *same* globs {@link buildModel}
+ * compiles, verbatim. No empty-`wiki.include` fallback: buildModel treats an
+ * empty include as matching no wiki files, and search mirrors that so a hit can
+ * never point at a doc the wiki tree omits.
  */
 function scopeMatchers(config: VaultConfig): ScopeMatchers {
-  const wikiInclude = config.wiki.include.length > 0 ? config.wiki.include : ['**/*.md'];
   return {
-    wikiInclude: wikiInclude.map(globToRegExp),
+    wikiInclude: config.wiki.include.map(globToRegExp),
     wikiExclude: config.wiki.exclude.map(globToRegExp),
     board: config.board.include.map(globToRegExp),
   };

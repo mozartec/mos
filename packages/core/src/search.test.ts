@@ -66,13 +66,17 @@ describe('fileScopes', () => {
     expect(fileScopes('board/F-1.md', config)).toEqual(['board']);
   });
 
-  it('falls back to **/*.md when wiki.include is empty', () => {
+  it('treats an empty wiki.include as matching nothing, mirroring buildModel', () => {
     const config = loadConfig({
       wiki: { include: [], exclude: [], fields: [] },
       board: { include: ['board/**/*.md'], columns: ['Backlog', 'Done'] },
       types: {},
     }).config;
-    expect(fileScopes('docs/x.md', config)).toContain('wiki');
+    // No wiki fallback: an empty include includes no wiki files (buildModel
+    // parity), so a prose doc lands in NO scope — search never surfaces a file
+    // the wiki tree omits. A board card is still board-scoped.
+    expect(fileScopes('docs/x.md', config)).toEqual([]);
+    expect(fileScopes('board/F-1.md', config)).toEqual(['board']);
   });
 
   it('normalizes Windows backslash paths before matching', () => {
@@ -174,7 +178,7 @@ describe('buildSearchIndex / querySearch', () => {
     const snapshot = JSON.stringify(index);
     querySearch(index, { q: 'body' });
     expect(JSON.stringify(index)).toBe(snapshot);
-    // A non-string title is tolerated (folded to '') rather than crashing.
+    // A non-string scalar title is coerced (like the board), not crashed on.
     expect(() =>
       buildSearchIndex([file('docs/b.md', { title: 42 }, '')], overlapConfig()),
     ).not.toThrow();
