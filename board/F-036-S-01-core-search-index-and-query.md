@@ -2,14 +2,14 @@
 id: F-036-S-01
 type: story
 title: Pure-core search index, query, snippet offsets, and scope helper
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-036
 estimate: M
 touches: [core]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T10:00:00Z
+updated: 2026-07-04T10:23:09Z
 ---
 
 # F-036-S-01 — Pure-core search index, query, snippet offsets, and scope helper
@@ -75,14 +75,14 @@ string fixtures. No I/O, no framework; the app feeds it `ParsedFile[]`.
 
 ## Acceptance
 
-- [ ] `buildSearchIndex` / `querySearch` / `applySearchChange` / `fileScopes` are
+- [x] `buildSearchIndex` / `querySearch` / `applySearchChange` / `fileScopes` are
       exported, pure (no I/O, no throw), and body text is searchable with a title
       boost.
-- [ ] Scope is a union set; empty `wiki.include` falls back to `**/*.md`;
+- [x] Scope is a union set; empty `wiki.include` falls back to `**/*.md`;
       overlap/gap cases are correct.
-- [ ] Snippet offsets index the source body string; one shared folded match rule
+- [x] Snippet offsets index the source body string; one shared folded match rule
       backs index + snippet.
-- [ ] `packages/core` tests green.
+- [x] `packages/core` tests green.
 
 ## Dependencies
 

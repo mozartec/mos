@@ -93,3 +93,19 @@ export type { ValidateVaultResult } from './validate.js';
 export { validateVault, SUPPORTED_SPEC_VERSION } from './validate.js';
 export type { ValidationReport } from './vault-report.js';
 export { buildValidationReport, formatValidationReport } from './vault-report.js';
+export type {
+  SearchScope,
+  SearchScopeFilter,
+  SearchDoc,
+  SearchIndex,
+  SearchSnippet,
+  SearchHit,
+  SearchQuery,
+} from './search.js';
+export {
+  foldSearchText,
+  fileScopes,
+  buildSearchIndex,
+  querySearch,
+  applySearchChange,
+} from './search.js';
