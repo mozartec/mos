@@ -54,18 +54,36 @@ const MERMAID_TYPE_LABELS: Record<string, string> = {
 };
 
 /**
- * A meaningful accessible name for a rendered diagram: the author's `accTitle`
- * if present, else the diagram type — so a screen-reader user can tell a
- * flowchart from a sequence diagram instead of hearing "Diagram" for every one.
+ * A meaningful accessible name for a rendered diagram: the author's title
+ * (`accTitle`, else a frontmatter `title:`) if present, else the diagram type —
+ * so a screen-reader user can tell a flowchart from a sequence diagram instead
+ * of hearing "Diagram" for every one. Leading `--- … ---` frontmatter and
+ * `%%{ … }%%` init directives are peeled first so they aren't misread as the
+ * type — exactly the configured diagrams that would otherwise regress.
  */
 function mermaidLabel(source: string): string {
+  let rest = source.trim();
+  let frontmatterTitle: string | undefined;
+  for (;;) {
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(rest);
+    if (frontmatter) {
+      frontmatterTitle ??= /^\s*title\s*:\s*(.+)$/im.exec(frontmatter[1])?.[1]?.trim();
+      rest = rest.slice(frontmatter[0].length).trimStart();
+      continue;
+    }
+    const directive = /^%%\{[\s\S]*?\}%%[ \t]*\r?\n?/.exec(rest);
+    if (directive) {
+      rest = rest.slice(directive[0].length).trimStart();
+      continue;
+    }
+    break;
+  }
+
   const accTitle = /^\s*accTitle\s*:\s*(.+)$/im.exec(source)?.[1]?.trim();
   if (accTitle) return accTitle;
-  const firstToken =
-    source
-      .trim()
-      .split(/[\s\n{(]/)[0]
-      ?.toLowerCase() ?? '';
+  if (frontmatterTitle) return frontmatterTitle;
+
+  const firstToken = rest.split(/[\s\n{(]/)[0]?.toLowerCase() ?? '';
   return MERMAID_TYPE_LABELS[firstToken] ?? 'Diagram';
 }
 

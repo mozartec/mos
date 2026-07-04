@@ -356,4 +356,17 @@ describe('MarkdownReader', () => {
     expect(host.querySelector('code.language-mermaid')?.textContent).toContain('not a diagram');
     expect(host.querySelector('.mermaid-error')).toBeTruthy();
   });
+
+  it('names a diagram past a leading init directive or frontmatter (not "Diagram")', async () => {
+    mermaidRender.mockReset();
+    mermaidRender.mockResolvedValue({ svg: '<svg></svg>' });
+
+    const host1 = await renderAndSettle(
+      "```mermaid\n%%{init: {'theme':'forest'}}%%\nflowchart TD\n  A --> B\n```",
+    );
+    expect(host1.querySelector('figure.mermaid')?.getAttribute('aria-label')).toBe('Flowchart');
+
+    const host2 = await renderAndSettle('```mermaid\n---\ntitle: My Flow\n---\nflowchart TD\n```');
+    expect(host2.querySelector('figure.mermaid')?.getAttribute('aria-label')).toBe('My Flow');
+  });
 });
