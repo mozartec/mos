@@ -2,14 +2,14 @@
 id: F-036-S-02
 type: story
 title: Search in the wiki lens — body-retaining load, scoped results, URL
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-036
 estimate: L
 touches: [web]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T12:00:00Z
+updated: 2026-07-04T14:42:20Z
 ---
 
 # F-036-S-02 — Search in the wiki lens — body-retaining load, scoped results, URL
@@ -77,13 +77,13 @@ a result opens that file in the wiki content pane. No new route, no popup.
 
 ## Acceptance
 
-- [ ] Typing in the wiki search box shows scoped, ranked body snippets with
+- [x] Typing in the wiki search box shows scoped, ranked body snippets with
       `<mark>` in the sidebar; clearing restores the file tree.
-- [ ] All / Wiki / Board narrows results via config globs; `?q=&in=` is
+- [x] All / Wiki / Board narrows results via config globs; `?q=&in=` is
       bookmarkable; board `?q=` untouched.
-- [ ] Selecting a result opens the file in the content pane (`?path=…&q=…`).
-- [ ] Keyboard-only usable; AXE green in both themes; honest empty/loading.
-- [ ] Web tests green.
+- [x] Selecting a result opens the file in the content pane (`?path=…&q=…`).
+- [x] Keyboard-only usable; AXE green in both themes; honest empty/loading.
+- [x] Web tests green.
 
 ## Dependencies
 

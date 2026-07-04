@@ -215,4 +215,34 @@ describe('AXE accessibility audit', () => {
       });
     }
   }
+
+  // Wiki search (F-036-S-02): the combobox, scope radiogroup, and results
+  // listbox are new ARIA surface — audit the searching state (a query with
+  // matches) in both themes via the router harness so `?q=` drives the view.
+  for (const theme of ['mos-paper', 'mos-carbon']) {
+    it(`wiki search results have no AXE violations under ${theme}`, async () => {
+      await TestBed.configureTestingModule({
+        providers: [
+          provideRouter([{ path: 'wiki', component: WikiView }]),
+          { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource(TEST_FILES) },
+        ],
+      }).compileComponents();
+
+      // `welcome` hits the doc body, so a result carries a `<mark>` snippet —
+      // the highlight surface whose contrast the audit must cover.
+      document.documentElement.dataset['theme'] = theme;
+      const harness = await RouterTestingHarness.create('/wiki?q=welcome');
+      await settle(harness.fixture);
+
+      const el = harness.routeNativeElement as HTMLElement;
+      expect(el.querySelector('[role="listbox"]')).not.toBeNull();
+      expect(el.querySelector('mark')).not.toBeNull();
+
+      const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
+      const violations = results.violations.map(
+        (v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`,
+      );
+      expect(violations).toEqual([]);
+    });
+  }
 });
