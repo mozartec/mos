@@ -193,7 +193,7 @@ export function applyFileChange(
   return { model: next, diagnostics };
 }
 
-function asScalarString(value: unknown): string {
+export function asScalarString(value: unknown): string {
   return typeof value === 'string' ||
     typeof value === 'number' ||
     typeof value === 'boolean' ||

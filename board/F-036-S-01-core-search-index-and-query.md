@@ -2,14 +2,14 @@
 id: F-036-S-01
 type: story
 title: Pure-core search index, query, snippet offsets, and scope helper
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-036
 estimate: M
 touches: [core]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T10:00:00Z
+updated: 2026-07-04T12:29:25Z
 ---
 
 # F-036-S-01 — Pure-core search index, query, snippet offsets, and scope helper
@@ -32,16 +32,16 @@ string fixtures. No I/O, no framework; the app feeds it `ParsedFile[]`.
     add/replace/remove one path, mirroring `applyFileChange` (for S-05).
   - `fileScopes(path, config): ('wiki'|'board')[]` — the scope **set** via the
     exact `globToRegExp`/`toPosixPath` membership `buildModel` uses; `'wiki'` when
-    the path matches `wiki.include` (defaulting to `['**/*.md']` when empty) minus
-    `wiki.exclude`, `'board'` when it matches `board.include`.
+    the path matches `wiki.include` minus `wiki.exclude`, `'board'` when it matches
+    `board.include`.
 - **One shared match rule** — a folded (lowercased, diacritic-stripped) match,
   extending the `cardSearchText` rule (filters.ts) — lives here and is the single
   source the snippet extractor and (later) the DOM highlighter reuse.
 - Ranking for v1: title-weighted match count (no BM25); deterministic tie-break by
   path so results are stable.
 - Fully unit-tested: body match, title boost, scope-set membership (overlap and
-  gap cases), empty-`wiki.include` fallback, snippet offsets landing on the source
-  string, and `applySearchChange` add/replace/remove.
+  gap cases), empty-`wiki.include` (matches nothing, `buildModel` parity), snippet
+  offsets landing on the source string, and `applySearchChange` add/replace/remove.
 
 ## Context — read before starting
 
@@ -75,14 +75,14 @@ string fixtures. No I/O, no framework; the app feeds it `ParsedFile[]`.
 
 ## Acceptance
 
-- [ ] `buildSearchIndex` / `querySearch` / `applySearchChange` / `fileScopes` are
+- [x] `buildSearchIndex` / `querySearch` / `applySearchChange` / `fileScopes` are
       exported, pure (no I/O, no throw), and body text is searchable with a title
       boost.
-- [ ] Scope is a union set; empty `wiki.include` falls back to `**/*.md`;
-      overlap/gap cases are correct.
-- [ ] Snippet offsets index the source body string; one shared folded match rule
+- [x] Scope is a union set matching `buildModel`'s membership exactly (no
+      empty-`wiki.include` fallback); overlap/gap cases are correct.
+- [x] Snippet offsets index the source body string; one shared folded match rule
       backs index + snippet.
-- [ ] `packages/core` tests green.
+- [x] `packages/core` tests green.
 
 ## Dependencies
 
