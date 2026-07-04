@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07T13:00:00Z
-updated: 2026-06-12T13:55:00Z
+updated: 2026-07-04T16:00:00Z
 ---
 
 # Tech stack
@@ -25,6 +25,7 @@ chosen for a solo developer's velocity first, with an eye on the open-source fut
 | Lint / format | **ESLint (angular-eslint) + Prettier** | angular-eslint covers template rules that an all-in-one formatter doesn't. |
 | Icons | **Tabler** | One consistent, MIT-licensed SVG set; clean developer-tool look, no mixing of icon libraries. (ADR-009, set up in T-006.) |
 | Typography | **IBM Plex Sans + IBM Plex Mono + Newsreader**, self-hosted via **Fontsource** | Plex Sans for UI, Plex Mono for code/ids, Newsreader for rendered markdown prose; self-hosted (offline, no CDN/FOUT), wired as Tailwind `--font-*` tokens. (ADR-009 for self-hosting, ADR-016 / [`13-DESIGN_SYSTEM.md`](13-DESIGN_SYSTEM.md) for the faces.) |
+| Markdown & diagrams | **marked** + **DOMPurify**, **Mermaid** (lazy) | marked renders vault markdown; DOMPurify sanitizes it (untrusted content). Fenced `mermaid` code blocks render as SVG diagrams via Mermaid, dynamically imported only when a page contains one — so it never enters the board/wiki initial bundle. |
 | Desktop packaging | **Tauri** (later) | Small native binary, low memory, native filesystem access and file watching — better than Electron for a local-first dev tool. |
 
 ## Explicitly deferred

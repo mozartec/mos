@@ -2,6 +2,16 @@ import { TestBed } from '@angular/core/testing';
 import { MarkdownReader } from './markdown-reader';
 import { type VaultConfig, type VaultModel } from '@mos/core';
 
+// Mermaid is dynamically imported by the reader; mock it so the async diagram
+// pass is deterministic in jsdom (real mermaid needs layout APIs jsdom lacks).
+const { mermaidRender, mermaidInitialize } = vi.hoisted(() => ({
+  mermaidRender: vi.fn(),
+  mermaidInitialize: vi.fn(),
+}));
+vi.mock('mermaid', () => ({
+  default: { initialize: mermaidInitialize, render: mermaidRender },
+}));
+
 const TEST_CONFIG: VaultConfig = {
   specVersion: '0.2',
   vault: { name: 'Test' },
@@ -284,5 +294,62 @@ describe('MarkdownReader', () => {
     const host = await renderBody('[spec](intro.md#section)', 'docs/00-README.md');
 
     expect(host.querySelector('a[data-path]')?.getAttribute('data-path')).toBe('docs/intro.md');
+  });
+
+  // ── F-035-S-03: mermaid diagrams ───────────────────────────────────────────
+
+  async function renderAndSettle(body: string): Promise<HTMLElement> {
+    const fixture = TestBed.createComponent(MarkdownReader);
+    fixture.componentRef.setInput('body', body);
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    // Flush the dynamic import() + async mermaid.render() chain.
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('leaves a non-mermaid fenced code block untouched and never loads mermaid', async () => {
+    mermaidRender.mockReset();
+    const host = await renderAndSettle('```ts\nconst x = 1;\n```');
+
+    expect(host.querySelector('figure.mermaid')).toBeNull();
+    expect(host.querySelector('pre code')).toBeTruthy();
+    expect(mermaidRender).not.toHaveBeenCalled();
+  });
+
+  it('renders a mermaid fenced block as an inline SVG figure with an accessible name', async () => {
+    mermaidRender.mockReset();
+    mermaidRender.mockResolvedValue({ svg: '<svg data-testid="diagram"><g></g></svg>' });
+
+    const host = await renderAndSettle('```mermaid\nflowchart TD\n  A --> B\n```');
+
+    const figure = host.querySelector('figure.mermaid');
+    expect(figure).toBeTruthy();
+    expect(figure?.getAttribute('role')).toBe('img');
+    expect(figure?.getAttribute('aria-label')).toBe('Diagram');
+    expect(figure?.querySelector('svg[data-testid="diagram"]')).toBeTruthy();
+    expect(figure?.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+    // The source code block is replaced by the diagram, and the source was rendered.
+    expect(host.querySelector('code.language-mermaid')).toBeNull();
+    expect(mermaidRender).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining('flowchart TD'),
+    );
+  });
+
+  it('falls back to the source with an error note when a diagram fails to parse', async () => {
+    mermaidRender.mockReset();
+    mermaidRender.mockRejectedValue(new Error('parse error'));
+
+    const host = await renderAndSettle('```mermaid\nnot a diagram\n```');
+
+    expect(host.querySelector('figure.mermaid')).toBeNull();
+    // Source stays visible, with an error note beside it.
+    expect(host.querySelector('code.language-mermaid')?.textContent).toContain('not a diagram');
+    expect(host.querySelector('.mermaid-error')).toBeTruthy();
   });
 });
