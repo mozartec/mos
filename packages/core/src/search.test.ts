@@ -64,6 +64,14 @@ describe('findFoldedMatches', () => {
     expect(sliced('A Café here', 'cafe')).toEqual(['Café']);
   });
 
+  it('keeps a trailing combining mark inside the match (NFD source)', () => {
+    // Base 'e' + combining acute (U+0301): an NFD-decomposed accented 'e'. The
+    // range must swallow the mark, not orphan it after it (F-036-S-03 review).
+    const nfd = 'café stop';
+    expect(findFoldedMatches(nfd, 'cafe')).toEqual([{ start: 0, end: 5 }]);
+    expect(nfd.slice(0, 5)).toBe('café');
+  });
+
   it('matches a substring of a longer word, like the index (cat ⊂ category)', () => {
     expect(sliced('the category', 'cat')).toEqual(['cat']);
   });
@@ -299,6 +307,16 @@ describe('snippet offsets', () => {
     expect(snippet.end).toBe(8);
     expect(snippet.before).toBe('The ');
     expect(snippet.after).toBe(' is nice');
+  });
+
+  it('keeps a trailing combining mark in a snippet match (NFD source)', () => {
+    // The snippet reuses findFoldedMatches' offset mapping (F-036-S-03 review),
+    // so the combining-mark fix reaches the sidebar snippet, not just the reader.
+    const body = 'The café is nice';
+    const index = buildSearchIndex([file('docs/a.md', {}, body)], overlapConfig());
+    const snippet = querySearch(index, { q: 'cafe' })[0].snippet;
+    expect(snippet?.match).toBe('café');
+    expect(snippet && body.slice(snippet.start, snippet.end)).toBe('café');
   });
 
   it('clamps snippet windows off surrogate-pair boundaries (no stray U+FFFD)', () => {
