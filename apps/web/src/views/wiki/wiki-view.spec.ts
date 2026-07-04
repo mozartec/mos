@@ -319,3 +319,235 @@ describe('WikiView', () => {
     expect(fixture.nativeElement.textContent).toContain('Introduction.');
   });
 });
+
+// ── F-036-S-02: search in the wiki lens ──────────────────────────────────────
+
+/** Wiki excludes the board folder, so All / Wiki / Board narrow to distinct sets. */
+const SEARCH_CONFIG = JSON.stringify({
+  specVersion: '0.4',
+  wiki: { include: ['**/*.md'], exclude: ['board/**'] },
+  board: { include: ['board/**/*.md'], columns: [] },
+  types: {},
+});
+
+const SEARCH_FILES: Record<string, string> = {
+  '.mos/config.json': SEARCH_CONFIG,
+  'docs/guide.md': '# Guide\n\nThe aardvark forages at dusk.',
+  'docs/other.md': '# Other\n\nNothing notable here.',
+  'board/T-100.md': [
+    '---',
+    'id: T-100',
+    'type: task',
+    'title: Aardvark card',
+    'status: Todo',
+    '---',
+    '',
+    '# T-100',
+    '',
+    'A board note about the aardvark.',
+  ].join('\n'),
+};
+
+function combobox(host: HTMLElement): HTMLInputElement {
+  return host.querySelector('input[role="combobox"]') as HTMLInputElement;
+}
+
+/** Simulate typing into the search box (drives `?q=` through the URL). */
+function typeQuery(host: HTMLElement, q: string): void {
+  const input = combobox(host);
+  input.value = q;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function options(host: HTMLElement): HTMLElement[] {
+  return Array.from(host.querySelectorAll('[role="option"]'));
+}
+
+describe('WikiView — search (F-036-S-02)', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [WikiView],
+      providers: [
+        provideRouter([]),
+        provideLocationMocks(),
+        { provide: VAULT_SOURCE, useFactory: () => new InMemoryVaultSource({ ...SEARCH_FILES }) },
+      ],
+    }).compileComponents();
+    TestBed.inject(Router).initialNavigation();
+  });
+
+  it('shows scoped body snippets with <mark> while searching, and restores the tree on clear', async () => {
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    // The file tree is shown until a query is entered.
+    expect(host.querySelector('[role="tree"]')).not.toBeNull();
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
+
+    typeQuery(host, 'aardvark');
+    await settle(fixture);
+
+    expect(host.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(host.querySelector('[role="tree"]')).toBeNull();
+    const marks = Array.from(host.querySelectorAll('mark')).map((m) => m.textContent);
+    expect(marks).toContain('aardvark');
+
+    // Clearing the query restores the file tree.
+    typeQuery(host, '');
+    await settle(fixture);
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
+    expect(host.querySelector('[role="tree"]')).not.toBeNull();
+  });
+
+  it('narrows results by scope via the config globs (All / Wiki / Board), bookmarkable from ?q=&in=', async () => {
+    const router = TestBed.inject(Router);
+
+    // Deep-link a search from the URL: it renders results on load (bookmarkable).
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'all' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+    expect(options(host).length).toBe(2);
+
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    await settle(fixture);
+    expect(options(host).length).toBe(1);
+    expect(options(host)[0]!.textContent).toContain('T-100.md');
+
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'wiki' } });
+    await settle(fixture);
+    expect(options(host).length).toBe(1);
+    expect(options(host)[0]!.textContent).toContain('guide.md');
+  });
+
+  it('picks a scope through the segmented control, writing ?in=', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    const radios = Array.from(
+      host.querySelectorAll('input[name="wiki-search-scope"]'),
+    ) as HTMLInputElement[];
+    expect(radios.length).toBe(3);
+
+    const board = radios.find((r) => r.getAttribute('value') === 'board')!;
+    board.checked = true;
+    board.dispatchEvent(new Event('change', { bubbles: true }));
+    await settle(fixture);
+
+    expect(TestBed.inject(Location).path()).toContain('in=board');
+    expect(options(host).length).toBe(1);
+  });
+
+  it('opens a result in the content pane, carrying q in the URL (open in place)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    options(host)[0]!.click();
+    await settle(fixture);
+
+    expect(fixture.componentInstance['selectedPath']()).toBe('board/T-100.md');
+    expect(host.querySelector('app-markdown-reader')).not.toBeNull();
+    const path = TestBed.inject(Location).path();
+    expect(path).toContain('path=board%2FT-100.md');
+    expect(path).toContain('q=aardvark');
+    // The sidebar stays on the results (q retained) — Obsidian model.
+    expect(host.querySelector('[role="listbox"]')).not.toBeNull();
+  });
+
+  it('is keyboard operable: arrows move the active option, Enter opens, Esc clears', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'all' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+    const input = combobox(host);
+
+    // Ranked: board/T-100 (title+body) first, docs/guide (body) second.
+    expect(input.getAttribute('aria-activedescendant')).toBe('wiki-search-option-0');
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await settle(fixture);
+    expect(input.getAttribute('aria-activedescendant')).toBe('wiki-search-option-1');
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await settle(fixture);
+    expect(fixture.componentInstance['selectedPath']()).toBe('docs/guide.md');
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle(fixture);
+    expect(host.querySelector('[role="tree"]')).not.toBeNull();
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
+  });
+
+  it('shows an honest empty state and announces the count via aria-live', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'zzznomatch' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
+    expect(host.textContent).toContain('No matches');
+    const live = host.querySelector('[aria-live="polite"]');
+    expect(live?.textContent).toContain('0 results');
+  });
+
+  it('keeps the active option in range when the result set shrinks via the URL (Back/Forward)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'all' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+    const input = combobox(host);
+
+    // Move the active option onto the 2nd result.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await settle(fixture);
+    expect(input.getAttribute('aria-activedescendant')).toBe('wiki-search-option-1');
+
+    // Narrow to a single result straight through the URL — bypasses the input
+    // handlers (as browser Back/Forward would).
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    await settle(fixture);
+
+    expect(options(host).length).toBe(1);
+    // aria-activedescendant points at a rendered option (not the vanished #1)…
+    expect(input.getAttribute('aria-activedescendant')).toBe('wiki-search-option-0');
+    // …and Enter opens it rather than no-opping on an out-of-range index.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await settle(fixture);
+    expect(fixture.componentInstance['selectedPath']()).toBe('board/T-100.md');
+  });
+
+  it('does not auto-open an arbitrary file for a search-only bookmark (?q= without ?path=)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+
+    // No file auto-selected, and the URL stays search-only (no ?path= merged in).
+    expect(fixture.componentInstance['selectedPath']()).toBeNull();
+    expect(TestBed.inject(Location).path()).not.toContain('path=');
+  });
+
+  it('announces the opened file for screen readers (focus stays in the search box)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    options(host)[0]!.click();
+    await settle(fixture);
+
+    const status = host.querySelector('[role="status"]');
+    expect(status?.textContent).toContain('Opened T-100.md');
+  });
+});
