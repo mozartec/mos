@@ -207,6 +207,26 @@ body {
   font-family: var(--font-mono);
 }
 
+/* Keep flowing prose at a readable line length, but let wide blocks — code,
+   tables, images, diagrams — break out to the full content width so ordinary
+   code and trees fit without an inner scrollbar. Only a genuinely oversize
+   block scrolls within itself; the page never scrolls sideways. (F-035-S-02) */
+.prose :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6) {
+  max-width: 72ch;
+}
+.prose :where(pre, img, .mermaid) {
+  max-width: 100%;
+}
+.prose :where(pre) {
+  overflow-x: auto;
+}
+.prose :where(table) {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 /* Clickable wiki reference links inside markdown reader */
 a[data-path] {
   color: var(--color-info);

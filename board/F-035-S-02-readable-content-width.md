@@ -2,14 +2,14 @@
 id: F-035-S-02
 type: story
 title: Readable content width — code and tables without inner scrollbars
-status: Todo
+status: Done
 priority: P1
 owner: mozart
 parent: F-035
 estimate: S
 touches: [web]
 created: 2026-07-04T09:00:00Z
-updated: 2026-07-04T09:00:00Z
+updated: 2026-07-04T15:00:00Z
 ---
 
 # F-035-S-02 — Readable content width — code and tables without inner scrollbars
@@ -65,12 +65,12 @@ this component, so one fix covers both.
 
 ## Acceptance
 
-- [ ] A wide code block / directory tree / table renders fully without an inner
+- [x] A wide code block / directory tree / table renders fully without an inner
       horizontal scrollbar at desktop width, on both `/wiki` and `/reader`.
-- [ ] Paragraph text still wraps at a readable measure (not edge-to-edge).
-- [ ] The page never scrolls horizontally at any width; oversize blocks scroll
+- [x] Paragraph text still wraps at a readable measure (not edge-to-edge).
+- [x] The page never scrolls horizontally at any width; oversize blocks scroll
       within themselves only.
-- [ ] AXE green in both themes.
+- [x] AXE green in both themes.
 
 ## Dependencies
 
