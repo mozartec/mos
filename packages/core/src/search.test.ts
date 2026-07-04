@@ -134,6 +134,16 @@ describe('buildSearchIndex / querySearch', () => {
     ]);
   });
 
+  it('coerces a non-string scalar title so it is searchable, as the board model does', () => {
+    // YAML parses `title: 2026` as a number; buildModel stringifies it via
+    // asScalarString, and search must agree so the same card is found by `2026`.
+    const index = buildSearchIndex(
+      [file('board/F-1.md', { title: 2026 }, 'body')],
+      overlapConfig(),
+    );
+    expect(querySearch(index, { q: '2026' }).map((h) => h.path)).toEqual(['board/F-1.md']);
+  });
+
   it('is case- and accent-insensitive end to end', () => {
     const index = buildSearchIndex([file('docs/a.md', {}, 'A lovely Café')], overlapConfig());
     const hits = querySearch(index, { q: 'cafe' });
@@ -208,6 +218,13 @@ describe('querySearch scope filter', () => {
   it('reports the full scope set on each hit', () => {
     const hit = querySearch(index, { q: 'alpha', scope: 'board' })[0];
     expect(hit.scopes).toEqual(['wiki', 'board']);
+  });
+
+  it('returns a copied scope array — mutating a hit cannot corrupt the index', () => {
+    const hit = querySearch(index, { q: 'alpha', scope: 'board' })[0];
+    hit.scopes.push('board'); // a caller mutates the returned array
+    // The index's own doc is untouched; a fresh query still reports the true set.
+    expect(querySearch(index, { q: 'alpha', scope: 'board' })[0].scopes).toEqual(['wiki', 'board']);
   });
 });
 

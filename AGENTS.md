@@ -46,7 +46,10 @@ for any work, skill or not.)
 - [ ] **Iterate on the cheap check; validate once on the full one.** While building, run only the
       scoped tests for what you touched (`bunx turbo run test --filter=<package>`); run the full
       `bun run lint && bun run test && bun run build && bun run validate` **once** at the end, not
-      in a loop — repeated whole-repo/security passes are slow and bloat your own context.
+      in a loop — repeated whole-repo/security passes are slow and bloat your own context. This
+      list is a **subset of CI**: also run `bun run check:comments` (the ADR-023 comment guard)
+      and `bun run test:scripts` before opening a PR, or CI can fail a green-looking branch
+      ([T-031](board/T-031-local-gate-mirrors-ci.md) tracks folding these into one command).
 - [ ] **Pre-existing failures elsewhere are out of scope** — a red check in a package your work
       never touched is noted, not chased.
 - [ ] **Scope held** — you changed only what the task scopes; any card you edited was in scope,

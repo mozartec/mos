@@ -18,6 +18,7 @@
  */
 
 import type { VaultConfig } from './config.js';
+import { asScalarString } from './models.js';
 import type { ParsedFile } from './parse-file.js';
 import { globToRegExp, toPosixPath } from './path-glob.js';
 
@@ -91,10 +92,25 @@ const COMBINING_MARKS = /[\u0300-\u036f]/g;
  * Fold text to its matchable form: NFD-decompose, drop combining marks
  * (accent-insensitive), then lowercase (case-insensitive). The one shared rule
  * — the index, the snippet extractor, and the DOM highlighter (F-036-S-03) all
- * fold through here so a query and its target agree on what a hit is.
+ * fold through here so a query and its target agree on what a hit is. Folds per
+ * code point like {@link foldWithMap}, but without the offset map — so indexing
+ * every title and body doesn't allocate arrays it immediately discards.
  */
 export function foldSearchText(text: string): string {
-  return foldWithMap(text).folded;
+  let folded = '';
+  for (let i = 0; i < text.length; ) {
+    const cp = text.codePointAt(i);
+    if (cp === undefined) break;
+    const width = cp > 0xffff ? 2 : 1;
+    folded += foldCodePoint(text.slice(i, i + width));
+    i += width;
+  }
+  return folded;
+}
+
+/** NFD-decompose, strip combining marks, lowercase — the atomic fold step. */
+function foldCodePoint(unit: string): string {
+  return unit.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase();
 }
 
 /**
@@ -140,7 +156,9 @@ export function querySearch(index: SearchIndex, query: SearchQuery): SearchHit[]
     hits.push({
       path: doc.path,
       title: doc.title,
-      scopes: doc.scopes,
+      // Copy, not alias: a caller mutating a hit's scopes must not reach back
+      // into the index's own doc (shared onward by applySearchChange too).
+      scopes: [...doc.scopes],
       score: titleCount * TITLE_WEIGHT + bodyCount,
       snippet: bodyCount > 0 ? extractSnippet(doc, needle) : null,
     });
@@ -210,8 +228,10 @@ function matchScopes(rel: string, m: ScopeMatchers): SearchScope[] {
 
 /** Turn one parsed file into an indexed doc, folding title and body once. */
 function makeDoc(file: ParsedFile, matchers: ScopeMatchers): SearchDoc {
-  const rawTitle = file.data['title'];
-  const title = typeof rawTitle === 'string' ? rawTitle : '';
+  // Coerce via the same rule `buildModel` uses (asScalarString) so a non-string
+  // scalar title — e.g. YAML `title: 2026` — is searchable here exactly as it is
+  // on the board, rather than dropped to '' by a bare `typeof` check.
+  const title = asScalarString(file.data['title']);
   return {
     path: file.path,
     title,
@@ -284,11 +304,7 @@ function foldWithMap(source: string): { folded: string; srcStart: number[]; srcE
     const cp = source.codePointAt(i);
     if (cp === undefined) break;
     const width = cp > 0xffff ? 2 : 1;
-    const foldedChar = source
-      .slice(i, i + width)
-      .normalize('NFD')
-      .replace(COMBINING_MARKS, '')
-      .toLowerCase();
+    const foldedChar = foldCodePoint(source.slice(i, i + width));
     // One map entry per UTF-16 unit of the folded output, so the arrays stay
     // aligned with `folded`'s own UTF-16 indices (what `indexOf` returns).
     for (let unit = 0; unit < foldedChar.length; unit += 1) {
