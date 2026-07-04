@@ -273,17 +273,50 @@ function comparePath(a: string, b: string): number {
  * preserved in `match`. Returns `null` when the folded query isn't in the body.
  */
 function extractSnippet(doc: SearchDoc, needle: string): SearchSnippet | null {
-  const { folded, srcStart, srcEnd } = foldWithMap(doc.body);
+  const body = doc.body;
+  const { folded, srcStart, srcEnd } = foldWithMap(body);
   const at = folded.indexOf(needle);
   if (at < 0) return null;
 
   const start = srcStart[at];
   const end = srcEnd[at + needle.length - 1];
-  const before = doc.body.slice(Math.max(0, start - SNIPPET_RADIUS), start);
-  const match = doc.body.slice(start, end);
-  const after = doc.body.slice(end, Math.min(doc.body.length, end + SNIPPET_RADIUS));
+  // `start`/`end` sit on code-point boundaries (the fold map advances by whole
+  // code points), so `match` is always well-formed. Only the context windows,
+  // cut at a fixed UTF-16 radius, can bisect a surrogate pair — nudge each
+  // truncated edge off the orphaned half so the preview never shows a stray �.
+  const before = body.slice(clampWindowStart(body, Math.max(0, start - SNIPPET_RADIUS)), start);
+  const match = body.slice(start, end);
+  const after = body.slice(end, clampWindowEnd(body, Math.min(body.length, end + SNIPPET_RADIUS)));
 
   return { start, end, before, match, after };
+}
+
+/**
+ * A window start moved off an orphaned low surrogate: when the radius cut lands
+ * on the *second* half of a pair (`from > 0` guards against a genuine leading
+ * lone surrogate at the body's start), advance one unit past it.
+ */
+function clampWindowStart(text: string, from: number): number {
+  return from > 0 && isLowSurrogate(text.charCodeAt(from)) ? from + 1 : from;
+}
+
+/**
+ * A window end moved off an orphaned high surrogate: when the radius cut leaves
+ * a pair's *first* half as the last included unit (`to < length` means we truly
+ * truncated, so the matching low half sits just outside), retreat one unit.
+ */
+function clampWindowEnd(text: string, to: number): number {
+  return to < text.length && isHighSurrogate(text.charCodeAt(to - 1)) ? to - 1 : to;
+}
+
+/** True for a UTF-16 high surrogate — the first unit of an astral code point. */
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+/** True for a UTF-16 low surrogate — the second unit of an astral code point. */
+function isLowSurrogate(code: number): boolean {
+  return code >= 0xdc00 && code <= 0xdfff;
 }
 
 /**

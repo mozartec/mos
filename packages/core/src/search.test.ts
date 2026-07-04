@@ -249,6 +249,30 @@ describe('snippet offsets', () => {
     expect(snippet.after).toBe(' is nice');
   });
 
+  it('clamps snippet windows off surrogate-pair boundaries (no stray U+FFFD)', () => {
+    const emoji = String.fromCodePoint(0x1f600); // 😀 — two UTF-16 units
+    const cfg = overlapConfig();
+
+    // Trailing astral char sitting exactly at the after-window edge: the window
+    // would otherwise end on its high surrogate; the clamp drops the half-char.
+    const trailing = `needle${'x'.repeat(39)}${emoji}tail`;
+    const after = querySearch(buildSearchIndex([file('docs/a.md', {}, trailing)], cfg), {
+      q: 'needle',
+    })[0].snippet;
+    expect(after?.match).toBe('needle');
+    // Exactly the 39 filler units, emoji fully excluded — no trailing half-pair.
+    expect(after?.after).toBe('x'.repeat(39));
+
+    // Leading astral char at the before-window edge: the window would start on
+    // its low surrogate; the clamp advances past the orphaned half.
+    const leading = `${emoji}${'z'.repeat(39)}needle`;
+    const before = querySearch(buildSearchIndex([file('docs/b.md', {}, leading)], cfg), {
+      q: 'needle',
+    })[0].snippet;
+    expect(before?.match).toBe('needle');
+    expect(before?.before).toBe('z'.repeat(39));
+  });
+
   it('windows long context around the match to the snippet radius', () => {
     const body = `${'x'.repeat(100)}needle${'y'.repeat(100)}`;
     const index = buildSearchIndex([file('docs/a.md', {}, body)], overlapConfig());
