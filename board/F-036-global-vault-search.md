@@ -2,13 +2,13 @@
 id: F-036
 type: feature
 title: Global vault search — scoped, highlighted, in the wiki lens
-status: Draft
+status: In Progress
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [core, web, docs]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T12:00:00Z
+updated: 2026-07-04T22:28:35Z
 ---
 
 # F-036 — Global vault search — scoped, highlighted, in the wiki lens
