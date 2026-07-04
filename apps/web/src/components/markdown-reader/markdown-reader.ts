@@ -22,6 +22,53 @@ import {
 /** Schemes that open in a new tab; anything else with a scheme renders inert (F-017). */
 const EXTERNAL_SCHEMES = /^(?:https?|mailto):/i;
 
+/**
+ * Mermaid mutates module-global config/state on every `initialize`/`render`, so
+ * concurrent renders — a theme flip while a diagram is still rendering, or two
+ * live readers — corrupt each other (a valid diagram can then throw and show the
+ * error note). All renders across every MarkdownReader are therefore serialized
+ * through one chain, and a module-global counter keeps render ids unique across
+ * instances.
+ */
+let mermaidRenderChain: Promise<void> = Promise.resolve();
+let mermaidRenderSeq = 0;
+
+/** First-token diagram type → a human name for a diagram's accessible label. */
+const MERMAID_TYPE_LABELS: Record<string, string> = {
+  flowchart: 'Flowchart',
+  graph: 'Flowchart',
+  sequencediagram: 'Sequence diagram',
+  classdiagram: 'Class diagram',
+  statediagram: 'State diagram',
+  'statediagram-v2': 'State diagram',
+  erdiagram: 'Entity-relationship diagram',
+  gantt: 'Gantt chart',
+  pie: 'Pie chart',
+  journey: 'User journey',
+  gitgraph: 'Git graph',
+  mindmap: 'Mind map',
+  timeline: 'Timeline',
+  quadrantchart: 'Quadrant chart',
+  block: 'Block diagram',
+  'block-beta': 'Block diagram',
+};
+
+/**
+ * A meaningful accessible name for a rendered diagram: the author's `accTitle`
+ * if present, else the diagram type — so a screen-reader user can tell a
+ * flowchart from a sequence diagram instead of hearing "Diagram" for every one.
+ */
+function mermaidLabel(source: string): string {
+  const accTitle = /^\s*accTitle\s*:\s*(.+)$/im.exec(source)?.[1]?.trim();
+  if (accTitle) return accTitle;
+  const firstToken =
+    source
+      .trim()
+      .split(/[\s\n{(]/)[0]
+      ?.toLowerCase() ?? '';
+  return MERMAID_TYPE_LABELS[firstToken] ?? 'Diagram';
+}
+
 @Component({
   selector: 'app-markdown-reader',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -181,33 +228,54 @@ export class MarkdownReader {
       }
 
       this.classifyAnchors(containerEl, modelVal);
-      void this.renderMermaid(containerEl, isDark);
+      this.renderMermaid(containerEl, isDark);
     });
   }
 
   /**
-   * Render fenced ` ```mermaid ` blocks (`<pre><code class="language-mermaid">`)
-   * as inline SVG. Mermaid is a heavy dependency, so it is **dynamically
-   * imported — and only when a rendered page actually contains a diagram** —
-   * keeping it out of the board/wiki initial bundle. Rendered with
-   * `securityLevel: 'strict'` (vault markdown is untrusted; mermaid sanitizes
-   * its own SVG). A diagram that fails to parse leaves its source visible with
-   * an error note, and never throws out of the effect. The `mermaidGen` guard
-   * drops any render a newer effect run (content or theme change) has
-   * superseded, so overlapping async renders can't corrupt the DOM.
+   * Schedule rendering of fenced ` ```mermaid ` blocks
+   * (`<pre><code class="language-mermaid">`) as inline SVG. Mermaid is heavy, so
+   * it is **dynamically imported — and only when a page actually contains a
+   * diagram** — keeping it out of the board/wiki initial bundle. Because mermaid
+   * holds module-global state, the actual render is queued on a shared chain and
+   * never run concurrently; the per-instance `mermaidGen` guard drops any run a
+   * newer content/theme change superseded.
    */
-  private async renderMermaid(container: HTMLElement, isDark: boolean): Promise<void> {
-    const blocks = Array.from(container.querySelectorAll<HTMLElement>('code.language-mermaid'));
-    if (blocks.length === 0) return; // lazy: never import mermaid for a plain doc
-
+  private renderMermaid(container: HTMLElement, isDark: boolean): void {
+    // Lazy gate: never touch mermaid for a plain doc (no import, no queue).
+    if (container.querySelector('code.language-mermaid') === null) return;
     const generation = ++this.mermaidGen;
+    mermaidRenderChain = mermaidRenderChain
+      .then(() => this.renderMermaidDiagrams(container, generation, isDark))
+      .catch(() => {
+        // A single render failure must not break the shared chain.
+      });
+  }
+
+  /**
+   * Render every mermaid block in `container` to SVG, in serialized isolation.
+   * Rendered with `securityLevel: 'strict'` — vault markdown is untrusted, so
+   * mermaid runs its output through its own (version-pinned) DOMPurify and
+   * disables html labels / scripts / click handlers. A diagram that fails to
+   * parse keeps its source visible with an error note and never throws.
+   */
+  private async renderMermaidDiagrams(
+    container: HTMLElement,
+    generation: number,
+    isDark: boolean,
+  ): Promise<void> {
+    if (generation !== this.mermaidGen) return; // superseded before our turn on the queue
+    // Re-query now: a newer effect run may have reset innerHTML while we waited.
+    const blocks = Array.from(container.querySelectorAll<HTMLElement>('code.language-mermaid'));
+    if (blocks.length === 0) return;
+
     let mermaidModule: typeof import('mermaid');
     try {
       mermaidModule = await import('mermaid');
     } catch {
       return; // engine failed to load — leave the source code visible
     }
-    if (generation !== this.mermaidGen) return; // a newer render superseded this one
+    if (generation !== this.mermaidGen) return;
     const mermaid = mermaidModule.default;
 
     mermaid.initialize({
@@ -216,17 +284,17 @@ export class MarkdownReader {
       theme: isDark ? 'dark' : 'default',
     });
 
-    for (let i = 0; i < blocks.length; i++) {
-      const code = blocks[i];
+    for (const code of blocks) {
       const host = code.closest('pre') ?? code;
       const source = code.textContent ?? '';
       try {
-        const { svg } = await mermaid.render(`mermaid-${generation}-${i}`, source);
+        // Module-global id so two reader instances can't collide on it.
+        const { svg } = await mermaid.render(`mermaid-${mermaidRenderSeq++}`, source);
         if (generation !== this.mermaidGen) return; // superseded mid-flight
         const figure = document.createElement('figure');
         figure.className = 'mermaid';
         figure.setAttribute('role', 'img');
-        figure.setAttribute('aria-label', 'Diagram');
+        figure.setAttribute('aria-label', mermaidLabel(source));
         figure.innerHTML = svg;
         // The <figure> carries the accessible name; hide the raw SVG internals
         // from assistive tech so it isn't announced as a wall of nodes.

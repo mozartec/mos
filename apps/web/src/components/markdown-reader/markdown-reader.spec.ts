@@ -312,16 +312,19 @@ describe('MarkdownReader', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('leaves a non-mermaid fenced code block untouched and never loads mermaid', async () => {
+  it('leaves a non-mermaid fenced code block untouched and never initializes mermaid', async () => {
     mermaidRender.mockReset();
+    mermaidInitialize.mockReset();
     const host = await renderAndSettle('```ts\nconst x = 1;\n```');
 
     expect(host.querySelector('figure.mermaid')).toBeNull();
     expect(host.querySelector('pre code')).toBeTruthy();
+    // Never reached the engine — no import, no initialize, no render.
+    expect(mermaidInitialize).not.toHaveBeenCalled();
     expect(mermaidRender).not.toHaveBeenCalled();
   });
 
-  it('renders a mermaid fenced block as an inline SVG figure with an accessible name', async () => {
+  it('renders a mermaid fenced block as an inline SVG figure with a typed accessible name', async () => {
     mermaidRender.mockReset();
     mermaidRender.mockResolvedValue({ svg: '<svg data-testid="diagram"><g></g></svg>' });
 
@@ -330,7 +333,8 @@ describe('MarkdownReader', () => {
     const figure = host.querySelector('figure.mermaid');
     expect(figure).toBeTruthy();
     expect(figure?.getAttribute('role')).toBe('img');
-    expect(figure?.getAttribute('aria-label')).toBe('Diagram');
+    // Named by diagram type, not a generic "Diagram", so diagrams are distinguishable.
+    expect(figure?.getAttribute('aria-label')).toBe('Flowchart');
     expect(figure?.querySelector('svg[data-testid="diagram"]')).toBeTruthy();
     expect(figure?.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     // The source code block is replaced by the diagram, and the source was rendered.
