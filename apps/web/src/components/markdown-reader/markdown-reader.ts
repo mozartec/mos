@@ -12,6 +12,7 @@ import {
 import { renderMarkdown } from './render-markdown';
 import { ThemeService } from '../../services/theme-service';
 import {
+  findFoldedMatches,
   resolveReferences,
   resolveRelativeLink,
   toPosixPath,
@@ -21,6 +22,38 @@ import {
 
 /** Schemes that open in a new tab; anything else with a scheme renders inert (F-017). */
 const EXTERNAL_SCHEMES = /^(?:https?|mailto):/i;
+
+/**
+ * Elements whose text is never decorated by the reader's DOM passes — links and
+ * verbatim spans. Shared by the id-reference pass and the search-highlight pass
+ * (F-036-S-03) so neither wraps a match inside a link or code: turning `F-001`
+ * in a code fence into a live link, or marking a term inside a URL, is wrong.
+ */
+const SKIP_TAGS = new Set(['a', 'code', 'pre', 'kbd', 'samp']);
+
+/**
+ * The text nodes under `root` that are safe to decorate: every text node with no
+ * {@link SKIP_TAGS} ancestor up to `root`. Both the id-reference pass and the
+ * highlight pass walk the DOM through this, so they honor one skip rule.
+ */
+function collectDecoratableTextNodes(root: HTMLElement): Text[] {
+  const nodes: Text[] = [];
+  const walk = (node: Node) => {
+    if (node.nodeType === 3) {
+      // TEXT_NODE — skip it if any ancestor below `root` is a verbatim element.
+      let parent: Node | null = node.parentNode;
+      while (parent && parent !== root) {
+        if (SKIP_TAGS.has(parent.nodeName.toLowerCase())) return;
+        parent = parent.parentNode;
+      }
+      nodes.push(node as Text);
+    } else {
+      for (const child of Array.from(node.childNodes)) walk(child);
+    }
+  };
+  walk(root);
+  return nodes;
+}
 
 /**
  * Mermaid mutates module-global config/state on every `initialize`/`render`, so
@@ -104,6 +137,13 @@ export class MarkdownReader {
    */
   readonly path = input<string>('');
 
+  /**
+   * Search query whose matches are lit up in the rendered body (fed from the
+   * wiki's `?q=`, F-036-S-03). Empty (the default) decorates nothing, so hosts
+   * that don't search — the card page, the reader lens — are unaffected.
+   */
+  readonly highlight = input<string>('');
+
   readonly navigate = output<string>();
 
   readonly containerRef = viewChild<ElementRef<HTMLElement>>('container');
@@ -114,6 +154,13 @@ export class MarkdownReader {
 
   /** Monotonic guard so a superseded async diagram render never mutates the DOM. */
   private mermaidGen = 0;
+
+  /**
+   * The `path`+query the highlight pass last scrolled to. Guards against
+   * re-scrolling on a same-target re-render — a theme flip re-runs the effect
+   * and rebuilds the marks, but must not yank the reader back to the first hit.
+   */
+  private lastHighlightScroll = '';
 
   constructor() {
     effect(() => {
@@ -128,6 +175,9 @@ export class MarkdownReader {
       // innerHTML (restoring the mermaid source blocks) so diagrams re-render
       // in the new theme.
       const isDark = this.themeService.isDark();
+      // Read as a dependency too: changing the search query (?q=) re-runs the
+      // effect, so clearing it wipes the marks and a new term re-highlights.
+      const highlightVal = this.highlight();
 
       // renderMarkdown runs DOMPurify before producing this HTML, so bypassing
       // Angular's [innerHTML] sanitizer here does not regress XSS safety.
@@ -154,35 +204,9 @@ export class MarkdownReader {
         return;
       }
 
-      // Elements whose text should never be decorated (links, code, and other
-      // verbatim elements). Decorating code examples would turn `F-001` in a
-      // code fence into a live wiki link, which is incorrect.
-      const SKIP_TAGS = new Set(['a', 'code', 'pre', 'kbd', 'samp']);
-
-      const textNodes: Text[] = [];
-      const walk = (node: Node) => {
-        if (node.nodeType === 3) {
-          // TEXT_NODE
-          let parent: Node | null = node.parentNode;
-          let insideSkipped = false;
-          while (parent && parent !== containerEl) {
-            if (SKIP_TAGS.has(parent.nodeName.toLowerCase())) {
-              insideSkipped = true;
-              break;
-            }
-            parent = parent.parentNode;
-          }
-          if (!insideSkipped) {
-            textNodes.push(node as Text);
-          }
-        } else {
-          for (const child of Array.from(node.childNodes)) {
-            walk(child);
-          }
-        }
-      };
-
-      walk(containerEl);
+      // Link/code-skipping walk shared with the highlight pass (SKIP_TAGS):
+      // decorating an id inside a code fence into a live wiki link is wrong.
+      const textNodes = collectDecoratableTextNodes(containerEl);
 
       for (const node of textNodes) {
         const text = node.textContent || '';
@@ -246,8 +270,72 @@ export class MarkdownReader {
       }
 
       this.classifyAnchors(containerEl, modelVal);
+      // After links are settled so a match inside a link is skipped (SKIP_TAGS).
+      this.highlightMatches(containerEl, highlightVal);
       this.renderMermaid(containerEl, isDark);
     });
+  }
+
+  /**
+   * Light up every match of the `highlight` query in the rendered body, wrapping
+   * each in a `<mark class="search-highlight">`, and scroll the first into view
+   * when the file or query just changed (F-036-S-03). A term/DOM pass: it
+   * re-scans the rendered text nodes with the one shared core fold rule
+   * ({@link findFoldedMatches}), so a hit agrees with the search index and its
+   * snippet, and it never indexes a source offset into rendered HTML
+   * (F-003-S-03). Links and code are skipped via {@link SKIP_TAGS}.
+   */
+  private highlightMatches(containerEl: HTMLElement, query: string): void {
+    const trimmed = query.trim();
+    if (trimmed === '') {
+      // Nothing to mark; forget the scroll target so re-entering the same query
+      // on this file scrolls to it afresh rather than being suppressed as a repeat.
+      this.lastHighlightScroll = '';
+      return;
+    }
+
+    let firstMark: HTMLElement | null = null;
+    for (const node of collectDecoratableTextNodes(containerEl)) {
+      const text = node.textContent ?? '';
+      const matches = findFoldedMatches(text, trimmed);
+      if (matches.length === 0) continue;
+
+      const parent = node.parentNode;
+      if (!parent) continue;
+
+      // Rebuild the text node as alternating plain-text and <mark> segments.
+      const pieces: Node[] = [];
+      let cursor = 0;
+      for (const { start, end } of matches) {
+        if (start > cursor) pieces.push(document.createTextNode(text.slice(cursor, start)));
+        const mark = document.createElement('mark');
+        mark.className = 'search-highlight';
+        mark.textContent = text.slice(start, end);
+        firstMark ??= mark;
+        pieces.push(mark);
+        cursor = end;
+      }
+      if (cursor < text.length) pieces.push(document.createTextNode(text.slice(cursor)));
+
+      for (const piece of pieces) parent.insertBefore(piece, node);
+      parent.removeChild(node);
+    }
+
+    if (firstMark) this.scrollToFirstMatch(firstMark, trimmed);
+  }
+
+  /**
+   * Scroll the first match into view, but only when the target changed — a new
+   * file or a new query. A same-target re-render (a theme flip re-runs the
+   * effect and rebuilds the marks) must not yank the reader back to the top hit
+   * while it's parked elsewhere. `scrollIntoView` is optional-chained: jsdom
+   * (unit tests) doesn't implement it, and its absence is a harmless no-op.
+   */
+  private scrollToFirstMatch(mark: HTMLElement, trimmed: string): void {
+    const key = JSON.stringify([this.path(), trimmed]);
+    if (key === this.lastHighlightScroll) return;
+    this.lastHighlightScroll = key;
+    mark.scrollIntoView?.({ block: 'center' });
   }
 
   /**

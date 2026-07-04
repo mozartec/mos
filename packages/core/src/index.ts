@@ -101,6 +101,7 @@ export type {
   SearchSnippet,
   SearchHit,
   SearchQuery,
+  FoldedMatch,
 } from './search.js';
 export {
   foldSearchText,
@@ -108,4 +109,5 @@ export {
   buildSearchIndex,
   querySearch,
   applySearchChange,
+  findFoldedMatches,
 } from './search.js';

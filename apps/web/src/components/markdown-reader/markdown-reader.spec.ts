@@ -369,4 +369,113 @@ describe('MarkdownReader', () => {
     const host2 = await renderAndSettle('```mermaid\n---\ntitle: My Flow\n---\nflowchart TD\n```');
     expect(host2.querySelector('figure.mermaid')?.getAttribute('aria-label')).toBe('My Flow');
   });
+
+  // ── F-036-S-03: in-document search highlight + scroll ───────────────────────
+
+  async function renderWithHighlight(
+    body: string,
+    highlight: string,
+    path = '',
+  ): Promise<HTMLElement> {
+    const fixture = TestBed.createComponent(MarkdownReader);
+    fixture.componentRef.setInput('body', body);
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+    fixture.componentRef.setInput('path', path);
+    fixture.componentRef.setInput('highlight', highlight);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('wraps a matched term in the body in a <mark class="search-highlight">', async () => {
+    const host = await renderWithHighlight('The quick brown fox.', 'quick');
+    const mark = host.querySelector('mark.search-highlight');
+    expect(mark).toBeTruthy();
+    expect(mark?.textContent).toBe('quick');
+  });
+
+  it('matches case- and accent-insensitively, keeping the original text in the mark', async () => {
+    const host = await renderWithHighlight('A CAFÉ in town.', 'cafe');
+    expect(host.querySelector('mark.search-highlight')?.textContent).toBe('CAFÉ');
+  });
+
+  it('highlights every occurrence of the query', async () => {
+    const host = await renderWithHighlight('tea, more tea, and tea', 'tea');
+    const marks = Array.from(host.querySelectorAll('mark.search-highlight'));
+    expect(marks.map((m) => m.textContent)).toEqual(['tea', 'tea', 'tea']);
+  });
+
+  it('does not highlight matches inside code or pre', async () => {
+    const host = await renderWithHighlight(
+      'Set the config value.\n\n```\nconfig: true\n```',
+      'config',
+    );
+    // The prose occurrence is marked…
+    expect(host.querySelector('p mark.search-highlight')?.textContent).toBe('config');
+    // …but the fenced-code one stays verbatim.
+    expect(host.querySelector('pre mark')).toBeNull();
+    expect(host.querySelector('code mark')).toBeNull();
+  });
+
+  it('does not highlight matches inside links', async () => {
+    const host = await renderWithHighlight(
+      '[the guide](https://example.com) — guide again.',
+      'guide',
+    );
+    expect(host.querySelector('a mark')).toBeNull();
+    // Only the prose "guide" outside the link is marked.
+    const marks = Array.from(host.querySelectorAll('mark.search-highlight'));
+    expect(marks.map((m) => m.textContent)).toEqual(['guide']);
+  });
+
+  it('keeps reference-link decoration working alongside highlighting', async () => {
+    const host = await renderWithHighlight('See F-001 for the plan.', 'plan');
+    // The id reference is still turned into a link…
+    expect(host.querySelector('a[data-path]')?.textContent).toBe('F-001');
+    // …and the prose term is highlighted.
+    expect(host.querySelector('mark.search-highlight')?.textContent).toBe('plan');
+  });
+
+  it('adds no marks when the highlight query is empty or whitespace', async () => {
+    const empty = await renderWithHighlight('nothing to see here', '');
+    expect(empty.querySelector('mark.search-highlight')).toBeNull();
+    const blank = await renderWithHighlight('nothing to see here', '   ');
+    expect(blank.querySelector('mark.search-highlight')).toBeNull();
+  });
+
+  it('removes existing marks when the query is cleared', async () => {
+    const fixture = TestBed.createComponent(MarkdownReader);
+    fixture.componentRef.setInput('body', 'highlight me');
+    fixture.componentRef.setInput('model', TEST_MODEL);
+    fixture.componentRef.setInput('config', TEST_CONFIG);
+    fixture.componentRef.setInput('highlight', 'highlight');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('mark.search-highlight')).toBeTruthy();
+
+    fixture.componentRef.setInput('highlight', '');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(host.querySelector('mark.search-highlight')).toBeNull();
+  });
+
+  it('scrolls the first match into view when a query opens a document', async () => {
+    // jsdom has no scrollIntoView; install a stub so the guarded optional call runs.
+    const scrollSpy = vi.fn();
+    const proto = Element.prototype as unknown as { scrollIntoView?: (arg?: unknown) => void };
+    proto.scrollIntoView = scrollSpy;
+    try {
+      await renderWithHighlight('alpha beta alpha', 'alpha', 'docs/x.md');
+      expect(scrollSpy).toHaveBeenCalled();
+      // It is the FIRST match that gets scrolled to.
+      expect((scrollSpy.mock.contexts[0] as HTMLElement).textContent).toBe('alpha');
+    } finally {
+      delete proto.scrollIntoView;
+    }
+  });
 });

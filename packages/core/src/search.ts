@@ -61,6 +61,16 @@ export interface SearchSnippet {
   after: string;
 }
 
+/**
+ * One in-document match as **source** offsets: `source.slice(start, end)` is the
+ * original text that matched, its case and diacritics intact. Returned by
+ * {@link findFoldedMatches} for the reader's highlight pass (F-036-S-03).
+ */
+export interface FoldedMatch {
+  start: number;
+  end: number;
+}
+
 /** One ranked search result. */
 export interface SearchHit {
   path: string;
@@ -191,6 +201,32 @@ export function applySearchChange(
   }
 
   return { docs };
+}
+
+/**
+ * Every non-overlapping match of `query` in `source` under the shared fold rule,
+ * as **source** offsets. The in-document highlighter (F-036-S-03) runs each
+ * rendered text node through this, so its `<mark>`s agree with the index and the
+ * snippet on what a hit is — case- and accent-insensitively — instead of a
+ * second, divergent tokenizer. A blank query, or one that folds away, yields
+ * `[]`. The offsets sit on code-point boundaries (the fold map advances by whole
+ * code points), so slicing them never splits a surrogate pair. Pure — returns a
+ * fresh array, mutates nothing.
+ */
+export function findFoldedMatches(source: string, query: string): FoldedMatch[] {
+  const needle = foldSearchText(query.trim());
+  if (needle === '') return [];
+
+  const { folded, srcStart, srcEnd } = foldWithMap(source);
+  const matches: FoldedMatch[] = [];
+  let from = 0;
+  for (;;) {
+    const at = folded.indexOf(needle, from);
+    if (at < 0) break;
+    matches.push({ start: srcStart[at], end: srcEnd[at + needle.length - 1] });
+    from = at + needle.length;
+  }
+  return matches;
 }
 
 // ── internals ──────────────────────────────────────────────────────────────
