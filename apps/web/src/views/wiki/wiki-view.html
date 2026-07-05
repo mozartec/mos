@@ -177,6 +177,8 @@
           [model]="model()"
           [config]="config()"
           [path]="selectedPath() ?? ''"
+          [highlightTerms]="searchQuery()"
+          [scrollToFirstMatch]="true"
           (navigate)="openFromLink($event)"
         />
       } @else {

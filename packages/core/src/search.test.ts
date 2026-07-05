@@ -5,6 +5,7 @@ import {
   applySearchChange,
   buildSearchIndex,
   fileScopes,
+  findFoldedMatches,
   foldSearchText,
   querySearch,
 } from './search.js';
@@ -38,6 +39,65 @@ describe('foldSearchText', () => {
 
   it('folds an empty string to empty', () => {
     expect(foldSearchText('')).toBe('');
+  });
+});
+
+// ── findFoldedMatches: source offsets for the in-document highlighter (S-03) ──
+
+describe('findFoldedMatches', () => {
+  /** Slice each match back out of the source to prove the offsets are correct. */
+  function sliced(source: string, query: string): string[] {
+    return findFoldedMatches(source, query).map(({ start, end }) => source.slice(start, end));
+  }
+
+  it('locates a substring and returns source offsets that slice back to it', () => {
+    expect(findFoldedMatches('the cat sat', 'cat')).toEqual([{ start: 4, end: 7 }]);
+    expect(sliced('the cat sat', 'cat')).toEqual(['cat']);
+  });
+
+  it('matches case-insensitively, keeping the source casing in the range', () => {
+    expect(sliced('The CAT Sat', 'cat')).toEqual(['CAT']);
+  });
+
+  it('matches accent-insensitively, keeping the accented source in the range', () => {
+    // 'cafe' folds to match 'Café'; the offsets still cover the original 'Café'.
+    expect(sliced('A Café here', 'cafe')).toEqual(['Café']);
+  });
+
+  it('keeps a trailing combining mark inside the match (NFD source)', () => {
+    // Base 'e' + combining acute (U+0301): an NFD-decomposed accented 'e'. The
+    // range must swallow the mark, not orphan it after it (F-036-S-03 review).
+    const nfd = 'café stop';
+    expect(findFoldedMatches(nfd, 'cafe')).toEqual([{ start: 0, end: 5 }]);
+    expect(nfd.slice(0, 5)).toBe('café');
+  });
+
+  it('matches a substring of a longer word, like the index (cat ⊂ category)', () => {
+    expect(sliced('the category', 'cat')).toEqual(['cat']);
+  });
+
+  it('returns every non-overlapping occurrence in document order', () => {
+    expect(findFoldedMatches('aXaXa', 'a')).toEqual([
+      { start: 0, end: 1 },
+      { start: 2, end: 3 },
+      { start: 4, end: 5 },
+    ]);
+  });
+
+  it('does not overlap matches', () => {
+    // 'aa' in 'aaa' matches once (offset 0..2), not twice.
+    expect(findFoldedMatches('aaa', 'aa')).toEqual([{ start: 0, end: 2 }]);
+  });
+
+  it('returns [] for a blank, whitespace-only, or folds-to-nothing query', () => {
+    expect(findFoldedMatches('anything', '')).toEqual([]);
+    expect(findFoldedMatches('anything', '   ')).toEqual([]);
+    // A lone combining mark folds away to the empty needle.
+    expect(findFoldedMatches('anything', '́')).toEqual([]);
+  });
+
+  it('returns [] when the query is absent from the source', () => {
+    expect(findFoldedMatches('the cat sat', 'dog')).toEqual([]);
   });
 });
 
@@ -247,6 +307,16 @@ describe('snippet offsets', () => {
     expect(snippet.end).toBe(8);
     expect(snippet.before).toBe('The ');
     expect(snippet.after).toBe(' is nice');
+  });
+
+  it('keeps a trailing combining mark in a snippet match (NFD source)', () => {
+    // The snippet reuses findFoldedMatches' offset mapping (F-036-S-03 review),
+    // so the combining-mark fix reaches the sidebar snippet, not just the reader.
+    const body = 'The café is nice';
+    const index = buildSearchIndex([file('docs/a.md', {}, body)], overlapConfig());
+    const snippet = querySearch(index, { q: 'cafe' })[0].snippet;
+    expect(snippet?.match).toBe('café');
+    expect(snippet && body.slice(snippet.start, snippet.end)).toBe('café');
   });
 
   it('clamps snippet windows off surrogate-pair boundaries (no stray U+FFFD)', () => {

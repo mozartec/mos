@@ -461,6 +461,23 @@ describe('WikiView — search (F-036-S-02)', () => {
     expect(host.querySelector('[role="listbox"]')).not.toBeNull();
   });
 
+  it('highlights the carried query in the opened document (F-036-S-03)', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { q: 'aardvark', in: 'board' } });
+    const fixture = TestBed.createComponent(WikiView);
+    await settle(fixture);
+    const host = fixture.nativeElement as HTMLElement;
+
+    // Open the first result in place; the reader (not the sidebar snippet) then
+    // lights up the carried query via [highlight].
+    options(host)[0]!.click();
+    await settle(fixture);
+
+    const mark = host.querySelector('app-markdown-reader mark.search-highlight');
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('aardvark');
+  });
+
   it('is keyboard operable: arrows move the active option, Enter opens, Esc clears', async () => {
     const router = TestBed.inject(Router);
     await router.navigate([], { queryParams: { q: 'aardvark', in: 'all' } });

@@ -61,6 +61,16 @@ export interface SearchSnippet {
   after: string;
 }
 
+/**
+ * One in-document match as **source** offsets: `source.slice(start, end)` is the
+ * original text that matched, its case and diacritics intact. Returned by
+ * {@link findFoldedMatches} for the reader's highlight pass (F-036-S-03).
+ */
+export interface FoldedMatch {
+  start: number;
+  end: number;
+}
+
 /** One ranked search result. */
 export interface SearchHit {
   path: string;
@@ -193,6 +203,25 @@ export function applySearchChange(
   return { docs };
 }
 
+/**
+ * Every non-overlapping match of `query` in `source` under the shared fold rule,
+ * as **source** offsets. This is the single matcher the snippet extractor and the
+ * in-document highlighter (F-036-S-03) both run through {@link matchFoldedNeedle},
+ * so they never disagree on what a hit is — case- and accent-insensitively —
+ * instead of a second, divergent tokenizer. A blank query, or one that folds
+ * away, yields `[]`. Offsets sit on code-point boundaries and swallow trailing
+ * combining marks, so a slice is always a whole grapheme run (no split surrogate,
+ * no orphaned accent). Pure — returns a fresh array, mutates nothing.
+ *
+ * The match set is over the given `source` string; a caller that applies it to
+ * already-rendered DOM runs it per visible text node, so a hit that the whole-body
+ * index sees spanning a skipped element (a link or code span, F-003-S-03) can be
+ * absent here — by design, since those boundaries are never decorated.
+ */
+export function findFoldedMatches(source: string, query: string): FoldedMatch[] {
+  return matchFoldedNeedle(source, foldSearchText(query.trim()));
+}
+
 // ── internals ──────────────────────────────────────────────────────────────
 
 /** The compiled scope membership tests, built once per index/change. */
@@ -267,23 +296,66 @@ function comparePath(a: string, b: string): number {
 }
 
 /**
+ * All non-overlapping matches of an **already-folded** `needle` in `source`, as
+ * source offsets — the shared core of {@link findFoldedMatches} and
+ * {@link extractSnippet}, so a folded→source correction lands in exactly one
+ * place. A map-free precheck (fold to a plain string, no offset arrays) bails
+ * before the per-code-point map is built, which matters on the highlighter's hot
+ * path where most text nodes never match. `end` is extended over any immediately
+ * following combining marks that folded away (NFD source, e.g. `e`+U+0301) so the
+ * accent stays inside the match rather than being severed after it.
+ */
+function matchFoldedNeedle(source: string, needle: string): FoldedMatch[] {
+  if (needle === '') return [];
+  // Cheap precheck: skip the offset-map allocation for a source with no match.
+  if (!foldSearchText(source).includes(needle)) return [];
+
+  const { folded, srcStart, srcEnd } = foldWithMap(source);
+  const matches: FoldedMatch[] = [];
+  let from = 0;
+  for (;;) {
+    const at = folded.indexOf(needle, from);
+    if (at < 0) break;
+    const start = srcStart[at];
+    const end = extendOverCombiningMarks(source, srcEnd[at + needle.length - 1]);
+    matches.push({ start, end });
+    from = at + needle.length;
+  }
+  return matches;
+}
+
+/**
+ * Advance `end` past any source code points that fold to nothing — trailing
+ * combining marks on NFD-decomposed text — so a match that landed on the base
+ * character keeps its accent inside `[start, end)`.
+ */
+function extendOverCombiningMarks(source: string, end: number): number {
+  let i = end;
+  while (i < source.length) {
+    const cp = source.codePointAt(i);
+    if (cp === undefined) break;
+    const width = cp > 0xffff ? 2 : 1;
+    if (foldCodePoint(source.slice(i, i + width)) !== '') break;
+    i += width;
+  }
+  return i;
+}
+
+/**
  * Extract a snippet around the first body occurrence of `needle` (folded). The
- * returned offsets index the **source** body — the fold map translates the
- * folded match position back to source, so accents and case in the source are
- * preserved in `match`. Returns `null` when the folded query isn't in the body.
+ * offsets come from {@link matchFoldedNeedle} (source-body offsets, accents and
+ * case preserved, combining marks kept whole); this only adds the fixed-radius
+ * context windows. Returns `null` when the folded query isn't in the body.
  */
 function extractSnippet(doc: SearchDoc, needle: string): SearchSnippet | null {
   const body = doc.body;
-  const { folded, srcStart, srcEnd } = foldWithMap(body);
-  const at = folded.indexOf(needle);
-  if (at < 0) return null;
+  const first = matchFoldedNeedle(body, needle)[0];
+  if (first === undefined) return null;
 
-  const start = srcStart[at];
-  const end = srcEnd[at + needle.length - 1];
-  // `start`/`end` sit on code-point boundaries (the fold map advances by whole
-  // code points), so `match` is always well-formed. Only the context windows,
-  // cut at a fixed UTF-16 radius, can bisect a surrogate pair — nudge each
-  // truncated edge off the orphaned half so the preview never shows a stray �.
+  const { start, end } = first;
+  // `start`/`end` sit on code-point boundaries, so `match` is always well-formed.
+  // Only the context windows, cut at a fixed UTF-16 radius, can bisect a surrogate
+  // pair — nudge each truncated edge off the orphaned half so no stray � shows.
   const before = body.slice(clampWindowStart(body, Math.max(0, start - SNIPPET_RADIUS)), start);
   const match = body.slice(start, end);
   const after = body.slice(end, clampWindowEnd(body, Math.min(body.length, end + SNIPPET_RADIUS)));

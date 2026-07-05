@@ -2,14 +2,14 @@
 id: F-036-S-03
 type: story
 title: In-document match highlight and scroll-to
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-036
 estimate: M
-touches: [web]
+touches: [web, core]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T12:00:00Z
+updated: 2026-07-04T22:21:17Z
 ---
 
 # F-036-S-03 — In-document match highlight and scroll-to
@@ -65,12 +65,12 @@ renders).
 
 ## Acceptance
 
-- [ ] Opening a doc from search highlights the matched terms in the rendered body
+- [x] Opening a doc from search highlights the matched terms in the rendered body
       and scrolls to the first match.
-- [ ] No highlighting inside code/pre/links; reference-link decoration still works.
-- [ ] `<mark>` meets AA contrast in both themes (computed value recorded); AXE
+- [x] No highlighting inside code/pre/links; reference-link decoration still works.
+- [x] `<mark>` meets AA contrast in both themes (computed value recorded); AXE
       green.
-- [ ] Web tests green.
+- [x] Web tests green.
 
 ## Dependencies
 

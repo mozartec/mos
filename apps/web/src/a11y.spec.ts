@@ -216,9 +216,10 @@ describe('AXE accessibility audit', () => {
     }
   }
 
-  // Wiki search (F-036-S-02): the combobox, scope radiogroup, and results
-  // listbox are new ARIA surface — audit the searching state (a query with
-  // matches) in both themes via the router harness so `?q=` drives the view.
+  // Wiki search (F-036-S-02, F-036-S-03): the combobox, scope radiogroup, and
+  // results listbox are new ARIA surface, and opening a result lights up the
+  // match in the reader — audit the searching state with a doc open (a query
+  // with matches, `?path=` set) in both themes via the router harness.
   for (const theme of ['mos-paper', 'mos-carbon']) {
     it(`wiki search results have no AXE violations under ${theme}`, async () => {
       await TestBed.configureTestingModule({
@@ -228,15 +229,18 @@ describe('AXE accessibility audit', () => {
         ],
       }).compileComponents();
 
-      // `welcome` hits the doc body, so a result carries a `<mark>` snippet —
-      // the highlight surface whose contrast the audit must cover.
+      // `welcome` hits the doc body, so a result carries a `<mark>` snippet and
+      // the opened doc carries an in-document `<mark>` (F-036-S-03) — both
+      // highlight surfaces whose contrast the audit must cover.
       document.documentElement.dataset['theme'] = theme;
-      const harness = await RouterTestingHarness.create('/wiki?q=welcome');
+      const harness = await RouterTestingHarness.create('/wiki?q=welcome&path=docs/welcome.md');
       await settle(harness.fixture);
 
       const el = harness.routeNativeElement as HTMLElement;
       expect(el.querySelector('[role="listbox"]')).not.toBeNull();
       expect(el.querySelector('mark')).not.toBeNull();
+      // The reader's in-document highlight is present (not just the sidebar snippet).
+      expect(el.querySelector('app-markdown-reader mark.search-highlight')).not.toBeNull();
 
       const results = await axe.run(el, { rules: { 'color-contrast': { enabled: false } } });
       const violations = results.violations.map(

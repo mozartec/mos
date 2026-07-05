@@ -260,3 +260,14 @@ a[data-path]:hover {
   opacity: 0.5;
   cursor: default;
 }
+
+/* In-document search-match highlight (F-036-S-03): the same warning pair as the
+   sidebar result snippet, so a hit looks identical in the results list and the
+   opened reader. warning-content on warning is proven ≥4.5:1 in both themes by
+   the token-pair math in design-system.spec.ts, so the mark meets WCAG AA. */
+mark.search-highlight {
+  background-color: var(--color-warning);
+  color: var(--color-warning-content);
+  border-radius: 0.2rem;
+  padding: 0 0.125rem;
+}
