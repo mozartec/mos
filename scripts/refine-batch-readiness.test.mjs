@@ -70,11 +70,23 @@ function runJson(vault) {
 
 const card = (j, id) => j.refinable.find((c) => c.id === id);
 
-// Swap a card's body, keeping its frontmatter untouched.
+// Swap a card's body, keeping its frontmatter untouched. Match the fence as `---\r?\n`
+// (not `---\n`) and write the new body in the file's own newline style, mirroring
+// refine_batch.py's parse_frontmatter: on a CRLF checkout (core.autocrlf=true) an LF-only
+// anchor never matches, and writing an LF-only body would leave the fixture with mixed
+// endings instead of the CRLF the parser should be exercised on. A no-op replace (fence
+// unmatched) is the exact bug this suite exists to catch, so assert the fence matched and
+// fail fast with a clear message rather than silently leaving the stub body in place.
 function setBody(vault, file, body) {
   const path = join(vault, 'board', file);
   const text = readFileSync(path, 'utf8');
-  writeFileSync(path, text.replace(/^(---\n[\s\S]*?\n---\n)[\s\S]*$/, `$1\n${body}\n`));
+  const nl = text.includes('\r\n') ? '\r\n' : '\n';
+  const nativeBody = body.replace(/\n/g, nl);
+  const fence = /^(---\r?\n[\s\S]*?\r?\n---\r?\n)[\s\S]*$/;
+  if (!fence.test(text)) {
+    throw new Error(`setBody: no frontmatter fence matched in ${file} — fixture not mutated`);
+  }
+  writeFileSync(path, text.replace(fence, `$1${nl}${nativeBody}${nl}`));
 }
 
 // Drop `card.readiness` from every type — the no-readiness-declared vault.
