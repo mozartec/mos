@@ -1,6 +1,6 @@
 {
   "name": "@mozartec/mos-cli",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "The mos CLI: serve any vault's board and wiki locally (`mos serve`), scaffold a new vault (`mos init`), and validate one (`mos validate`). Read-only over existing vaults; ships the built web app bundled with the vault endpoints in one Node process.",
   "license": "MIT",
   "repository": {
