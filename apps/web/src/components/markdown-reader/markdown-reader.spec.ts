@@ -506,6 +506,24 @@ describe('MarkdownReader', () => {
     expect(host.querySelector('p')).toBe(paragraphBefore);
   });
 
+  it('re-resolves relative links when navigating between identical-body docs in different folders', async () => {
+    // Regression guard (F-036-S-03 review): two docs can share a byte-identical
+    // body, so the render cache would skip re-rendering — but relative links must
+    // still re-resolve against the new folder, so `path` gates the base render.
+    const siblingModel: VaultModel = { cards: {}, files: ['docs/a/sib.md', 'docs/b/sib.md'] };
+    const fixture = makeReader();
+    fixture.componentRef.setInput('model', siblingModel);
+    fixture.componentRef.setInput('body', '[sibling](sib.md)');
+    fixture.componentRef.setInput('path', 'docs/a/x.md');
+    let host = await settleReader(fixture);
+    expect(host.querySelector('a[data-path]')?.getAttribute('data-path')).toBe('docs/a/sib.md');
+
+    // Same (Object.is-equal) body, different folder: the link must follow the path.
+    fixture.componentRef.setInput('path', 'docs/b/y.md');
+    host = await settleReader(fixture);
+    expect(host.querySelector('a[data-path]')?.getAttribute('data-path')).toBe('docs/b/sib.md');
+  });
+
   it('removes existing marks when the query is cleared', async () => {
     const fixture = makeReader();
     fixture.componentRef.setInput('body', 'highlight me');

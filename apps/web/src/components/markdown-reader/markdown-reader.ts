@@ -205,6 +205,7 @@ export class MarkdownReader {
   private prevIsDark: boolean | null = null;
   private prevModel: VaultModel | null = null;
   private prevConfig: VaultConfig | null = null;
+  private prevPath: string | null = null;
 
   /**
    * The rendered `(body, terms)` the highlight pass last processed. Scrolling
@@ -233,21 +234,27 @@ export class MarkdownReader {
       if (!containerEl) return;
 
       // The base render (innerHTML + id/anchor decoration + mermaid) depends on
-      // the html, theme, model and config — never on the highlight terms. So when
-      // only the query changed (a per-keystroke `?q=` edit), skip it entirely and
+      // the html, theme, model, config and path — never on the highlight terms.
+      // So when only the query changed (a per-keystroke `?q=` edit), skip it and
       // just re-mark, instead of rebuilding the DOM and re-scheduling mermaid on
-      // every character (F-036-S-03 review).
+      // every character (F-036-S-03 review). `path` is included because
+      // classifyAnchors resolves relative links against it: two documents can
+      // share a byte-identical body (so `html` is Object.is-equal and doesn't
+      // re-emit), and their relative links must still re-resolve to the new
+      // folder (F-036-S-03 review — regression from the render cache).
       const baseChanged =
         htmlVal !== this.prevHtml ||
         isDark !== this.prevIsDark ||
         modelVal !== this.prevModel ||
-        configVal !== this.prevConfig;
+        configVal !== this.prevConfig ||
+        pathVal !== this.prevPath;
 
       if (baseChanged) {
         this.prevHtml = htmlVal;
         this.prevIsDark = isDark;
         this.prevModel = modelVal;
         this.prevConfig = configVal;
+        this.prevPath = pathVal;
         this.renderBase(containerEl, htmlVal, bodyVal, modelVal, configVal, pathVal, isDark);
       } else {
         // Base DOM is intact from the last render; drop the previous query's marks
