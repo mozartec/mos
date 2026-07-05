@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { MarkdownReader } from './markdown-reader';
 import { type VaultConfig, type VaultModel } from '@mos/core';
 
@@ -370,23 +370,50 @@ describe('MarkdownReader', () => {
     expect(host2.querySelector('figure.mermaid')?.getAttribute('aria-label')).toBe('My Flow');
   });
 
-  // ── F-036-S-03: in-document search highlight + scroll ───────────────────────
+  // F-036-S-03: in-document search highlight + scroll ------------------------
 
-  async function renderWithHighlight(
-    body: string,
-    highlight: string,
-    path = '',
-  ): Promise<HTMLElement> {
+  function makeReader(): ComponentFixture<MarkdownReader> {
     const fixture = TestBed.createComponent(MarkdownReader);
-    fixture.componentRef.setInput('body', body);
     fixture.componentRef.setInput('model', TEST_MODEL);
     fixture.componentRef.setInput('config', TEST_CONFIG);
-    fixture.componentRef.setInput('path', path);
-    fixture.componentRef.setInput('highlight', highlight);
+    return fixture;
+  }
+
+  async function settleReader(fixture: ComponentFixture<MarkdownReader>): Promise<HTMLElement> {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
     return fixture.nativeElement as HTMLElement;
+  }
+
+  async function renderWithHighlight(
+    body: string,
+    terms: string,
+    opts: { path?: string; scroll?: boolean } = {},
+  ): Promise<HTMLElement> {
+    const fixture = makeReader();
+    fixture.componentRef.setInput('body', body);
+    fixture.componentRef.setInput('path', opts.path ?? '');
+    fixture.componentRef.setInput('highlightTerms', terms);
+    fixture.componentRef.setInput('scrollToFirstMatch', opts.scroll ?? false);
+    return settleReader(fixture);
+  }
+
+  // jsdom has no scrollIntoView; install a spy for the guarded optional call and
+  // restore the original descriptor afterwards (never blindly delete it).
+  async function withScrollSpy(
+    run: (spy: ReturnType<typeof vi.fn>) => Promise<void>,
+  ): Promise<void> {
+    const spy = vi.fn();
+    const proto = Element.prototype as unknown as { scrollIntoView?: (arg?: unknown) => void };
+    const original = proto.scrollIntoView;
+    proto.scrollIntoView = spy;
+    try {
+      await run(spy);
+    } finally {
+      if (original === undefined) delete proto.scrollIntoView;
+      else proto.scrollIntoView = original;
+    }
   }
 
   it('wraps a matched term in the body in a <mark class="search-highlight">', async () => {
@@ -397,8 +424,10 @@ describe('MarkdownReader', () => {
   });
 
   it('matches case- and accent-insensitively, keeping the original text in the mark', async () => {
-    const host = await renderWithHighlight('A CAFÉ in town.', 'cafe');
-    expect(host.querySelector('mark.search-highlight')?.textContent).toBe('CAFÉ');
+    // Body carries an accented 'e'; querying plain 'cafe' still matches and the
+    // mark keeps the source accent.
+    const host = await renderWithHighlight('A café in town.', 'cafe');
+    expect(host.querySelector('mark.search-highlight')?.textContent).toBe('café');
   });
 
   it('highlights every occurrence of the query', async () => {
@@ -412,16 +441,16 @@ describe('MarkdownReader', () => {
       'Set the config value.\n\n```\nconfig: true\n```',
       'config',
     );
-    // The prose occurrence is marked…
+    // The prose occurrence is marked...
     expect(host.querySelector('p mark.search-highlight')?.textContent).toBe('config');
-    // …but the fenced-code one stays verbatim.
+    // ...but the fenced-code one stays verbatim.
     expect(host.querySelector('pre mark')).toBeNull();
     expect(host.querySelector('code mark')).toBeNull();
   });
 
   it('does not highlight matches inside links', async () => {
     const host = await renderWithHighlight(
-      '[the guide](https://example.com) — guide again.',
+      '[the guide](https://example.com) - guide again.',
       'guide',
     );
     expect(host.querySelector('a mark')).toBeNull();
@@ -430,52 +459,130 @@ describe('MarkdownReader', () => {
     expect(marks.map((m) => m.textContent)).toEqual(['guide']);
   });
 
+  it('does not highlight inside a dimmed reference-inert span (would drop below AA)', async () => {
+    // 'COVID-19' matches the id pattern but resolves to nothing, so it renders as
+    // a dimmed .reference-inert span; a <mark> there would inherit opacity: 0.5
+    // and fall below AA. The highlight pass must skip it (F-036-S-03 review).
+    const host = await renderWithHighlight('COVID-19 spreads; covid research.', 'covid');
+    expect(host.querySelector('.reference-inert mark')).toBeNull();
+    // The prose occurrence outside the span is still highlighted.
+    const marks = Array.from(host.querySelectorAll('mark.search-highlight'));
+    expect(marks.map((m) => m.textContent)).toEqual(['covid']);
+  });
+
   it('keeps reference-link decoration working alongside highlighting', async () => {
     const host = await renderWithHighlight('See F-001 for the plan.', 'plan');
-    // The id reference is still turned into a link…
+    // The id reference is still turned into a link...
     expect(host.querySelector('a[data-path]')?.textContent).toBe('F-001');
-    // …and the prose term is highlighted.
+    // ...and the prose term is highlighted.
     expect(host.querySelector('mark.search-highlight')?.textContent).toBe('plan');
   });
 
-  it('adds no marks when the highlight query is empty or whitespace', async () => {
+  it('adds no marks when the query is empty or whitespace', async () => {
     const empty = await renderWithHighlight('nothing to see here', '');
     expect(empty.querySelector('mark.search-highlight')).toBeNull();
     const blank = await renderWithHighlight('nothing to see here', '   ');
     expect(blank.querySelector('mark.search-highlight')).toBeNull();
   });
 
+  it('re-marks in place when only the query changes, without rebuilding the base DOM', async () => {
+    const fixture = makeReader();
+    fixture.componentRef.setInput('body', 'alpha and beta');
+    fixture.componentRef.setInput('highlightTerms', 'alpha');
+    let host = await settleReader(fixture);
+    expect(
+      Array.from(host.querySelectorAll('mark.search-highlight')).map((m) => m.textContent),
+    ).toEqual(['alpha']);
+    const paragraphBefore = host.querySelector('p');
+
+    fixture.componentRef.setInput('highlightTerms', 'beta');
+    host = await settleReader(fixture);
+    // The marks switched to the new term...
+    expect(
+      Array.from(host.querySelectorAll('mark.search-highlight')).map((m) => m.textContent),
+    ).toEqual(['beta']);
+    // ...and the base DOM was NOT torn down (same <p> element): innerHTML/id
+    // decoration/mermaid are skipped on a terms-only change (F-036-S-03 review).
+    expect(host.querySelector('p')).toBe(paragraphBefore);
+  });
+
   it('removes existing marks when the query is cleared', async () => {
-    const fixture = TestBed.createComponent(MarkdownReader);
+    const fixture = makeReader();
     fixture.componentRef.setInput('body', 'highlight me');
-    fixture.componentRef.setInput('model', TEST_MODEL);
-    fixture.componentRef.setInput('config', TEST_CONFIG);
-    fixture.componentRef.setInput('highlight', 'highlight');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    const host = fixture.nativeElement as HTMLElement;
+    fixture.componentRef.setInput('highlightTerms', 'highlight');
+    const host = await settleReader(fixture);
     expect(host.querySelector('mark.search-highlight')).toBeTruthy();
 
-    fixture.componentRef.setInput('highlight', '');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    fixture.componentRef.setInput('highlightTerms', '');
+    await settleReader(fixture);
     expect(host.querySelector('mark.search-highlight')).toBeNull();
   });
 
-  it('scrolls the first match into view when a query opens a document', async () => {
-    // jsdom has no scrollIntoView; install a stub so the guarded optional call runs.
-    const scrollSpy = vi.fn();
-    const proto = Element.prototype as unknown as { scrollIntoView?: (arg?: unknown) => void };
-    proto.scrollIntoView = scrollSpy;
-    try {
-      await renderWithHighlight('alpha beta alpha', 'alpha', 'docs/x.md');
-      expect(scrollSpy).toHaveBeenCalled();
+  it('scrolls the first match into view when a document opens with scroll enabled', async () => {
+    await withScrollSpy(async (spy) => {
+      await renderWithHighlight('alpha beta alpha', 'alpha', { path: 'docs/x.md', scroll: true });
+      expect(spy).toHaveBeenCalled();
       // It is the FIRST match that gets scrolled to.
-      expect((scrollSpy.mock.contexts[0] as HTMLElement).textContent).toBe('alpha');
-    } finally {
-      delete proto.scrollIntoView;
-    }
+      expect((spy.mock.contexts[0] as HTMLElement).textContent).toBe('alpha');
+    });
+  });
+
+  it('does not scroll when the host has not opted in (scrollToFirstMatch off)', async () => {
+    await withScrollSpy(async (spy) => {
+      const host = await renderWithHighlight('alpha beta', 'alpha', {
+        path: 'docs/x.md',
+        scroll: false,
+      });
+      // Highlighting still happens; only the scroll is gated by the opt-in.
+      expect(host.querySelector('mark.search-highlight')).toBeTruthy();
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
+  it('scrolls to the new document match when the open file changes, not just the query', async () => {
+    await withScrollSpy(async (spy) => {
+      const fixture = makeReader();
+      fixture.componentRef.setInput('scrollToFirstMatch', true);
+      fixture.componentRef.setInput('highlightTerms', 'aardvark');
+      fixture.componentRef.setInput('path', 'docs/a.md');
+      fixture.componentRef.setInput('body', 'first aardvark doc');
+      await settleReader(fixture);
+      const afterA = spy.mock.calls.length;
+      expect(afterA).toBeGreaterThan(0);
+
+      // Simulate the wiki's async open: the path switches first (body still A) --
+      // this transient must NOT consume the scroll for the wrong document...
+      fixture.componentRef.setInput('path', 'docs/b.md');
+      await settleReader(fixture);
+      const afterTransient = spy.mock.calls.length;
+      expect(afterTransient).toBe(afterA);
+
+      // ...then B's body arrives and B scrolls to its own match (F-036-S-03 review).
+      fixture.componentRef.setInput('body', 'second aardvark doc');
+      await settleReader(fixture);
+      expect(spy.mock.calls.length).toBeGreaterThan(afterTransient);
+    });
+  });
+
+  it('re-scrolls when a query returns after a non-matching one', async () => {
+    await withScrollSpy(async (spy) => {
+      const fixture = makeReader();
+      fixture.componentRef.setInput('scrollToFirstMatch', true);
+      fixture.componentRef.setInput('path', 'docs/a.md');
+      fixture.componentRef.setInput('body', 'alpha beta');
+      fixture.componentRef.setInput('highlightTerms', 'alpha');
+      await settleReader(fixture);
+      const afterFirst = spy.mock.calls.length;
+      expect(afterFirst).toBeGreaterThan(0);
+
+      fixture.componentRef.setInput('highlightTerms', 'zzz'); // no match
+      await settleReader(fixture);
+      expect(spy.mock.calls.length).toBe(afterFirst); // nothing to scroll to
+
+      fixture.componentRef.setInput('highlightTerms', 'alpha'); // back to a match
+      await settleReader(fixture);
+      // The guard advanced on the no-match render, so this scrolls afresh.
+      expect(spy.mock.calls.length).toBeGreaterThan(afterFirst);
+    });
   });
 });

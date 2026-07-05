@@ -296,8 +296,10 @@ export class WikiView {
   private scrollActiveIntoView(): void {
     const index = this.activeResult();
     afterNextRender(
+      // Optional call: jsdom (unit tests) has no scrollIntoView, and its absence
+      // is a harmless no-op rather than a thrown error in the render callback.
       () =>
-        this.resultOptions?.toArray()[index]?.nativeElement.scrollIntoView({ block: 'nearest' }),
+        this.resultOptions?.toArray()[index]?.nativeElement.scrollIntoView?.({ block: 'nearest' }),
       { injector: this.injector },
     );
   }

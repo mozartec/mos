@@ -34,16 +34,22 @@ const SKIP_TAGS = new Set(['a', 'code', 'pre', 'kbd', 'samp']);
 /**
  * The text nodes under `root` that are safe to decorate: every text node with no
  * {@link SKIP_TAGS} ancestor up to `root`. Both the id-reference pass and the
- * highlight pass walk the DOM through this, so they honor one skip rule.
+ * highlight pass walk the DOM through this, so they honor one skip rule; the
+ * highlight pass passes `extraSkip` for its additional exclusions.
  */
-function collectDecoratableTextNodes(root: HTMLElement): Text[] {
+function collectDecoratableTextNodes(
+  root: HTMLElement,
+  extraSkip?: (el: Element) => boolean,
+): Text[] {
   const nodes: Text[] = [];
   const walk = (node: Node) => {
     if (node.nodeType === 3) {
-      // TEXT_NODE — skip it if any ancestor below `root` is a verbatim element.
+      // TEXT_NODE — skip it if any ancestor below `root` is a verbatim element or
+      // (for the highlight pass) matches the caller's extra predicate.
       let parent: Node | null = node.parentNode;
       while (parent && parent !== root) {
         if (SKIP_TAGS.has(parent.nodeName.toLowerCase())) return;
+        if (extraSkip && parent instanceof Element && extraSkip(parent)) return;
         parent = parent.parentNode;
       }
       nodes.push(node as Text);
@@ -53,6 +59,29 @@ function collectDecoratableTextNodes(root: HTMLElement): Text[] {
   };
   walk(root);
   return nodes;
+}
+
+/**
+ * Replace one text node with an interleaved run of text and wrapper elements —
+ * the shared "split a Text node into decorated segments" surgery of both the
+ * id-reference pass and the search-highlight pass (F-036-S-03 review), so a fix
+ * to one reaches the other rather than drifting.
+ */
+function replaceTextNodeWithSegments(node: Text, segments: readonly Node[]): void {
+  const parent = node.parentNode;
+  if (!parent) return;
+  for (const segment of segments) parent.insertBefore(segment, node);
+  parent.removeChild(node);
+}
+
+/**
+ * Extra skip rule for the search-highlight pass, beyond {@link SKIP_TAGS}: never
+ * mark inside a rendered mermaid diagram's SVG, nor inside a dimmed
+ * `.reference-inert` span — its `opacity` would composite the `<mark>` below the
+ * AA contrast its colours are proven at (F-036-S-03 review).
+ */
+function isHighlightSkipped(el: Element): boolean {
+  return el.nodeName.toLowerCase() === 'svg' || el.classList.contains('reference-inert');
 }
 
 /**
@@ -138,11 +167,21 @@ export class MarkdownReader {
   readonly path = input<string>('');
 
   /**
-   * Search query whose matches are lit up in the rendered body (fed from the
-   * wiki's `?q=`, F-036-S-03). Empty (the default) decorates nothing, so hosts
-   * that don't search — the card page, the reader lens — are unaffected.
+   * Term(s) to light up in the rendered body — a neutral "mark this text"
+   * capability, not "search" (the wiki feeds it `?q=`, F-036-S-03). Empty (the
+   * default) decorates nothing, so hosts that don't highlight — the card page,
+   * the reader lens — are unaffected.
    */
-  readonly highlight = input<string>('');
+  readonly highlightTerms = input<string>('');
+
+  /**
+   * Whether to scroll the first highlighted match into view when the highlighted
+   * content changes. The decision belongs to the host that knows *why* the
+   * document opened: the wiki sets it (a result was opened) while other hosts
+   * leave it off, so a future "find on page" needn't inherit scroll-on-open
+   * (F-036-S-03 review).
+   */
+  readonly scrollToFirstMatch = input<boolean>(false);
 
   readonly navigate = output<string>();
 
@@ -156,152 +195,214 @@ export class MarkdownReader {
   private mermaidGen = 0;
 
   /**
-   * The `path`+query the highlight pass last scrolled to. Guards against
-   * re-scrolling on a same-target re-render — a theme flip re-runs the effect
-   * and rebuilds the marks, but must not yank the reader back to the first hit.
+   * The inputs the base DOM was last rendered from. The expensive render
+   * (innerHTML + id/anchor decoration + mermaid) is skipped when only the
+   * highlight terms changed, so a per-keystroke `?q=` edit doesn't tear the DOM
+   * down and re-schedule mermaid every character (F-036-S-03 review). `null`
+   * before the first render forces it.
    */
-  private lastHighlightScroll = '';
+  private prevHtml: string | null = null;
+  private prevIsDark: boolean | null = null;
+  private prevModel: VaultModel | null = null;
+  private prevConfig: VaultConfig | null = null;
+
+  /**
+   * The rendered `(body, terms)` the highlight pass last processed. Scrolling
+   * fires only when this pair changes (a new document or a new query) — never on
+   * a same-content re-render like a theme flip — and it is keyed on the rendered
+   * *body*, not the path, so a transient render during an async open (path
+   * already switched, body not yet) can't consume the scroll for the wrong
+   * document (F-036-S-03 review).
+   */
+  private lastScrollBody: string | null = null;
+  private lastScrollTerms = '';
 
   constructor() {
     effect(() => {
       const containerEl = this.containerRef()?.nativeElement;
-      if (!containerEl) return;
-
+      // Read every dependency unconditionally so the tracked set is stable across
+      // runs regardless of which branch below executes.
       const htmlVal = this.html();
       const bodyVal = this.body();
       const modelVal = this.model();
       const configVal = this.config();
-      // Read as a dependency: a theme flip re-runs the effect, which re-sets
-      // innerHTML (restoring the mermaid source blocks) so diagrams re-render
-      // in the new theme.
+      const pathVal = this.path();
       const isDark = this.themeService.isDark();
-      // Read as a dependency too: changing the search query (?q=) re-runs the
-      // effect, so clearing it wipes the marks and a new term re-highlights.
-      const highlightVal = this.highlight();
+      const terms = this.highlightTerms();
+      const scroll = this.scrollToFirstMatch();
+      if (!containerEl) return;
 
-      // renderMarkdown runs DOMPurify before producing this HTML, so bypassing
-      // Angular's [innerHTML] sanitizer here does not regress XSS safety.
-      containerEl.innerHTML = htmlVal;
+      // The base render (innerHTML + id/anchor decoration + mermaid) depends on
+      // the html, theme, model and config — never on the highlight terms. So when
+      // only the query changed (a per-keystroke `?q=` edit), skip it entirely and
+      // just re-mark, instead of rebuilding the DOM and re-scheduling mermaid on
+      // every character (F-036-S-03 review).
+      const baseChanged =
+        htmlVal !== this.prevHtml ||
+        isDark !== this.prevIsDark ||
+        modelVal !== this.prevModel ||
+        configVal !== this.prevConfig;
 
-      // resolveReferences is used only for id→path resolution here; the DOM
-      // walk below is the single source of truth for which text tokens get
-      // decorated. The core's position/offset data is intentionally unused —
-      // the card spec forbids source-offset indexing into HTML (F-003-S-03).
-      const references = resolveReferences(bodyVal, modelVal, configVal);
-      const resolvedMap = new Map<string, string>();
-      for (const ref of references) {
-        if (!ref.unresolved && ref.target) {
-          resolvedMap.set(ref.id, ref.target.path);
-        }
+      if (baseChanged) {
+        this.prevHtml = htmlVal;
+        this.prevIsDark = isDark;
+        this.prevModel = modelVal;
+        this.prevConfig = configVal;
+        this.renderBase(containerEl, htmlVal, bodyVal, modelVal, configVal, pathVal, isDark);
+      } else {
+        // Base DOM is intact from the last render; drop the previous query's marks
+        // before laying the new ones down.
+        this.clearHighlights(containerEl);
       }
 
-      const idPatternStr = configVal.references.idPattern;
-      let idRegex: RegExp;
-      try {
-        idRegex = new RegExp(idPatternStr, 'g');
-      } catch (e) {
-        console.error('Invalid idPattern regex:', e);
-        return;
-      }
-
-      // Link/code-skipping walk shared with the highlight pass (SKIP_TAGS):
-      // decorating an id inside a code fence into a live wiki link is wrong.
-      const textNodes = collectDecoratableTextNodes(containerEl);
-
-      for (const node of textNodes) {
-        const text = node.textContent || '';
-        idRegex.lastIndex = 0;
-
-        const parent = node.parentNode;
-        if (!parent) continue;
-
-        let lastIndex = 0;
-        const newNodes: Node[] = [];
-        let match: RegExpExecArray | null;
-        let hasMatches = false;
-
-        while ((match = idRegex.exec(text)) !== null) {
-          hasMatches = true;
-          const matchedText = match[0];
-          const matchIndex = match.index;
-
-          if (matchedText.length === 0) {
-            idRegex.lastIndex++;
-            continue;
-          }
-
-          if (matchIndex > lastIndex) {
-            newNodes.push(document.createTextNode(text.substring(lastIndex, matchIndex)));
-          }
-
-          const id = matchedText;
-          const targetPath = resolvedMap.get(id);
-
-          if (targetPath !== undefined) {
-            const a = document.createElement('a');
-            a.setAttribute('href', '#');
-            a.setAttribute('data-path', targetPath);
-            a.textContent = matchedText;
-            newNodes.push(a);
-          } else {
-            // Render unresolved IDs as dimmed non-links. Per card F-003-S-03,
-            // unresolved ids must be "visibly dim" so the reader can tell a
-            // bare id-shaped token has no target. Tokens like UTF-8 or COVID-19
-            // may be false-positives but the tradeoff is accepted for MVP.
-            const span = document.createElement('span');
-            span.className = 'reference-inert';
-            span.textContent = matchedText;
-            newNodes.push(span);
-          }
-
-          lastIndex = idRegex.lastIndex;
-        }
-
-        if (lastIndex < text.length) {
-          newNodes.push(document.createTextNode(text.substring(lastIndex)));
-        }
-
-        if (hasMatches && newNodes.length > 0) {
-          for (const newNode of newNodes) {
-            parent.insertBefore(newNode, node);
-          }
-          parent.removeChild(node);
-        }
-      }
-
-      this.classifyAnchors(containerEl, modelVal);
-      // After links are settled so a match inside a link is skipped (SKIP_TAGS).
-      this.highlightMatches(containerEl, highlightVal);
-      this.renderMermaid(containerEl, isDark);
+      this.applyHighlights(containerEl, bodyVal, terms, scroll);
     });
   }
 
   /**
-   * Light up every match of the `highlight` query in the rendered body, wrapping
-   * each in a `<mark class="search-highlight">`, and scroll the first into view
-   * when the file or query just changed (F-036-S-03). A term/DOM pass: it
-   * re-scans the rendered text nodes with the one shared core fold rule
-   * ({@link findFoldedMatches}), so a hit agrees with the search index and its
-   * snippet, and it never indexes a source offset into rendered HTML
-   * (F-003-S-03). Links and code are skipped via {@link SKIP_TAGS}.
+   * Render the document body into `containerEl`: sanitized markdown HTML, then the
+   * id-reference decoration pass (bare ids → in-app links or dimmed spans,
+   * F-003), anchor classification (F-017), and mermaid diagrams (F-035-S-03). The
+   * expensive part of the reader — run only when the body/theme/model/config
+   * changed, not on a highlight-terms-only update.
    */
-  private highlightMatches(containerEl: HTMLElement, query: string): void {
-    const trimmed = query.trim();
+  private renderBase(
+    containerEl: HTMLElement,
+    htmlVal: string,
+    bodyVal: string,
+    modelVal: VaultModel,
+    configVal: VaultConfig,
+    pathVal: string,
+    isDark: boolean,
+  ): void {
+    // renderMarkdown runs DOMPurify before producing this HTML, so bypassing
+    // Angular's [innerHTML] sanitizer here does not regress XSS safety.
+    containerEl.innerHTML = htmlVal;
+
+    // resolveReferences is used only for id→path resolution here; the DOM walk
+    // below is the single source of truth for which text tokens get decorated.
+    // The core's position/offset data is intentionally unused — the card spec
+    // forbids source-offset indexing into HTML (F-003-S-03).
+    const references = resolveReferences(bodyVal, modelVal, configVal);
+    const resolvedMap = new Map<string, string>();
+    for (const ref of references) {
+      if (!ref.unresolved && ref.target) {
+        resolvedMap.set(ref.id, ref.target.path);
+      }
+    }
+
+    const idPatternStr = configVal.references.idPattern;
+    let idRegex: RegExp;
+    try {
+      idRegex = new RegExp(idPatternStr, 'g');
+    } catch (e) {
+      console.error('Invalid idPattern regex:', e);
+      return;
+    }
+
+    // Link/code-skipping walk shared with the highlight pass (SKIP_TAGS):
+    // decorating an id inside a code fence into a live wiki link is wrong.
+    for (const node of collectDecoratableTextNodes(containerEl)) {
+      const text = node.textContent || '';
+      idRegex.lastIndex = 0;
+
+      let lastIndex = 0;
+      const newNodes: Node[] = [];
+      let match: RegExpExecArray | null;
+      let hasMatches = false;
+
+      while ((match = idRegex.exec(text)) !== null) {
+        hasMatches = true;
+        const matchedText = match[0];
+        const matchIndex = match.index;
+
+        if (matchedText.length === 0) {
+          idRegex.lastIndex++;
+          continue;
+        }
+
+        if (matchIndex > lastIndex) {
+          newNodes.push(document.createTextNode(text.substring(lastIndex, matchIndex)));
+        }
+
+        const targetPath = resolvedMap.get(matchedText);
+        if (targetPath !== undefined) {
+          const a = document.createElement('a');
+          a.setAttribute('href', '#');
+          a.setAttribute('data-path', targetPath);
+          a.textContent = matchedText;
+          newNodes.push(a);
+        } else {
+          // Render unresolved IDs as dimmed non-links. Per card F-003-S-03,
+          // unresolved ids must be "visibly dim" so the reader can tell a bare
+          // id-shaped token has no target. Tokens like UTF-8 or COVID-19 may be
+          // false-positives but the tradeoff is accepted for MVP.
+          const span = document.createElement('span');
+          span.className = 'reference-inert';
+          span.textContent = matchedText;
+          newNodes.push(span);
+        }
+
+        lastIndex = idRegex.lastIndex;
+      }
+
+      if (lastIndex < text.length) {
+        newNodes.push(document.createTextNode(text.substring(lastIndex)));
+      }
+
+      if (hasMatches && newNodes.length > 0) {
+        replaceTextNodeWithSegments(node, newNodes);
+      }
+    }
+
+    this.classifyAnchors(containerEl, modelVal, pathVal);
+    this.renderMermaid(containerEl, isDark);
+  }
+
+  /**
+   * Remove the previous query's `<mark class="search-highlight">`s, merging the
+   * text back together so the next pass re-matches contiguous text. Called before
+   * a re-mark when only the terms changed and the base DOM is untouched.
+   */
+  private clearHighlights(containerEl: HTMLElement): void {
+    const marks = containerEl.querySelectorAll('mark.search-highlight');
+    if (marks.length === 0) return;
+    for (const mark of Array.from(marks)) {
+      mark.replaceWith(document.createTextNode(mark.textContent ?? ''));
+    }
+    containerEl.normalize();
+  }
+
+  /**
+   * Light up every match of `terms` in the rendered body, wrapping each in a
+   * `<mark class="search-highlight">`, and — when `scroll` is set and the
+   * highlighted content changed — scroll the first into view (F-036-S-03). A
+   * term/DOM pass: it re-scans the rendered text nodes with the one shared core
+   * fold rule ({@link findFoldedMatches}), so it agrees with the index and snippet
+   * on the fold and never indexes a source offset into rendered HTML
+   * (F-003-S-03). Links, code, diagram SVG and dimmed reference spans are skipped
+   * ({@link SKIP_TAGS} + {@link isHighlightSkipped}).
+   */
+  private applyHighlights(
+    containerEl: HTMLElement,
+    body: string,
+    terms: string,
+    scroll: boolean,
+  ): void {
+    const trimmed = terms.trim();
     if (trimmed === '') {
-      // Nothing to mark; forget the scroll target so re-entering the same query
-      // on this file scrolls to it afresh rather than being suppressed as a repeat.
-      this.lastHighlightScroll = '';
+      // Nothing marked; forget the last target so re-entering the same query
+      // scrolls to it afresh rather than being suppressed as a repeat.
+      this.lastScrollBody = null;
+      this.lastScrollTerms = '';
       return;
     }
 
     let firstMark: HTMLElement | null = null;
-    for (const node of collectDecoratableTextNodes(containerEl)) {
+    for (const node of collectDecoratableTextNodes(containerEl, isHighlightSkipped)) {
       const text = node.textContent ?? '';
       const matches = findFoldedMatches(text, trimmed);
       if (matches.length === 0) continue;
-
-      const parent = node.parentNode;
-      if (!parent) continue;
 
       // Rebuild the text node as alternating plain-text and <mark> segments.
       const pieces: Node[] = [];
@@ -316,26 +417,17 @@ export class MarkdownReader {
         cursor = end;
       }
       if (cursor < text.length) pieces.push(document.createTextNode(text.slice(cursor)));
-
-      for (const piece of pieces) parent.insertBefore(piece, node);
-      parent.removeChild(node);
+      replaceTextNodeWithSegments(node, pieces);
     }
 
-    if (firstMark) this.scrollToFirstMatch(firstMark, trimmed);
-  }
-
-  /**
-   * Scroll the first match into view, but only when the target changed — a new
-   * file or a new query. A same-target re-render (a theme flip re-runs the
-   * effect and rebuilds the marks) must not yank the reader back to the top hit
-   * while it's parked elsewhere. `scrollIntoView` is optional-chained: jsdom
-   * (unit tests) doesn't implement it, and its absence is a harmless no-op.
-   */
-  private scrollToFirstMatch(mark: HTMLElement, trimmed: string): void {
-    const key = JSON.stringify([this.path(), trimmed]);
-    if (key === this.lastHighlightScroll) return;
-    this.lastHighlightScroll = key;
-    mark.scrollIntoView?.({ block: 'center' });
+    // Scroll only when the host opted in, a match exists, and the rendered
+    // (body, terms) changed since the last pass — so a theme flip (same content)
+    // never yanks, a stale-body transient render during an async open is a no-op,
+    // and re-entering a query after a blank one scrolls afresh (F-036-S-03 review).
+    const changed = body !== this.lastScrollBody || trimmed !== this.lastScrollTerms;
+    this.lastScrollBody = body;
+    this.lastScrollTerms = trimmed;
+    if (scroll && changed && firstMark) firstMark.scrollIntoView?.({ block: 'center' });
   }
 
   /**
@@ -424,7 +516,7 @@ export class MarkdownReader {
    * treatment as unresolved id references, never a 404. Runs after the id
    * pass, which tags its own anchors with `data-path` (skipped here).
    */
-  private classifyAnchors(containerEl: HTMLElement, model: VaultModel): void {
+  private classifyAnchors(containerEl: HTMLElement, model: VaultModel, currentPath: string): void {
     // The vault's file listing: wiki-scope files plus card files. Membership
     // is checked case-exactly — resolution never guesses at folder names
     // (ADR-003); a target outside the listing is simply not navigable.
@@ -433,7 +525,6 @@ export class MarkdownReader {
       knownFiles.add(toPosixPath(card.path));
     }
 
-    const currentPath = this.path();
     for (const anchor of Array.from(containerEl.querySelectorAll('a[href]'))) {
       if (anchor.hasAttribute('data-path')) continue;
 
