@@ -2,13 +2,13 @@
 id: T-029
 type: task
 title: Scripts test suite fails on Windows — path-separator and CRLF assumptions in the tests
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [scripts]
 created: 2026-07-02T11:45:29Z
-updated: 2026-07-02T11:45:29Z
+updated: 2026-07-04T21:55:53Z
 ---
 
 # T-029 — Scripts test suite fails on Windows — path-separator and CRLF assumptions in the tests
@@ -86,12 +86,12 @@ sections missing. The script under test
 
 ## Acceptance
 
-- [ ] `bun run test:scripts` passes on a Windows checkout with `core.autocrlf=true` — the 8
+- [x] `bun run test:scripts` passes on a Windows checkout with `core.autocrlf=true` — the 8
       pre-existing failures are gone, with no test skipped or weakened.
-- [ ] The suite still passes on an LF checkout (Linux CI green, no assertion loosened).
-- [ ] Only `scripts/check-forward-comments.test.mjs` and
+- [x] The suite still passes on an LF checkout (Linux CI green, no assertion loosened).
+- [x] Only `scripts/check-forward-comments.test.mjs` and
       `scripts/refine-batch-readiness.test.mjs` changed; production scripts untouched.
-- [ ] Full gate (`bun run lint && test && build && validate`) green.
+- [x] Full gate (`bun run lint && test && build && validate`) green.
 
 ## Dependencies
 
