@@ -116,14 +116,16 @@ export class SearchIndexService {
    * first load already reads the current vault state.
    */
   private async onFileChange(path: string): Promise<void> {
-    const index = this._index();
-    const config = this.config;
-    if (index === null || config === null) return;
+    if (this._index() === null) return;
 
     const posix = toPosixPath(path);
     if (posix === '.mos/config.json') {
-      // Scope globs may have moved — every doc's scope set could change.
-      void this.load();
+      // Scope globs may have moved — every doc's scope set could change. This
+      // is the sole un-awaited internal caller of `load`, so a rejection has
+      // no one else to surface to — log it rather than let it vanish.
+      void this.load().catch((error: unknown) => {
+        console.error(`Failed to rebuild the search index after "${posix}" changed`, error);
+      });
       return;
     }
 
@@ -134,6 +136,15 @@ export class SearchIndexService {
       parsed = null; // unreadable = treat as deleted
     }
 
+    // Read `_index`/`config` fresh here — *after* the await above, not
+    // captured before it — so a full reload or another patch that committed
+    // while this one was in flight is built on rather than clobbered. This
+    // read-then-write has no `await` between the two halves, so it's atomic
+    // under JS's run-to-completion; the same reason `this.model()` is read
+    // inline at `.set()` time in the wiki/reader views' own onFileChange.
+    const index = this._index();
+    const config = this.config;
+    if (index === null || config === null) return;
     this._index.set(applySearchChange(index, config, posix, parsed));
   }
 
