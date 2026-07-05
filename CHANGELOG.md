@@ -12,6 +12,19 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.6.0](https://github.com/mozartec/mos/compare/v0.5.0...v0.6.0) (2026-07-05)
+
+
+### Features
+
+* **core:** pure search index, query, snippet offsets, and scope helper (F-036-S-01) ([#94](https://github.com/mozartec/mos/issues/94)) ([73cd4cd](https://github.com/mozartec/mos/commit/73cd4cd468fc64f9094edb647e825d348094634a))
+* **web:** highlight and scroll to search matches in the reader (F-036-S-03) ([#99](https://github.com/mozartec/mos/issues/99)) ([c85e0ed](https://github.com/mozartec/mos/commit/c85e0ed1f67f6436c2a471d90c7da16fd7b89371))
+* **web:** live watch re-index for vault search (F-036-S-04) ([#101](https://github.com/mozartec/mos/issues/101)) ([005b29d](https://github.com/mozartec/mos/commit/005b29ddf7f619421af204d44804185f99faa787))
+* **web:** pin the top bar and give the wiki tree its own scroll (F-035-S-01) ([#92](https://github.com/mozartec/mos/issues/92)) ([de4809a](https://github.com/mozartec/mos/commit/de4809a31fe6aacc477fd89f0cd8c7c272839ce1))
+* **web:** render Mermaid diagrams in the reader (F-035-S-03) ([#96](https://github.com/mozartec/mos/issues/96)) ([25ac733](https://github.com/mozartec/mos/commit/25ac733360e43a14908416b7ce98bbdd45bb45ec))
+* **web:** search the vault from the wiki lens (F-036-S-02) ([#97](https://github.com/mozartec/mos/issues/97)) ([10e50a5](https://github.com/mozartec/mos/commit/10e50a50867958eaebb88e351adeaadd1b8c6dee))
+* **web:** widen the reader so code and tables are readable (F-035-S-02) ([#95](https://github.com/mozartec/mos/issues/95)) ([4262b0c](https://github.com/mozartec/mos/commit/4262b0c9eee6504ca08f48def76184b9449ba240))
+
 ## [0.5.0](https://github.com/mozartec/mos/compare/v0.4.0...v0.5.0) (2026-07-02)
 
 
