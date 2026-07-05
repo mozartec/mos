@@ -133,3 +133,101 @@ describe('SearchIndexService', () => {
     expect(service.query({ q: 'aardvark' }).length).toBe(2);
   });
 });
+
+/**
+ * Live re-index (F-036-S-04): once an index exists, the service patches itself
+ * from `source.watch` — per-file for ordinary changes, a full {@link
+ * SearchIndexService.load} for a config change — without any view driving it.
+ */
+describe('SearchIndexService — live re-index (F-036-S-04)', () => {
+  it('does not react to watch events before the first load (nothing built to patch)', async () => {
+    const { service, source } = makeService();
+    source.files['docs/guide.md'] = '# Guide\n\nA freshly minted mongoose fact.';
+    source.emit('docs/guide.md');
+    await flush();
+
+    // Still unbuilt — the eventual first load reads current disk state anyway.
+    expect(service.index()).toBeNull();
+  });
+
+  it('patches only the changed file on edit, at the cost of one re-read', async () => {
+    const { service, source } = makeService();
+    await service.load();
+    const readsAfterLoad = source.readPaths.length;
+
+    source.files['docs/guide.md'] = '# Guide\n\nThe aardvark now forages a mongoose too.';
+    source.emit('docs/guide.md');
+    await flush();
+
+    // One re-read for the changed path — not a whole-vault reload.
+    expect(source.readPaths.length).toBe(readsAfterLoad + 1);
+    expect(source.readPaths.at(-1)).toBe('docs/guide.md');
+
+    const hits = service.query({ q: 'mongoose' });
+    expect(hits.map((h) => h.path)).toEqual(['docs/guide.md']);
+    // The other doc is untouched and still queryable.
+    expect(
+      service
+        .query({ q: 'aardvark' })
+        .map((h) => h.path)
+        .sort(),
+    ).toEqual(['board/T-100.md', 'docs/guide.md']);
+  });
+
+  it('adds a newly created file to the index on watch', async () => {
+    const { service, source } = makeService();
+    await service.load();
+
+    source.files['docs/new.md'] = '# New\n\nA lemur sighting.';
+    source.emit('docs/new.md');
+    await flush();
+
+    expect(service.query({ q: 'lemur' }).map((h) => h.path)).toEqual(['docs/new.md']);
+  });
+
+  it('drops a deleted file from the index on watch', async () => {
+    const { service, source } = makeService();
+    await service.load();
+    expect(service.query({ q: 'aardvark' }).length).toBe(2);
+
+    delete source.files['docs/guide.md'];
+    source.emit('docs/guide.md');
+    await flush();
+
+    const hits = service.query({ q: 'aardvark' });
+    expect(hits.map((h) => h.path)).toEqual(['board/T-100.md']);
+  });
+
+  it('fully rebuilds when .mos/config.json changes, re-scoping every doc', async () => {
+    const { service, source } = makeService();
+    await service.load();
+    // Widen the scope to include board/**, so a board card also carries `wiki`.
+    source.files['.mos/config.json'] = JSON.stringify({
+      specVersion: '0.4',
+      wiki: { include: ['**/*.md'], exclude: [] },
+      board: { include: ['board/**/*.md'], columns: [] },
+      types: {},
+    });
+
+    source.emit('.mos/config.json');
+    // A config change triggers a fresh load() synchronously; coalesce onto it
+    // instead of guessing how many ticks the rebuild takes.
+    await service.load();
+
+    const hit = service
+      .query({ q: 'aardvark', scope: 'wiki' })
+      .find((h) => h.path === 'board/T-100.md');
+    expect(hit).toBeDefined();
+  });
+
+  it('disposes the watch subscription when the service is torn down (no leak)', () => {
+    const { source } = makeService();
+    TestBed.resetTestingModule();
+    expect(source.unwatchedCount).toBe(1);
+  });
+});
+
+/** Wait for a scheduled microtask/macrotask round after a `source.emit()` call. */
+function flush(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}

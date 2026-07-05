@@ -1,5 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import {
+  applySearchChange,
   buildSearchIndex,
   loadConfig,
   parseFile,
@@ -38,9 +39,11 @@ export interface VaultLoad {
  *
  * `providedIn: 'root'` so the wiki and any future search surface share it, but
  * it never reads on its own: only {@link WikiView} (or another search caller)
- * invokes {@link load}, so the board's initial load is untouched. The index is
- * rebuilt on every {@link load} — i.e. on each wiki entry — for v1; live,
- * per-change reindexing is F-036-S-04.
+ * invokes {@link load}, so the board's initial load is untouched. Once built,
+ * the index stays live: the service subscribes to `source.watch` itself
+ * (F-036-S-04) and patches per changed path — `.mos/config.json` triggers a
+ * full {@link load} instead, since it can move the scope globs a doc's
+ * membership depends on.
  */
 @Injectable({ providedIn: 'root' })
 export class SearchIndexService {
@@ -56,14 +59,27 @@ export class SearchIndexService {
   /** `null` until the index is first built; a caller can show an honest loading state. */
   readonly index = this._index.asReadonly();
 
+  /**
+   * The config the current index was built against, so a per-path patch scopes
+   * the changed file the same way the last full load did. `null` alongside
+   * `_index` until the first load resolves.
+   */
+  private config: VaultConfig | null = null;
+
   /** Coalesces concurrent {@link load} calls onto one in-flight read. */
   private inFlight: Promise<VaultLoad> | null = null;
+
+  constructor() {
+    const unwatch = this.source.watch((path) => void this.onFileChange(path));
+    inject(DestroyRef).onDestroy(unwatch);
+  }
 
   /**
    * Read the whole vault (body-retaining) and rebuild the index. Concurrent
    * callers during one in-flight read share it; a later call reads afresh, so
-   * re-entering the wiki rebuilds (F-036-S-02; live update is S-04). Rejects if
-   * the source can't be listed — the caller surfaces the error.
+   * re-entering the wiki rebuilds even though the index otherwise stays live
+   * between entries (F-036-S-02, F-036-S-04). Rejects if the source can't be
+   * listed — the caller surfaces the error.
    */
   load(): Promise<VaultLoad> {
     if (this.inFlight !== null) return this.inFlight;
@@ -93,6 +109,34 @@ export class SearchIndexService {
     return index === null ? [] : querySearch(index, query);
   }
 
+  /**
+   * Patch the index for one changed path (F-036-S-04), mirroring how the wiki
+   * and reader views live-patch their own models. A no-op before the first
+   * {@link load} resolves — there's no index yet to patch, and the eventual
+   * first load already reads the current vault state.
+   */
+  private async onFileChange(path: string): Promise<void> {
+    const index = this._index();
+    const config = this.config;
+    if (index === null || config === null) return;
+
+    const posix = toPosixPath(path);
+    if (posix === '.mos/config.json') {
+      // Scope globs may have moved — every doc's scope set could change.
+      void this.load();
+      return;
+    }
+
+    let parsed: ParsedFile | null;
+    try {
+      parsed = parseFile(posix, await this.source.readFile(posix));
+    } catch {
+      parsed = null; // unreadable = treat as deleted
+    }
+
+    this._index.set(applySearchChange(index, config, posix, parsed));
+  }
+
   private async read(): Promise<VaultLoad> {
     // Build into a local and swap the index only on success (the set below is
     // the sole writer). The first load has no index yet, so a query shows the
@@ -119,6 +163,7 @@ export class SearchIndexService {
     );
     const files = parsed.filter((file): file is ParsedFile => file !== null);
 
+    this.config = config;
     this._index.set(buildSearchIndex(files, config));
     return { config, paths, files };
   }
