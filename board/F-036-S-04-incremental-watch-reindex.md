@@ -2,14 +2,14 @@
 id: F-036-S-04
 type: story
 title: Incremental watch re-index for live search
-status: Todo
+status: Done
 priority: P2
 owner: mozart
 parent: F-036
 estimate: S
 touches: [web, core]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T12:00:00Z
+updated: 2026-07-05T11:01:03Z
 ---
 
 # F-036-S-04 — Incremental watch re-index for live search
@@ -60,11 +60,11 @@ live-patches (`applyFileChange`).
 
 ## Acceptance
 
-- [ ] Adding, editing, or deleting a vault file updates open search results
+- [x] Adding, editing, or deleting a vault file updates open search results
       without a full page reload; ordinary edits cost per-file, not a full rebuild.
-- [ ] A `.mos/config.json` change rebuilds the index (scope globs re-applied).
-- [ ] The watch subscription is disposed with the service (no leak).
-- [ ] Web + core tests green.
+- [x] A `.mos/config.json` change rebuilds the index (scope globs re-applied).
+- [x] The watch subscription is disposed with the service (no leak).
+- [x] Web + core tests green.
 
 ## Dependencies
 

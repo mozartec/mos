@@ -2,13 +2,13 @@
 id: F-036
 type: feature
 title: Global vault search — scoped, highlighted, in the wiki lens
-status: In Progress
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [core, web, docs]
 created: 2026-07-04T10:00:00Z
-updated: 2026-07-04T22:28:35Z
+updated: 2026-07-05T12:44:56Z
 ---
 
 # F-036 — Global vault search — scoped, highlighted, in the wiki lens
@@ -125,18 +125,18 @@ live re-index (S-04).
 
 ## Acceptance
 
-- [ ] A search box in the wiki searches file **bodies** across the vault; while a
+- [x] A search box in the wiki searches file **bodies** across the vault; while a
       query is active the sidebar shows results with `<mark>`-highlighted snippets;
       clearing restores the tree.
-- [ ] All / Wiki / Board scopes results via the config globs; state is in
+- [x] All / Wiki / Board scopes results via the config globs; state is in
       `?q=&in=` and bookmarkable.
-- [ ] Clicking a result opens the file in the wiki content pane (`?path=…&q=…`)
+- [x] Clicking a result opens the file in the wiki content pane (`?path=…&q=…`)
       with the match highlighted and scrolled to — no new page, no side peek.
-- [ ] The engine is pure `packages/core`, dependency-free, unit-tested; the
+- [x] The engine is pure `packages/core`, dependency-free, unit-tested; the
       `SearchIndex`/`querySearch` boundary is clean enough to swap in MiniSearch
       with no caller changes.
-- [ ] The board's own `?q=` filter is untouched; AXE passes in both themes.
-- [ ] `bun run lint && bun run test && bun run build && bun run validate` green.
+- [x] The board's own `?q=` filter is untouched; AXE passes in both themes.
+- [x] `bun run lint && bun run test && bun run build && bun run validate` green.
 
 ## Out of scope
 
