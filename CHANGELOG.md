@@ -12,6 +12,14 @@ anything may change between releases — the format and app are not yet stable. 
 > declared as `specVersion` in `.mos/config.json` and documented in
 > [`docs/05-VAULT_SPEC.md`](docs/05-VAULT_SPEC.md).
 
+## [0.6.1](https://github.com/mozartec/mos/compare/v0.6.0...v0.6.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* realistic timeout for the repo-vault core test; keep tool dirs out of wiki scope ([#104](https://github.com/mozartec/mos/issues/104)) ([f10ba2d](https://github.com/mozartec/mos/commit/f10ba2d184df62893ad5b74a706e02f6b4b634c8))
+* **skills:** next_card resolves deps from the dependsOn frontmatter (T-032) ([#103](https://github.com/mozartec/mos/issues/103)) ([cf30692](https://github.com/mozartec/mos/commit/cf306924f739cda2b87de227d2fbea86dbb30546))
+
 ## [0.6.0](https://github.com/mozartec/mos/compare/v0.5.0...v0.6.0) (2026-07-05)
 
 
