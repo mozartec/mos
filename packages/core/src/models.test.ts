@@ -235,7 +235,10 @@ describe('buildModel', () => {
     expect(Object.keys(model.cards).sort()).toEqual(['C-1', 'C-2', 'C-4']);
   });
 
-  it("matches validate-vault's card count for this repository vault", () => {
+  // Integration-weight: walks the whole repo vault AND spawns a `bun` subprocess for
+  // the validator, while sibling test files keep every core busy — on older machines
+  // that contention pushes past vitest's 5s default (observed ~10s), so give it room.
+  it("matches validate-vault's card count for this repository vault", { timeout: 30_000 }, () => {
     const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
     const vaultRoot = repoRoot;
     const configText = readFileSync(join(vaultRoot, '.mos', 'config.json'), 'utf8');
