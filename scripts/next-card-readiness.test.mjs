@@ -121,6 +121,16 @@ t('frontmatter ids win when the prose disagrees', () => {
   assert.deepEqual(jb102?.unmet_deps, ['JB-104']);
 });
 
+t('prose is still honored as a fallback when the frontmatter field is absent', () => {
+  const vault = copyFixture();
+  // Drop JB-103's `dependsOn:` line entirely; its body prose still says JB-104 (unmet).
+  mutate(vault, 'JB-103-sync-notes.md', (text) => text.replace(/^dependsOn:[^\n]*\r?\n/m, ''));
+  const j = runJson(vault);
+  const jb103 = j.blocked.find((c) => c.id === 'JB-103');
+  assert.deepEqual(jb103?.deps, ['JB-104'], 'the prose scrape must still resolve deps');
+  assert.deepEqual(jb103?.unmet_deps, ['JB-104']);
+});
+
 t('cards where prose and frontmatter agree keep the baseline recommendation', () => {
   const j = runJson(join(REPO, FIXTURE));
   assert.equal(j.recommendation?.id, 'JB-102');
