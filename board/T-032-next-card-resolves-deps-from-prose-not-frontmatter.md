@@ -2,13 +2,13 @@
 id: T-032
 type: task
 title: next_card.py resolves dependencies from body prose, not the dependsOn frontmatter
-status: Todo
+status: Done
 priority: P2
 phase: Phase 4
 owner: mozart
 touches: [skills, scripts]
 created: 2026-07-17T19:15:16Z
-updated: 2026-07-17T19:15:16Z
+updated: 2026-07-17T21:10:45Z
 ---
 
 # T-032 — next_card.py resolves dependencies from body prose, not the dependsOn frontmatter
@@ -108,17 +108,17 @@ vault follows the documented convention alone:
 
 ## Acceptance
 
-- [ ] `next_card.py` resolves dependencies from the `dependsOn` frontmatter via
+- [x] `next_card.py` resolves dependencies from the `dependsOn` frontmatter via
       `parse_list`, with the body scrape as a fallback only — same precedence as
       `refine_batch.py`.
-- [ ] A card with `dependsOn` in frontmatter and no prose restatement is classified
+- [x] A card with `dependsOn` in frontmatter and no prose restatement is classified
       blocked (not ready); an explicit `dependsOn: []` is treated as no dependencies.
-- [ ] Cards where prose and frontmatter already agree produce the same recommendation as
+- [x] Cards where prose and frontmatter already agree produce the same recommendation as
       before (no regression on this vault).
-- [ ] A `scripts/next-card-readiness.test.mjs` covers the frontmatter-only and empty-list
+- [x] A `scripts/next-card-readiness.test.mjs` covers the frontmatter-only and empty-list
       cases and runs under `test:scripts`.
-- [ ] SKILL.md names the `dependsOn` frontmatter field as the dependency source.
-- [ ] The `.agents/` installed copy is regenerated from `skills/`; the full check gate is
+- [x] SKILL.md names the `dependsOn` frontmatter field as the dependency source.
+- [x] The `.agents/` installed copy is regenerated from `skills/`; the full check gate is
       green.
 
 ## Dependencies

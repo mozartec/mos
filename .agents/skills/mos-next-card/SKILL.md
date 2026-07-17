@@ -8,7 +8,7 @@ description: >
   conflict-free batch of cards safe to run in parallel — shipping a pick is mos-ship-card's
   job. Once a specific card is named, use mos-ship-card instead.
 metadata:
-  version: 0.5.1
+  version: 0.5.2
 ---
 
 # mos-next-card
@@ -34,16 +34,18 @@ python3 <skill-dir>/scripts/next_card.py [<vaultDir>] --parallel [N]   # batch m
 On Windows run it with `py -3` in place of `python3` (the `py` launcher — `python3`/`python`
 there are usually Microsoft Store stubs).
 
-It discovers the nearest vault, parses every card, resolves `Depends on:` ids, and prints
-a ranked recommendation plus the blocked list. If Python isn't available, apply the model
+It discovers the nearest vault, parses every card, resolves dependencies from the
+`dependsOn` frontmatter field (a body `Depends on:` scrape is the fallback when the
+field is absent), and prints a ranked recommendation plus the blocked list. If Python isn't available, apply the model
 below by reading the config and cards yourself.
 
 ## 2. The model (so you can sanity-check the script)
 
 - Columns are progress, left→right; the last column means done. A status mapping to no
   column is hidden — never a candidate.
-- **Ready** = not done, not hidden, not in a blocked status, and every `Depends on:` id
-  sits in the last column.
+- **Ready** = not done, not hidden, not in a blocked status, and every dependency sits
+  in the last column. Dependencies are the `dependsOn` frontmatter ids — an explicit
+  `[]` means none — falling back to a body `Depends on:` scrape when the field is absent.
 - **Prefer leaves.** A card with children (`parent:` points at it) is a container; the
   script recommends its ready children. Shipping a whole container is a deliberate user
   choice — that's mos-ship-card invoked with the container's id, not a pick this skill makes.

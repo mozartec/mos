@@ -13,7 +13,8 @@ all come from .mos/config.json, so it works on any mos vault.
 What it does, mirroring how a maintainer eyeballs the board:
   - reads the config to learn columns (left→right = progress), each type's
     state→column map, the sprint order, and the priority values;
-  - parses every board card's frontmatter, and scrapes "Depends on:" ids from the body;
+  - parses every board card's frontmatter and resolves its dependencies from the
+    `dependsOn` field, scraping "Depends on:" ids from the body only when it is absent;
   - classifies each card as done / hidden / blocked / ready;
   - ranks the ready cards and prints the top recommendation plus a shortlist.
 
@@ -123,8 +124,10 @@ def walk(root: Path):
 ID_RE = re.compile(r"\b([A-Z][A-Z0-9]*-[0-9]+(?:-[A-Z]+-[0-9]+)*)\b")
 
 
-def depends_on(body: str):
-    """Pull ids from a 'Depends on:' line in the body, if present."""
+def depends_on_prose(body: str):
+    """Fallback only: scrape `dependsOn` from body prose when frontmatter has none. mos
+    stores dependencies in the `dependsOn` frontmatter field — this catches a vault that
+    wrote them as prose instead."""
     deps = []
     for line in body.split("\n"):
         if re.search(r"depends on", line, re.I):
@@ -161,11 +164,15 @@ def load(vault: Path):
             continue
         cid = data["id"]
         col = t["states"].get(data.get("status", ""))  # None => hidden or unknown status
+        fm_deps = parse_list(data.get("dependsOn"))  # None when absent; [] is an explicit "none"
         cards[cid] = {
             "id": cid, "title": data.get("title", ""), "type": data["type"],
             "status": data.get("status", ""), "priority": data.get("priority", ""),
             "sprint": data.get("sprint", ""), "parent": data.get("parent", ""),
-            "column": col, "deps": depends_on(body),
+            "column": col,
+            # dependencies live in frontmatter; prose is a fallback ONLY when the field is
+            # absent — an explicit `dependsOn: []` is a real "none" that wins over prose
+            "deps": fm_deps if fm_deps is not None else depends_on_prose(body),
             "ready_doc": "## Acceptance" in body,  # proxy for card-readiness
             "rel": rel,
         }
